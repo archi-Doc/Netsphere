@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "BasicTest": {
+      "commandName": "Project",
+      "commandLineArgs": "-port 1000"
+    }
+  }
+}
