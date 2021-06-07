@@ -1,4 +1,5 @@
 ## Netsphere
-Work in progress
+Netsphere is a network protocol for LP.
 
+Work in progress
 
