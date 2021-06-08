@@ -17,26 +17,34 @@ namespace BasicTest
         }
 
         public async Task Run(
-            [Option("p", "The local port number to receive packets.")] int port)
+            [Option("local port number to transfer packets")] int port,
+            [Option("true if the node is receiver")] bool receiver = false,
+            [Option("test mode")] string mode = "transfer",
+            [Option("base directory for storing application data")] string dir = "")
+        {
+            this.InitializeLogger(dir);
+
+            Log.Information("start");
+
+            Console.WriteLine($"port: {port}");
+
+            await Task.Delay(2000, this.Context.CancellationToken);
+
+            Log.Information("fin");
+        }
+
+        private void InitializeLogger(string dir)
         {
             // Logger: Debug, Information, Warning, Error, Fatal
             Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .WriteTo.File(
-               /* Path.Combine("logs", "log.txt")*/"/logs/log.txt",
+                Path.Combine(dir, "logs", "log.txt"),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 31,
                 buffered: true,
                 flushToDiskInterval: TimeSpan.FromMilliseconds(1000))
             .CreateLogger();
-
-            Log.Information("test");
-
-            Console.WriteLine($"port: {port}");
-
-            await Task.Delay(3000, this.Context.CancellationToken);
-
-            Console.WriteLine("fin.");
         }
     }
 }
