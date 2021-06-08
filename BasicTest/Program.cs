@@ -19,7 +19,7 @@ namespace BasicTest
         public async Task Run(
             [Option("local port number to transfer packets")] int port,
             [Option("true if the node is receiver")] bool receiver = false,
-            [Option("test mode")] string mode = "transfer",
+            [Option("mode(transfer)")] string mode = "transfer",
             [Option("base directory for storing application data")] string dir = "")
         {
             this.InitializeLogger(dir);
