@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using ConsoleAppFramework;
 using Microsoft.Extensions.Hosting;
@@ -16,15 +18,28 @@ namespace BasicTest
         public int Port { get; set; }
 
         public bool Receiver { get; set; }
+
+        public string Target { get; set; } = string.Empty;
+
+        public int TargetPort { get; set; }
+
+        public int TestN { get; set; }
     }
 
     internal class Program : ConsoleAppBase
     {
-        private Dictionary<string, Func<Options, Task>> modeToFunc = new()
+        private Dictionary<string, Func<Options, Task>> modeToFunc;
+        private UdpClient udpPort = default!;
+
+        public Program()
         {
-            { "transfer", Transfer },
-            { "timer", Timer },
-        };
+            this.modeToFunc = new Dictionary<string, Func<Options, Task>>()
+            {
+                { "transfer", this.Transfer },
+                { "receive", this.Receive },
+                { "udpmss", this.UdpMSS },
+            };
+        }
 
         public static async Task Main(string[] args)
         {
@@ -32,18 +47,35 @@ namespace BasicTest
         }
 
         public async Task Run(
-            [Option("local port number to transfer packets")] int port,
-            [Option("true if the node is receiver")] bool receiver = false,
-            [Option("mode(transfer)")] string mode = "timer",
-            [Option("base directory for storing application data")] string dir = "")
+            [Option("p", "local port number to transfer packets")] int port,
+            [Option("r", "true if the node is receiver")] bool receiver = false,
+            [Option("target")] string target = "",
+            [Option("targetport")] int targetport = 1000,
+            [Option("m", "mode(transfer)")] string mode = "receive",
+            [Option("d", "base directory for storing application data")] string dir = "",
+            [Option("n", "test N")] int n = 0)
         {
             var options = new Options()
             {
                 Port = port,
                 Receiver = receiver,
+                Target = target,
+                TargetPort = targetport,
+                TestN = n,
             };
 
-            this.InitializeLogger(dir);
+            this.StartCommand(dir);
+
+            this.udpPort = new UdpClient(options.Port);
+
+            try
+            {
+                const int SIO_UDP_CONNRESET = -1744830452;
+                this.udpPort.Client.IOControl((IOControlCode)SIO_UDP_CONNRESET, new byte[] { 0, 0, 0, 0 }, null);
+            }
+            catch
+            {
+            }
 
             if (this.modeToFunc.TryGetValue(mode, out var action))
             {
@@ -55,12 +87,14 @@ namespace BasicTest
                 Log.Error($"mode: {mode} not found.");
             }
 
-            Log.Information("fin");
-            Log.CloseAndFlush();
+            this.EndCommand();
         }
 
-        private static async Task Timer(Options option)
+        [Command("timer")]
+        public async Task Timer([Option("d", "base directory for storing application data")] string dir = "")
         {
+            this.StartCommand(dir);
+
             var sw = new Stopwatch();
             sw.Start();
 
@@ -88,14 +122,100 @@ namespace BasicTest
             Log.Information($"delay: 10");
             Log.Information($"ticks: {sw.ElapsedTicks:#,0}");
 
-            // await Task.Delay(2000, this.Context.CancellationToken);
+            await Task.Delay(20000, this.Context.CancellationToken);
+
+            this.EndCommand();
         }
 
-        private static async Task Transfer(Options option)
+        private async Task Receive(Options option)
+        {
+            Console.WriteLine($"receive port: {option.Port}");
+            // Console.WriteLine($"target: {this.target} port: {this.targetPort}");
+            Console.WriteLine();
+            Console.WriteLine("Any key to exit.");
+
+            var t = Task.Run(this.ReceiveAction);
+            var t2 = this.WaitConsoleKey();
+            while (true)
+            {
+                t2.Wait(10, this.Context.CancellationToken);
+
+                if (t2.IsCompleted || this.Context.CancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+            }
+
+            return;
+        }
+
+        private void ReceiveAction()
+        {
+            var t = this.udpPort.ReceiveAsync();
+            while (true)
+            {
+                // var remoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
+                t.Wait(10);
+
+                if (this.Context.CancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                if (t.IsCompleted)
+                {
+                    var text = $"Received: {t.Result.Buffer.Length}";
+                    if (t.Result.Buffer.Length >= sizeof(int))
+                    {
+                        var b = t.Result.Buffer;
+                        text += $", First data: {BitConverter.ToInt32(b)}";
+                    }
+
+                    Console.WriteLine(text);
+                    Console.WriteLine($"Sender address: {t.Result.RemoteEndPoint.Address}, port: {t.Result.RemoteEndPoint.Port}");
+
+                    t = this.udpPort.ReceiveAsync();
+                }
+
+                // var rcvMsg = System.Text.Encoding.UTF8.GetString(bytes);
+                // Console.WriteLine("受信したデータ:{0}", rcvMsg);
+            }
+        }
+
+        private async Task Transfer(Options option)
         {
             Log.Information($"port: {option.Port}");
 
             // await Task.Delay(2000, this.Context.CancellationToken);
+        }
+
+        private async Task UdpMSS(Options option)
+        {
+            var length = option.TestN;
+            var bytes = new byte[length];
+
+            for (var n = 0; n < 4; n++)
+            {
+                var message = $"Send {n}";
+                Console.WriteLine(message);
+
+                bytes[0] = (byte)n;
+
+                this.udpPort.Send(bytes, bytes.Length, option.Target, option.TargetPort);
+
+                await Task.Delay(1000);
+            }
+        }
+
+        private void StartCommand(string dir)
+        {
+            this.InitializeLogger(dir);
+        }
+
+        private void EndCommand()
+        {
+            Log.Information("fin");
+            Log.CloseAndFlush();
         }
 
         private void InitializeLogger(string dir)
@@ -111,6 +231,20 @@ namespace BasicTest
                 buffered: true,
                 flushToDiskInterval: TimeSpan.FromMilliseconds(1000))
             .CreateLogger();
+        }
+
+        private async Task<ConsoleKey> WaitConsoleKey()
+        {
+            try
+            {
+                ConsoleKey key = default;
+                await Task.Run(() => key = Console.ReadKey(true).Key);
+                return key;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }
