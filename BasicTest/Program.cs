@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using ConsoleAppFramework;
@@ -15,19 +14,6 @@ using Serilog;
 
 namespace BasicTest
 {
-    internal class Options
-    {
-        public int Port { get; set; }
-
-        public bool Receiver { get; set; }
-
-        public string Target { get; set; } = string.Empty;
-
-        public int TargetPort { get; set; }
-
-        public int TestN { get; set; }
-    }
-
     internal static class App
     {
         public static bool Run { get; set; } = true;
@@ -48,36 +34,23 @@ namespace BasicTest
         }
     }
 
+    internal class Options
+    {
+        public int Port { get; set; }
+
+        public bool Receiver { get; set; }
+
+        public string Target { get; set; } = string.Empty;
+
+        public int TargetPort { get; set; }
+
+        public int TestN { get; set; }
+    }
+
     internal class Program : ConsoleAppBase
     {
         private Dictionary<string, Func<Options, Task>> modeToFunc;
         private UdpClient udpPort = default!;
-
-        private enum ConsoleControlEvent : uint
-        {
-            CTRL_C_EVENT = 0,
-            CTRL_CLOSE_EVENT = 2,
-            CTRL_SHUTDOWN_EVENT = 6,
-        }
-
-        private static void ConsoleCtrlHandler(ConsoleControlEvent controlType)
-        {
-            if (controlType == ConsoleControlEvent.CTRL_C_EVENT ||
-                controlType == ConsoleControlEvent.CTRL_CLOSE_EVENT ||
-                controlType == ConsoleControlEvent.CTRL_SHUTDOWN_EVENT)
-            {
-                Log.Information("Docker container is shutting down..");
-                App.Run = false;
-                Environment.Exit(0);
-            }
-        }
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate void SetConsoleCtrlHandler_HandlerRoutine(ConsoleControlEvent controlType);
-
-        [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
-        private static extern bool SetConsoleCtrlHandler(SetConsoleCtrlHandler_HandlerRoutine handler,
-            [MarshalAs(UnmanagedType.Bool)] bool add);
 
         public Program()
         {
@@ -93,24 +66,15 @@ namespace BasicTest
         {
             AppDomain.CurrentDomain.ProcessExit += (s, e) =>
             {
-                Log.Information("Docker container is shutting down..");
+                Log.Information("exit (ProcessExit)");
                 App.Run = false;
             };
 
             Console.CancelKeyPress += (s, e) =>
             {
-                Log.Information("Ctrl+C");
+                Log.Information("exit (Ctrl+C)");
                 App.Run = false;
-                // ConsoleCtrlHandler(ConsoleControlEvent.CTRL_SHUTDOWN_EVENT);
-                // App.Run = false;
             };
-
-            // Console.TreatControlCAsInput = true;
-
-            /*if (!SetConsoleCtrlHandler(ConsoleCtrlHandler, add: true))
-            {
-                throw Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error());
-            }*/
 
             await Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<Program>(args);
         }
@@ -199,28 +163,12 @@ namespace BasicTest
         private async Task Receive(Options option)
         {
             Log.Information($"receive port: {option.Port}");
-            // Console.WriteLine($"target: {this.target} port: {this.targetPort}");
-            Log.Warning("Any key to exit");
+            Log.Warning("any key to exit");
 
             // var t = Task.Run(this.ReceiveAction);
-            Log.Information("high priority");
             var t = new Thread(this.ReceiveAction);
             t.Priority = ThreadPriority.Highest;
             t.Start();
-
-            // var t2 = this.WaitConsoleKey();
-            /*while (true)
-            {
-                t2.Wait(10, this.Context.CancellationToken);
-
-                if (t2.IsCompleted || this.Context.CancellationToken.IsCancellationRequested)
-                {
-                    break;
-                }
-            }*/
-
-            // await t2;
-            // App.Run = false;
             t.Join();
 
             return;
@@ -230,11 +178,11 @@ namespace BasicTest
         {
             while (true)
             {
-                if (this.Context.CancellationToken.IsCancellationRequested || !App.Run)
+                if (!App.Run)
                 {
                     break;
                 }
-                else if (App.SafeKeyAvailable) // Console.KeyAvailable, Console.In.Peek() >= 0
+                else if (App.SafeKeyAvailable)
                 {
                     break;
                 }
@@ -325,7 +273,7 @@ namespace BasicTest
 
         private void EndCommand()
         {
-            Log.Information("fin");
+            Log.Information("terminated");
             Log.CloseAndFlush();
         }
 
@@ -342,20 +290,6 @@ namespace BasicTest
                 buffered: true,
                 flushToDiskInterval: TimeSpan.FromMilliseconds(1000))
             .CreateLogger();
-        }
-
-        private async Task<ConsoleKey> WaitConsoleKey()
-        {
-            try
-            {
-                ConsoleKey key = default;
-                await Task.Run(() => key = Console.ReadKey(true).Key);
-                return key;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
         }
     }
 }
