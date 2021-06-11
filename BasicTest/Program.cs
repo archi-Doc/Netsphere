@@ -6,6 +6,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using ConsoleAppFramework;
 using Microsoft.Extensions.Hosting;
@@ -26,10 +28,56 @@ namespace BasicTest
         public int TestN { get; set; }
     }
 
+    internal static class App
+    {
+        public static bool Run { get; set; } = true;
+
+        public static bool SafeKeyAvailable
+        {
+            get
+            {
+                try
+                {
+                    return Console.KeyAvailable;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
     internal class Program : ConsoleAppBase
     {
         private Dictionary<string, Func<Options, Task>> modeToFunc;
         private UdpClient udpPort = default!;
+
+        private enum ConsoleControlEvent : uint
+        {
+            CTRL_C_EVENT = 0,
+            CTRL_CLOSE_EVENT = 2,
+            CTRL_SHUTDOWN_EVENT = 6,
+        }
+
+        private static void ConsoleCtrlHandler(ConsoleControlEvent controlType)
+        {
+            if (controlType == ConsoleControlEvent.CTRL_C_EVENT ||
+                controlType == ConsoleControlEvent.CTRL_CLOSE_EVENT ||
+                controlType == ConsoleControlEvent.CTRL_SHUTDOWN_EVENT)
+            {
+                Log.Information("Docker container is shutting down..");
+                App.Run = false;
+                Environment.Exit(0);
+            }
+        }
+
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+        private delegate void SetConsoleCtrlHandler_HandlerRoutine(ConsoleControlEvent controlType);
+
+        [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
+        private static extern bool SetConsoleCtrlHandler(SetConsoleCtrlHandler_HandlerRoutine handler,
+            [MarshalAs(UnmanagedType.Bool)] bool add);
 
         public Program()
         {
@@ -43,6 +91,27 @@ namespace BasicTest
 
         public static async Task Main(string[] args)
         {
+            AppDomain.CurrentDomain.ProcessExit += (s, e) =>
+            {
+                Log.Information("Docker container is shutting down..");
+                App.Run = false;
+            };
+
+            Console.CancelKeyPress += (s, e) =>
+            {
+                Log.Information("Ctrl+C");
+                App.Run = false;
+                // ConsoleCtrlHandler(ConsoleControlEvent.CTRL_SHUTDOWN_EVENT);
+                // App.Run = false;
+            };
+
+            // Console.TreatControlCAsInput = true;
+
+            /*if (!SetConsoleCtrlHandler(ConsoleCtrlHandler, add: true))
+            {
+                throw Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error());
+            }*/
+
             await Host.CreateDefaultBuilder().RunConsoleAppFrameworkAsync<Program>(args);
         }
 
@@ -129,14 +198,18 @@ namespace BasicTest
 
         private async Task Receive(Options option)
         {
-            Console.WriteLine($"receive port: {option.Port}");
+            Log.Information($"receive port: {option.Port}");
             // Console.WriteLine($"target: {this.target} port: {this.targetPort}");
-            Console.WriteLine();
-            Console.WriteLine("Any key to exit.");
+            Log.Warning("Any key to exit");
 
-            var t = Task.Run(this.ReceiveAction);
-            var t2 = this.WaitConsoleKey();
-            while (true)
+            // var t = Task.Run(this.ReceiveAction);
+            Log.Information("high priority");
+            var t = new Thread(this.ReceiveAction);
+            t.Priority = ThreadPriority.Highest;
+            t.Start();
+
+            // var t2 = this.WaitConsoleKey();
+            /*while (true)
             {
                 t2.Wait(10, this.Context.CancellationToken);
 
@@ -144,12 +217,50 @@ namespace BasicTest
                 {
                     break;
                 }
-            }
+            }*/
+
+            // await t2;
+            // App.Run = false;
+            t.Join();
 
             return;
         }
 
         private void ReceiveAction()
+        {
+            while (true)
+            {
+                if (this.Context.CancellationToken.IsCancellationRequested || !App.Run)
+                {
+                    break;
+                }
+                else if (App.SafeKeyAvailable) // Console.KeyAvailable, Console.In.Peek() >= 0
+                {
+                    break;
+                }
+                else if (this.udpPort.Available == 0)
+                {
+                    Thread.Sleep(10);
+                    continue;
+                }
+
+                IPEndPoint remoteEP = default!;
+                var bytes = this.udpPort.Receive(ref remoteEP);
+                var text = $"Received: {bytes.Length}";
+                if (bytes.Length >= sizeof(int))
+                {
+                    text += $", First data: {BitConverter.ToInt32(bytes)}";
+                }
+
+                Console.WriteLine(text);
+                Console.WriteLine($"Sender address: {remoteEP.Address}, port: {remoteEP.Port}");
+
+                // var rcvMsg = System.Text.Encoding.UTF8.GetString(bytes);
+                // Console.WriteLine("受信したデータ:{0}", rcvMsg);
+            }
+        }
+
+        /*private void ReceiveAction()
         {
             var t = this.udpPort.ReceiveAsync();
             while (true)
@@ -180,7 +291,7 @@ namespace BasicTest
                 // var rcvMsg = System.Text.Encoding.UTF8.GetString(bytes);
                 // Console.WriteLine("受信したデータ:{0}", rcvMsg);
             }
-        }
+        }*/
 
         private async Task Transfer(Options option)
         {
