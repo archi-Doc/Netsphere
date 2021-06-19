@@ -2,7 +2,7 @@
   "profiles": {
     "BasicTest": {
       "commandName": "Project",
-      "commandLineArgs": "-mode receive -port 12211 -target 3.18.216.240 -targetport 49152"
+      "commandLineArgs": "basic -mode receive -port 12211 -targetip 3.18.216.240 -targetport 49152"
     }
   }
 }
