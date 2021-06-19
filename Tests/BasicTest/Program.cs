@@ -61,7 +61,6 @@ namespace BasicTest
             await SimpleParser.ParseAndRunAsync(commandTypes, args, parserOptions);
 
             mainTermination.Set();
-            return;
         }
     }
 }

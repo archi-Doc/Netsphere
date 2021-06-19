@@ -17,8 +17,6 @@ namespace BasicTest
 
         CancellationToken CancellationToken { get; }
 
-        ManualResetEvent TerminatedEvent { get; }
-
         bool SafeKeyAvailable { get; }
     }
 
@@ -68,8 +66,6 @@ namespace BasicTest
         }
 
         public CancellationToken CancellationToken => this.cancellationTokenSource.Token;
-
-        public ManualResetEvent TerminatedEvent { get; } = new(false);
 
         private CancellationTokenSource cancellationTokenSource = new();
     }
