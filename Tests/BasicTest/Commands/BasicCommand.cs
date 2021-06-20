@@ -87,15 +87,18 @@ namespace BasicTest
             Log.Information($"receive port: {option.Port}");
             Log.Warning("any key to exit");
 
+            Task.Factory.StartNew()
+            var task = new Task((object? x) => { }, (object?)4);
+            task.
             var t = new Thread(this.ReceiveAction);
             t.Priority = ThreadPriority.Highest;
-            t.Start();
+            t.Start(3);
             t.Join();
 
             return;
         }
 
-        private void ReceiveAction()
+        private void ReceiveAction(object? param)
         {
             while (true)
             {
