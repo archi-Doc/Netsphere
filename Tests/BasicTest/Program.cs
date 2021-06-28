@@ -18,6 +18,13 @@ namespace BasicTest
 
         public static async Task Main(string[] args)
         {
+            // TaskCore
+            var tc = TaskCore.Root.CreateTask(a => { });
+            // tc.Start();
+            await tc.Task;
+            TaskCore.Root.Terminate();
+            TaskCore.Root.AsyncWaitForTermination(2000).Wait();
+
             ManualResetEvent mainTermination = new(false);
 
             // Simple Commands
