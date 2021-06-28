@@ -87,6 +87,9 @@ namespace BasicTest
             Log.Information($"receive port: {option.Port}");
             Log.Warning("any key to exit");
 
+            var taskCore = TaskCore.Root.CreateTask(this.ReceiveAction);
+            var task = new Task(this.ReceiveAction, taskCore);
+            var task2 = new Task<int>(() => { return 1; });
             Task.Factory.StartNew()
             var task = new Task((object? x) => { }, (object?)4);
             task.
