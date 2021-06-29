@@ -13,18 +13,34 @@ using System.Threading.Tasks;
 
 namespace BasicTest
 {
+    /// <summary>
+    /// Customized thread core class.
+    /// </summary>
     public class CustomThreadCore : ThreadCore
     {
         public CustomThreadCore(ThreadCoreBase parent, Action<object?> method)
             : base(parent, method)
         {
         }
+
+        public int CustomPropertyIfYouNeed { get; set; }
     }
 
+    /// <summary>
+    /// Class for <see cref="System.Threading.Thread"/>.
+    /// </summary>
     public class ThreadCore : ThreadCoreBase
     {
+        /// <summary>
+        /// Gets the root (application) object of all ThreadCoreBase classes.
+        /// </summary>
         public static ThreadCoreRoot Root { get; } = new();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ThreadCore"/> class.
+        /// </summary>
+        /// <param name="parent">The parent.</param>
+        /// <param name="method">The method that executes on a System.Threading.Thread.</param>
         public ThreadCore(ThreadCoreBase parent, Action<object?> method)
             : base(parent)
         {
@@ -32,8 +48,12 @@ namespace BasicTest
             this.Thread.Start(this);
         }
 
+        /// <inheritdoc/>
         public override bool IsRunning => this.Thread.IsAlive;
 
+        /// <summary>
+        /// Gets an instance of <see cref="System.Threading.Thread"/>.
+        /// </summary>
         public Thread Thread { get; }
 
         #region IDisposable Support
@@ -64,8 +84,16 @@ namespace BasicTest
         #endregion
     }
 
+    /// <summary>
+    /// Class for <see cref="System.Threading.Tasks.Task"/>.
+    /// </summary>
     public class TaskCore : ThreadCoreBase
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TaskCore"/> class.
+        /// </summary>
+        /// <param name="parent">The parent.</param>
+        /// <param name="method">The method that executes on a <see cref="System.Threading.Tasks.Task"/>.</param>
         public TaskCore(ThreadCoreBase parent, Action<object?> method)
             : base(parent)
         {
@@ -78,8 +106,12 @@ namespace BasicTest
             this.Task.Start();
         }*/
 
+        /// <inheritdoc/>
         public override bool IsRunning => this.Task.Status == TaskStatus.Running;
 
+        /// <summary>
+        /// Gets an instance of <see cref="System.Threading.Tasks.Task"/>.
+        /// </summary>
         public Task Task { get; }
 
         #region IDisposable Support
@@ -111,12 +143,16 @@ namespace BasicTest
         #endregion
     }
 
-    public class TaskCore<T> : ThreadCoreBase
+    /// <summary>
+    /// Class for <see cref="System.Threading.Tasks.Task{TResult}"/>.
+    /// </summary>
+    /// <typeparam name="TResult">The type of the result produced by this task.</typeparam>
+    public class TaskCore<TResult> : ThreadCoreBase
     {
-        public TaskCore(ThreadCoreBase parent, Func<object?, T> method)
+        public TaskCore(ThreadCoreBase parent, Func<object?, TResult> method)
             : base(parent)
         {
-            this.Task = new Task<T>(method, this);
+            this.Task = new Task<TResult>(method, this);
             this.Task.Start();
         }
 
@@ -125,9 +161,13 @@ namespace BasicTest
             this.Task.Start();
         }*/
 
+        /// <inheritdoc/>
         public override bool IsRunning => this.Task.Status == TaskStatus.Running;
 
-        public Task<T> Task { get; }
+        /// <summary>
+        /// Gets an instance of <see cref="System.Threading.Tasks.Task{TResult}"/>.
+        /// </summary>
+        public Task<TResult> Task { get; }
 
         #region IDisposable Support
 
@@ -158,6 +198,9 @@ namespace BasicTest
         #endregion
     }
 
+    /// <summary>
+    /// Class for the root object.
+    /// </summary>
     public class ThreadCoreRoot : ThreadCoreBase
     {
         internal ThreadCoreRoot()
@@ -165,11 +208,21 @@ namespace BasicTest
         {
         }
 
+        /// <summary>
+        /// Gets a ManualResetEvent which can be used by application termination process.
+        /// </summary>
         public ManualResetEvent TerminationEvent { get; } = new(false);
     }
 
+    /// <summary>
+    /// Base class for thread/task.
+    /// </summary>
     public class ThreadCoreBase : IDisposable
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ThreadCoreBase"/> class.
+        /// </summary>
+        /// <param name="parent">The parent.</param>
         internal ThreadCoreBase(ThreadCoreBase? parent)
         {
             this.CancellationToken = this.cancellationTokenSource.Token;
@@ -189,18 +242,34 @@ namespace BasicTest
             }
         }
 
+        /// <summary>
+        /// Gets a <see cref="System.Threading.CancellationToken"/> which is used to terminate thread/task.
+        /// </summary>
         public CancellationToken CancellationToken { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether this thread/task is terminated (or under termination process).<br/>
+        /// This value is identical to this.<see cref="CancellationToken.IsCancellationRequested"/>.
+        /// </summary>
         public bool IsTerminated => this.CancellationToken.IsCancellationRequested; // Volatile.Read(ref this.terminated);
 
+        /// <summary>
+        /// Gets a value indicating whether this thread/task is paused.
+        /// </summary>
         public bool IsPaused => Volatile.Read(ref this.paused);
 
+        /// <summary>
+        /// Gets a value indicating whether the thread/task is running.
+        /// </summary>
         public virtual bool IsRunning => true;
 
         /*public virtual void Start()
         {
         }*/
 
+        /// <summary>
+        /// Sends a termination signal (calls <see cref="CancellationTokenSource.Cancel()"/>) to the object and the children.
+        /// </summary>
         public void Terminate()
         {
             lock (TreeSync)
@@ -267,6 +336,9 @@ namespace BasicTest
             }
         }
 
+        /// <summary>
+        /// Sends a pause signal (sets <see cref="ThreadCoreBase.paused"/> to true) to the object and the children.
+        /// </summary>
         public void Pause()
         {
             lock (TreeSync)
@@ -284,6 +356,9 @@ namespace BasicTest
             }
         }
 
+        /// <summary>
+        /// Sends a resume signal (sets <see cref="ThreadCoreBase.paused"/> to false) to the object and the children.
+        /// </summary>
         public void Resume()
         {
             lock (TreeSync)
@@ -301,6 +376,10 @@ namespace BasicTest
             }
         }
 
+        /// <summary>
+        /// Gets the child objects of this thread/task.
+        /// </summary>
+        /// <returns>An array of child objects.</returns>
         public ThreadCoreBase[] GetChildren()
         {
             lock (TreeSync)
