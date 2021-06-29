@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Arc.Threading;
 using DryIoc;
 using Serilog;
 using SimpleCommandLine;
@@ -57,7 +58,8 @@ namespace BasicTest
             };
 
             await SimpleParser.ParseAndRunAsync(commandTypes, args, parserOptions);
-            await ThreadCore.Root.WaitForTermination(true, 2000);
+            ThreadCore.Root.Terminate();
+            await ThreadCore.Root.WaitForTermination(2000);
             ThreadCore.Root.TerminationEvent.Set(); // App terminated.
         }
     }

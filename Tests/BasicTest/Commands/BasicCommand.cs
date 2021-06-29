@@ -10,6 +10,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Arc.Threading;
 using Serilog;
 using SimpleCommandLine;
 
@@ -89,7 +90,7 @@ namespace BasicTest
 
             var c = new ThreadCore(ThreadCore.Root, this.ReceiveAction);
             c.Thread.Priority = ThreadPriority.AboveNormal;
-            await c.WaitForTermination(false, -1);
+            await c.WaitForTermination(-1);
             // c.Thread.Join();
 
             return;
