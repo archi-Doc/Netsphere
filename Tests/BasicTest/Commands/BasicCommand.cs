@@ -10,6 +10,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Arc.Threading;
 using Serilog;
 using SimpleCommandLine;
 
@@ -87,19 +88,20 @@ namespace BasicTest
             Log.Information($"receive port: {option.Port}");
             Log.Warning("any key to exit");
 
-            var t = new Thread(this.ReceiveAction);
-            t.Priority = ThreadPriority.Highest;
-            t.Start();
-            t.Join();
+            var c = new ThreadCore(ThreadCore.Root, this.ReceiveAction);
+            c.Thread.Priority = ThreadPriority.AboveNormal;
+            await c.WaitForTermination(-1);
+            // c.Thread.Join();
 
             return;
         }
 
-        private void ReceiveAction()
+        private void ReceiveAction(object? param)
         {
+            var core = (ThreadCore)param!;
             while (true)
             {
-                if (this.AppService.CancellationToken.IsCancellationRequested)
+                if (core.IsTerminated)
                 {
                     break;
                 }

@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Arc.Threading;
 using DryIoc;
 using Serilog;
 using SimpleCommandLine;
@@ -18,8 +19,6 @@ namespace BasicTest
 
         public static async Task Main(string[] args)
         {
-            ManualResetEvent mainTermination = new(false);
-
             // Simple Commands
             var commandTypes = new Type[]
             {
@@ -37,18 +36,18 @@ namespace BasicTest
 
             Container.ValidateAndThrow();
 
-            AppDomain.CurrentDomain.ProcessExit += (s, e) =>
+            AppDomain.CurrentDomain.ProcessExit += async (s, e) =>
             {// Console window closing or process terminated.
                 // Log.Information("exit (ProcessExit)");
-                Container.Resolve<IAppService>().Terminate();
-                mainTermination.WaitOne(2000);
+                ThreadCore.Root.Terminate();
+                ThreadCore.Root.TerminationEvent.WaitOne(2000);
             };
 
             Console.CancelKeyPress += (s, e) =>
             {// Ctrl+C pressed
                 // Log.Information("exit (Ctrl+C)");
                 e.Cancel = true;
-                Container.Resolve<IAppService>().Terminate();
+                ThreadCore.Root.Terminate();
             };
 
             var parserOptions = SimpleParserOptions.Standard with
@@ -59,9 +58,9 @@ namespace BasicTest
             };
 
             await SimpleParser.ParseAndRunAsync(commandTypes, args, parserOptions);
-
-            mainTermination.Set();
-            return;
+            ThreadCore.Root.Terminate();
+            await ThreadCore.Root.WaitForTermination(2000);
+            ThreadCore.Root.TerminationEvent.Set(); // App terminated.
         }
     }
 }
