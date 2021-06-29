@@ -13,9 +13,7 @@ namespace BasicTest
 
         void ExitCommand();
 
-        void Terminate();
-
-        CancellationToken CancellationToken { get; }
+        // void Terminate();
 
         bool SafeKeyAvailable { get; }
     }
@@ -45,11 +43,6 @@ namespace BasicTest
             Log.CloseAndFlush();
         }
 
-        public void Terminate()
-        {
-            this.cancellationTokenSource.Cancel();
-        }
-
         public bool SafeKeyAvailable
         {
             get
@@ -64,9 +57,5 @@ namespace BasicTest
                 }
             }
         }
-
-        public CancellationToken CancellationToken => this.cancellationTokenSource.Token;
-
-        private CancellationTokenSource cancellationTokenSource = new();
     }
 }

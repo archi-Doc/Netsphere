@@ -18,31 +18,6 @@ namespace BasicTest
 
         public static async Task Main(string[] args)
         {
-            // TaskCore
-            /* var tc = new ThreadCore(ThreadCore.Root, a =>
-            {
-                var core = (ThreadCore)a!;
-                while (true)
-                {
-                    Thread.Sleep(50);
-                    if (core.IsTerminated)
-                    {
-                        break;
-                    }
-                }
-            });
-            tc = new ThreadCore(ThreadCore.Root, a => { });
-            tc = new ThreadCore(ThreadCore.Root, a => { });
-            await Task.Delay(1000);
-            tc = new ThreadCore(ThreadCore.Root, a => { });*/
-
-            // tc.Start();
-            // await tc.Task;
-            // ThreadCore.Root.Terminate();
-            // ThreadCore.Root.WaitForTermination(2000).Wait();
-
-            ManualResetEvent mainTermination = new(false);
-
             // Simple Commands
             var commandTypes = new Type[]
             {
@@ -60,18 +35,18 @@ namespace BasicTest
 
             Container.ValidateAndThrow();
 
-            AppDomain.CurrentDomain.ProcessExit += (s, e) =>
+            AppDomain.CurrentDomain.ProcessExit += async (s, e) =>
             {// Console window closing or process terminated.
                 // Log.Information("exit (ProcessExit)");
-                Container.Resolve<IAppService>().Terminate();
-                mainTermination.WaitOne(2000);
+                ThreadCore.Root.Terminate();
+                ThreadCore.Root.TerminationEvent.WaitOne(2000);
             };
 
             Console.CancelKeyPress += (s, e) =>
             {// Ctrl+C pressed
                 // Log.Information("exit (Ctrl+C)");
                 e.Cancel = true;
-                Container.Resolve<IAppService>().Terminate();
+                ThreadCore.Root.Terminate();
             };
 
             var parserOptions = SimpleParserOptions.Standard with
@@ -82,8 +57,8 @@ namespace BasicTest
             };
 
             await SimpleParser.ParseAndRunAsync(commandTypes, args, parserOptions);
-
-            mainTermination.Set();
+            await ThreadCore.Root.WaitForTermination(true, 2000);
+            ThreadCore.Root.TerminationEvent.Set(); // App terminated.
         }
     }
 }

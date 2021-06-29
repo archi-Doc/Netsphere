@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -22,7 +23,7 @@ namespace BasicTest
 
     public class ThreadCore : ThreadCoreBase
     {
-        public static ThreadCoreBase Root { get; } = new(null);
+        public static ThreadCoreRoot Root { get; } = new();
 
         public ThreadCore(ThreadCoreBase parent, Action<object?> method)
             : base(parent)
@@ -157,6 +158,16 @@ namespace BasicTest
         #endregion
     }
 
+    public class ThreadCoreRoot : ThreadCoreBase
+    {
+        internal ThreadCoreRoot()
+            : base(null)
+        {
+        }
+
+        public ManualResetEvent TerminationEvent { get; } = new(false);
+    }
+
     public class ThreadCoreBase : IDisposable
     {
         internal ThreadCoreBase(ThreadCoreBase? parent)
@@ -208,15 +219,16 @@ namespace BasicTest
             }
         }
 
-        public Task<bool> WaitForTermination(int millisecondTimeout)
+        public Task<bool> WaitForTermination(bool terminateFlag, int millisecondTimeout)
         {
-            this.Terminate();
+            if (terminateFlag)
+            {
+                this.Terminate();
+            }
 
             int interval = 5;
-            if (millisecondTimeout < 0)
-            {
-                millisecondTimeout = int.MaxValue;
-            }
+            var sw = new Stopwatch();
+            sw.Start();
 
             return WaitForTerminationCore(this);
 
@@ -237,13 +249,15 @@ namespace BasicTest
 
                         if (c.hashSet.Count == 0)
                         {
-                            return true;
+                            if (c.parent == null || !c.IsRunning)
+                            {// Root or not running
+                                return true;
+                            }
                         }
                     }
 
                     await Task.Delay(interval);
-                    millisecondTimeout -= interval;
-                    if (millisecondTimeout < 0)
+                    if (millisecondTimeout >= 0 && sw.ElapsedMilliseconds >= millisecondTimeout)
                     {
                         return false;
                     }
