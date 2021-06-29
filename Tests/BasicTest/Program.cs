@@ -19,11 +19,27 @@ namespace BasicTest
         public static async Task Main(string[] args)
         {
             // TaskCore
-            var tc = TaskCore.Root.CreateTask(a => { });
+            /* var tc = new ThreadCore(ThreadCore.Root, a =>
+            {
+                var core = (ThreadCore)a!;
+                while (true)
+                {
+                    Thread.Sleep(50);
+                    if (core.IsTerminated)
+                    {
+                        break;
+                    }
+                }
+            });
+            tc = new ThreadCore(ThreadCore.Root, a => { });
+            tc = new ThreadCore(ThreadCore.Root, a => { });
+            await Task.Delay(1000);
+            tc = new ThreadCore(ThreadCore.Root, a => { });*/
+
             // tc.Start();
-            await tc.Task;
-            TaskCore.Root.Terminate();
-            TaskCore.Root.AsyncWaitForTermination(2000).Wait();
+            // await tc.Task;
+            // ThreadCore.Root.Terminate();
+            // ThreadCore.Root.WaitForTermination(2000).Wait();
 
             ManualResetEvent mainTermination = new(false);
 

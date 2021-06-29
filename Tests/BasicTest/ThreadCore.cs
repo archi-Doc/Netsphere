@@ -12,11 +12,60 @@ using System.Threading.Tasks;
 
 namespace BasicTest
 {
-    public class TaskCore : TaskCoreBase
+    public class CustomThreadCore : ThreadCore
     {
-        public static TaskCoreBase Root { get; } = new(null);
+        public CustomThreadCore(ThreadCoreBase parent, Action<object?> method)
+            : base(parent, method)
+        {
+        }
+    }
 
-        public TaskCore(TaskCoreBase parent, Action<object?> method)
+    public class ThreadCore : ThreadCoreBase
+    {
+        public static ThreadCoreBase Root { get; } = new(null);
+
+        public ThreadCore(ThreadCoreBase parent, Action<object?> method)
+            : base(parent)
+        {
+            this.Thread = new Thread(new ParameterizedThreadStart(method));
+            this.Thread.Start(this);
+        }
+
+        public override bool IsRunning => this.Thread.IsAlive;
+
+        public Thread Thread { get; }
+
+        #region IDisposable Support
+
+        /// <summary>
+        /// Finalizes an instance of the <see cref="ThreadCore"/> class.
+        /// </summary>
+        ~ThreadCore()
+        {
+            this.Dispose(false);
+        }
+
+        /// <summary>
+        /// free managed/native resources.
+        /// </summary>
+        /// <param name="disposing">true: free managed resources.</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (!this.disposed)
+            {
+                if (disposing)
+                {
+                }
+
+                base.Dispose(disposing);
+            }
+        }
+        #endregion
+    }
+
+    public class TaskCore : ThreadCoreBase
+    {
+        public TaskCore(ThreadCoreBase parent, Action<object?> method)
             : base(parent)
         {
             this.Task = new Task(method, this);
@@ -61,9 +110,9 @@ namespace BasicTest
         #endregion
     }
 
-    public class TaskCore<T> : TaskCoreBase
+    public class TaskCore<T> : ThreadCoreBase
     {
-        public TaskCore(TaskCoreBase parent, Func<object?, T> method)
+        public TaskCore(ThreadCoreBase parent, Func<object?, T> method)
             : base(parent)
         {
             this.Task = new Task<T>(method, this);
@@ -108,75 +157,25 @@ namespace BasicTest
         #endregion
     }
 
-    public class ThreadCore : TaskCoreBase
+    public class ThreadCoreBase : IDisposable
     {
-        public ThreadCore(TaskCoreBase parent, Action<object?> method)
-            : base(parent)
-        {
-            this.Thread = new Thread(new ParameterizedThreadStart(method));
-            this.Thread.Start();
-        }
-
-        public override bool IsRunning => this.Thread.IsAlive;
-
-        public Thread Thread { get; }
-
-        /// <summary>
-        /// Finalizes an instance of the <see cref="ThreadCore"/> class.
-        /// </summary>
-        ~ThreadCore()
-        {
-            this.Dispose(false);
-        }
-
-        /// <summary>
-        /// free managed/native resources.
-        /// </summary>
-        /// <param name="disposing">true: free managed resources.</param>
-        protected override void Dispose(bool disposing)
-        {
-            if (!this.disposed)
-            {
-                if (disposing)
-                {
-                }
-
-                base.Dispose(disposing);
-            }
-        }
-    }
-
-    public class TaskCoreBase : IDisposable
-    {
-        internal TaskCoreBase(TaskCoreBase? parent)
+        internal ThreadCoreBase(ThreadCoreBase? parent)
         {
             this.CancellationToken = this.cancellationTokenSource.Token;
             lock (TreeSync)
             {
+                if (++cleanupCount >= CleanupThreshold)
+                {
+                    cleanupCount = 0;
+                    ThreadCore.Root?.Clean();
+                }
+
                 this.parent = parent;
                 if (parent != null && !parent.IsTerminated)
                 {
                     parent.hashSet.Add(this);
                 }
             }
-        }
-
-        public TaskCore CreateTask(Action<object?> method)
-        {
-            var c = new TaskCore(this, method);
-            return c;
-        }
-
-        public TaskCore<T> CreateTask<T>(Func<object?, T> method)
-        {
-            var c = new TaskCore<T>(this, method);
-            return c;
-        }
-
-        public ThreadCore CreateThread(Action<object?> method)
-        {
-            var c = new ThreadCore(this, method);
-            return c;
         }
 
         public CancellationToken CancellationToken { get; }
@@ -198,7 +197,7 @@ namespace BasicTest
                 TerminateCore(this);
             }
 
-            static void TerminateCore(TaskCoreBase c)
+            static void TerminateCore(ThreadCoreBase c)
             {
                 // c.terminated = true;
                 c.cancellationTokenSource.Cancel();
@@ -209,7 +208,7 @@ namespace BasicTest
             }
         }
 
-        public Task<bool> AsyncWaitForTermination(int millisecondTimeout)
+        public Task<bool> WaitForTermination(int millisecondTimeout)
         {
             this.Terminate();
 
@@ -219,9 +218,9 @@ namespace BasicTest
                 millisecondTimeout = int.MaxValue;
             }
 
-            return AsyncWaitForTerminationCore(this);
+            return WaitForTerminationCore(this);
 
-            async Task<bool> AsyncWaitForTerminationCore(TaskCoreBase c)
+            async Task<bool> WaitForTerminationCore(ThreadCoreBase c)
             {
                 while (true)
                 {
@@ -261,7 +260,7 @@ namespace BasicTest
                 PauseCore(this);
             }
 
-            static void PauseCore(TaskCoreBase c)
+            static void PauseCore(ThreadCoreBase c)
             {
                 c.paused = true;
                 foreach (var x in c.hashSet)
@@ -278,7 +277,7 @@ namespace BasicTest
                 ResumeCore(this);
             }
 
-            static void ResumeCore(TaskCoreBase c)
+            static void ResumeCore(ThreadCoreBase c)
             {
                 c.paused = false;
                 foreach (var x in c.hashSet)
@@ -288,10 +287,44 @@ namespace BasicTest
             }
         }
 
+        public ThreadCoreBase[] GetChildren()
+        {
+            lock (TreeSync)
+            {
+                return this.hashSet.ToArray();
+            }
+        }
+
+        internal void Clean()
+        {// lock(TreeSync) required
+            CleanCore(this);
+
+            static bool CleanCore(ThreadCoreBase c)
+            {
+                if (c.hashSet.Count > 0)
+                {
+                    var array = c.hashSet.ToArray();
+                    foreach (var x in array)
+                    {
+                        if (!CleanCore(x))
+                        {
+                            x.Dispose();
+                        }
+                    }
+                }
+
+                return c.IsRunning;
+            }
+        }
+
+        protected const int CleanupThreshold = 16;
+
         private static object TreeSync { get; } = new object();
 
-        private TaskCoreBase? parent;
-        private HashSet<TaskCoreBase> hashSet = new();
+        private static int cleanupCount = 0;
+
+        private ThreadCoreBase? parent;
+        private HashSet<ThreadCoreBase> hashSet = new();
         // private bool terminated = false;
         private CancellationTokenSource cancellationTokenSource = new();
         private bool paused = false;
@@ -304,9 +337,9 @@ namespace BasicTest
 #pragma warning restore SA1202 // Elements should be ordered by access
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="TaskCoreBase"/> class.
+        /// Finalizes an instance of the <see cref="ThreadCoreBase"/> class.
         /// </summary>
-        ~TaskCoreBase()
+        ~ThreadCoreBase()
         {
             this.Dispose(false);
         }
@@ -329,6 +362,11 @@ namespace BasicTest
                 if (disposing)
                 {
                     // free managed resources.
+                    if (!this.IsTerminated)
+                    {
+                        this.Terminate();
+                    }
+
                     lock (TreeSync)
                     {
                         if (this.parent != null)
