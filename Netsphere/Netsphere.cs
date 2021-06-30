@@ -13,7 +13,6 @@ namespace LP
 
         public void Test()
         {
-            var dummy = ThreadCore.Root.Dummy;
         }
     }
 }
