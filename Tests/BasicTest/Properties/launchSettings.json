@@ -3,6 +3,10 @@
     "BasicTest": {
       "commandName": "Project",
       "commandLineArgs": "basic -mode receive -port 12211 -targetip 3.18.216.240 -targetport 49152"
+    },
+    "Help": {
+      "commandName": "Project",
+      "commandLineArgs": "--help"
     }
   }
 }

@@ -12,10 +12,10 @@ using SimpleCommandLine;
 
 namespace BasicTest
 {
-    public class TimerOptions
+    public class TimerOptions : BaseOptions
     {
-        [SimpleOption("directory", null, "base directory for storing application data")]
-        public string Directory { get; set; } = string.Empty;
+        /*[SimpleOption("directory", null, "base directory for storing application data")]
+        public string Directory { get; set; } = string.Empty;*/
     }
 
     [SimpleCommand("timer")]

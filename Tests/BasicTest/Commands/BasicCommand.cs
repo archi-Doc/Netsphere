@@ -16,11 +16,8 @@ using SimpleCommandLine;
 
 namespace BasicTest
 {
-    public class BasicOptions
+    public class BasicOptions : BaseOptions
     {
-        [SimpleOption("directory", null, "base directory for storing application data")]
-        public string Directory { get; } = string.Empty;
-
         [SimpleOption("mode", null, "mode(receive, transfer)")]
         public string Mode { get; } = "receive";
 
