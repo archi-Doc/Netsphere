@@ -5,13 +5,9 @@ using Arc.Threading;
 
 namespace LP.Netsphere;
 
-public class Netsphere
+public class NetStatus
 {
-    public Netsphere()
-    {
-    }
-
-    public void Test()
+    public NetStatus()
     {
     }
 }
