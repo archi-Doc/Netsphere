@@ -19,5 +19,7 @@ public class MyStatus
     {
     }
 
-    public NetType Type { get; set; }
+    public NetType Type { get; private set; }
+
+    public double EstimatedMBPS { get; private set; }
 }

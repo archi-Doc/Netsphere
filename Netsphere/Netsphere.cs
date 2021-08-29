@@ -11,7 +11,5 @@ public class Netsphere
     {
     }
 
-    public void Test()
-    {
-    }
+    public MyStatus MyStatus { get; } = new();
 }

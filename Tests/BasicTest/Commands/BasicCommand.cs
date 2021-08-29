@@ -86,6 +86,8 @@ namespace BasicTest
             Log.Information($"send to {option.TargetIp} / {option.TargetPort}");
             Log.Warning("any key to exit");
 
+            var rawPipe = new LP.Netsphere.RawPipe(ThreadCore.Root);
+
             long total = 0;
             var bytes = new byte[1024];
             for (var n = 0; n < 400; n++)
