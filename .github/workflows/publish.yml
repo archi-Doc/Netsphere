@@ -28,7 +28,7 @@ jobs:
         PROJECT_FILE_PATH: Netsphere/Netsphere.csproj
         
         # NuGet package id, used for version detection & defaults to project name
-        PACKAGE_NAME: Netsphere
+        PACKAGE_NAME: Netsphere.LP
         
         # Filepath with version info, relative to root of repository & defaults to PROJECT_FILE_PATH
         VERSION_FILE_PATH: Directory.Build.props
