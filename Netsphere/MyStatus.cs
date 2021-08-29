@@ -5,13 +5,19 @@ using Arc.Threading;
 
 namespace LP.Netsphere;
 
-public class Netsphere
+public class MyStatus
 {
-    public Netsphere()
+    public enum NetType
+    {
+        Unknown,
+        Direct,
+        NAT,
+        Symmetric,
+    }
+
+    public MyStatus()
     {
     }
 
-    public void Test()
-    {
-    }
+    public NetType Type { get; set; }
 }

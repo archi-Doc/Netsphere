@@ -22,7 +22,7 @@ namespace BasicTest
             // Simple Commands
             var commandTypes = new Type[]
             {
-                typeof(TemplateCommand),
+                typeof(BaseCommand),
                 typeof(TimerCommand),
                 typeof(BasicCommand),
             };

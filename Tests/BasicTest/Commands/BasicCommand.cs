@@ -16,11 +16,8 @@ using SimpleCommandLine;
 
 namespace BasicTest
 {
-    public class BasicOptions
+    public class BasicOptions : BaseOptions
     {
-        [SimpleOption("directory", null, "base directory for storing application data")]
-        public string Directory { get; } = string.Empty;
-
         [SimpleOption("mode", null, "mode(receive, transfer)")]
         public string Mode { get; } = "receive";
 
@@ -52,6 +49,7 @@ namespace BasicTest
                 { "transfer", this.Transfer },
                 { "receive", this.Receive },
                 { "udpmss", this.UdpMSS },
+                { "sendrepeat", this.SendRepeat },
             };
         }
 
@@ -83,6 +81,43 @@ namespace BasicTest
             this.AppService.ExitCommand();
         }
 
+        private async Task SendRepeat(BasicOptions option)
+        {
+            Log.Information($"send to {option.TargetIp} / {option.TargetPort}");
+            Log.Warning("any key to exit");
+
+            long total = 0;
+            var bytes = new byte[1024];
+            for (var n = 0; n < 400; n++)
+            {
+                for (var m = 0; m < 10; m++)
+                {
+                    bytes[0] = (byte)n;
+                    bytes[1] = (byte)m;
+
+                    var sent = this.udpPort.Send(bytes, bytes.Length, option.TargetIp, option.TargetPort);
+                    total += sent;
+                }
+
+                var message = $"Send {n}";
+                Log.Debug(message);
+
+                var sw = new Stopwatch();
+                sw.Start();
+                while (sw.Elapsed < TimeSpan.FromMilliseconds(1))
+                {
+                    Thread.Sleep(0);
+                }
+            }
+
+            Log.Information($"{1024 * 4000} - {total}");
+
+            // var c = new ThreadCore(ThreadCore.Root, this.ReceiveAction);
+            // await c.WaitForTermination(-1);
+
+            return;
+        }
+
         private async Task Receive(BasicOptions option)
         {
             Log.Information($"receive port: {option.Port}");
@@ -111,7 +146,7 @@ namespace BasicTest
                 }
                 else if (this.udpPort.Available == 0)
                 {
-                    Thread.Sleep(10);
+                    Thread.Sleep(1);
                     continue;
                 }
 
@@ -123,8 +158,8 @@ namespace BasicTest
                     text += $", First data: {BitConverter.ToInt32(bytes)}";
                 }
 
-                Console.WriteLine(text);
-                Console.WriteLine($"Sender address: {remoteEP.Address}, port: {remoteEP.Port}");
+                Log.Debug(text);
+                Log.Debug($"Sender address: {remoteEP.Address}, port: {remoteEP.Port}");
 
                 // var rcvMsg = System.Text.Encoding.UTF8.GetString(bytes);
                 // Console.WriteLine("受信したデータ:{0}", rcvMsg);

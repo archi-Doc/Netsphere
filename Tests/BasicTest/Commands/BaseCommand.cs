@@ -12,16 +12,16 @@ using SimpleCommandLine;
 
 namespace BasicTest
 {
-    public class TemplateOptions
+    public class BaseOptions
     {
         [SimpleOption("directory", null, "base directory for storing application data")]
         public string Directory { get; set; } = string.Empty;
     }
 
-    [SimpleCommand("template")]
-    public class TemplateCommand : ISimpleCommandAsync<TimerOptions>
+    [SimpleCommand("base")]
+    public class BaseCommand : ISimpleCommandAsync<TimerOptions>
     {
-        public TemplateCommand(IAppService appService)
+        public BaseCommand(IAppService appService)
         {
             this.AppService = appService;
         }

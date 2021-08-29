@@ -22,14 +22,15 @@ namespace BasicTest
     {
         public void EnterCommand(string directory)
         {
-            // Logger: Debug, Information, Warning, Error, Fatal
+            // Logger: Verbose, Debug, Information, Warning, Error, Fatal
             Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Information()
-            .WriteTo.Console()
+            .MinimumLevel.Debug()
+            .WriteTo.Console(restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
             .WriteTo.File(
                 Path.Combine(directory, "logs", "log.txt"),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 31,
+                fileSizeLimitBytes: 1024 * 1024,
                 buffered: true,
                 flushToDiskInterval: TimeSpan.FromMilliseconds(1000))
             .CreateLogger();

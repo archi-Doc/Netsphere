@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <PackageId>Netsphere</PackageId>
+    <PackageId>Netsphere.LP</PackageId>
     <Authors>archi-Doc</Authors>
     <Product>Netsphere</Product>
     <Description>Netsphere is a network protocol for LP.</Description>
