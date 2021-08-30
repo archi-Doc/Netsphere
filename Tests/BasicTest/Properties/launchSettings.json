@@ -11,6 +11,10 @@
     "Receive": {
       "commandName": "Project",
       "commandLineArgs": "basic -mode receive -port 12211 -targetip 3.18.216.240 -targetport 49152"
+    },
+    "Netsphere": {
+      "commandName": "Project",
+      "commandLineArgs": "ns -mode sendrepeat -port 12211"
     }
   }
 }

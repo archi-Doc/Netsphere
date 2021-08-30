@@ -7,10 +7,10 @@ namespace LP.Netsphere;
 
 public class MyStatus
 {
-    public enum NetType
+    public enum ConnectionType
     {
         Unknown,
-        Direct,
+        Global,
         NAT,
         Symmetric,
     }
@@ -19,7 +19,7 @@ public class MyStatus
     {
     }
 
-    public NetType Type { get; private set; }
+    public ConnectionType Type { get; private set; }
 
     public double EstimatedMBPS { get; private set; }
 }

@@ -58,6 +58,7 @@ namespace BasicTest
             this.AppService.EnterCommand(option.Directory);
 
             this.udpPort = new UdpClient(option.Port);
+            // this.udpPort = new UdpClient(option.Port, AddressFamily.InterNetworkV6);
 
             try
             {

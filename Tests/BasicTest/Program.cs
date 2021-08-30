@@ -25,6 +25,7 @@ namespace BasicTest
                 typeof(BaseCommand),
                 typeof(TimerCommand),
                 typeof(BasicCommand),
+                typeof(NetsphereCommand),
             };
 
             // DI Container
