@@ -15,7 +15,7 @@ namespace BasicTest
 {
     public class NetsphereCommandOptions : BaseOptions
     {
-        [SimpleOption("netsphere")]
+        [SimpleOption("netsphere", "ns")]
         public NetsphereOptions NetsphereOptions { get; set; } = new();
     }
 

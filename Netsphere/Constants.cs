@@ -8,6 +8,6 @@ namespace LP.Netsphere;
 public static class Constants
 {
     public const int MaxPayload = 1432; // 1432 bytes
-    public const int MinPort = 49152; // ephemeral port 49152 - 60999
+    public const int MinPort = 49152; // Ephemeral port 49152 - 60999
     public const int MaxPort = 60999;
 }
