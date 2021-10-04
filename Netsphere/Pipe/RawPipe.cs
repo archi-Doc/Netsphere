@@ -30,6 +30,8 @@ public class RawPipe
         {
         }
 
+        var socket = this.udpPort.Client;
+
         this.core.Start();
     }
 

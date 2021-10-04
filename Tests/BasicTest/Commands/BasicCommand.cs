@@ -89,6 +89,9 @@ namespace BasicTest
 
             var rawPipe = new LP.Netsphere.RawPipe(ThreadCore.Root);
 
+            var socket = this.udpPort.Client;
+            socket.SendBufferSize = 1024 * 8;
+            socket.SendTimeout = 1000;
             long total = 0;
             var bytes = new byte[1024];
             for (var n = 0; n < 400; n++)
@@ -105,12 +108,12 @@ namespace BasicTest
                 var message = $"Send {n}";
                 Log.Debug(message);
 
-                var sw = new Stopwatch();
+                /*var sw = new Stopwatch();
                 sw.Start();
                 while (sw.Elapsed < TimeSpan.FromMilliseconds(1))
                 {
                     Thread.Sleep(0);
-                }
+                }*/
             }
 
             Log.Information($"{1024 * 4000} - {total}");
