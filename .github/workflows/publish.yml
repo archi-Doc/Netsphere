@@ -1,0 +1,27 @@
+name: Publish NuGet
+on: workflow_dispatch
+
+jobs:
+  publish:
+    name: Build, Pack & Publish
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+    - name: Install dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+    - name: Test
+      run: dotnet test --no-restore --verbosity normal
+
+    - name: Package1
+      run: dotnet pack -c Release -o bin Netsphere/Netsphere.csproj
+    - name: Package2
+      run: dotnet pack -c Release -o bin Netsphere.Shared/Netsphere.Shared.csproj
+      
+    - name: Publish
+      run: dotnet nuget push bin/*.nupkg -k ${{secrets.NUGET_API_KEY}} -s https://api.nuget.org/v3/index.json
