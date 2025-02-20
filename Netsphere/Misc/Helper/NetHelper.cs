@@ -1,7 +1,10 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
 using Netsphere.Crypto;
 using Netsphere.Packet;
 using Tinyhand.IO;
@@ -16,6 +19,36 @@ public static class NetHelper
     internal const char Quote = '\"';
     internal const string TripleQuotes = "\"\"\"";
     private const int StreamBufferSize = 1024 * 1024 * 4; // 4 MB
+
+    [SupportedOSPlatform("windows")]
+    public static bool TryGetStaticIpv6Address([MaybeNullWhen(false)] out IPAddress ipv6)
+    {
+        try
+        {
+            foreach (var networkInterface in NetworkInterface.GetAllNetworkInterfaces().Where(x => x.OperationalStatus == OperationalStatus.Up))
+            {
+                var properties = networkInterface.GetIPProperties();
+                foreach (var unicast in properties.UnicastAddresses)
+                {
+                    var address = unicast.Address;
+                    if (unicast.SuffixOrigin != SuffixOrigin.Random &&
+                        address.AddressFamily == AddressFamily.InterNetworkV6 &&
+                        !address.IsIPv6LinkLocal &&
+                        !address.IsIPv6SiteLocal)
+                    {
+                        ipv6 = address;
+                        return true;
+                    }
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        ipv6 = default;
+        return false;
+    }
 
     public static async Task<NetNode?> TryGetNetNode(NetTerminal netTerminal, string nodeString)
     {
