@@ -8,6 +8,7 @@
     <Authors>archi-Doc</Authors>
     <Product>Netsphere</Product>
     <Description>Netsphere is a network protocol for Lp.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/archi-Doc/Netsphere</PackageProjectUrl>
     <RepositoryUrl>https://github.com/archi-Doc/Netsphere</RepositoryUrl>
@@ -36,6 +37,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\"/>
     <None Include="..\NetsphereGenerator\bin\$(Configuration)\netstandard2.0\NetsphereGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
 
