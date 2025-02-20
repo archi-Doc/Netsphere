@@ -33,4 +33,7 @@ public partial record NetOptions
 
     [SimpleOption("Alternative", Description = "Enable alternative (debug) terminal")]
     public bool EnableAlternative { get; set; } = false;
+
+    [SimpleOption("TemporaryIpv6", Description = "Enable temporary Ipv6 address")]
+    public bool EnableTemporaryIpv6Address { get; set; } = false;
 }

@@ -1,6 +1,9 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Runtime.Versioning;
 using Netsphere.Packet;
 
 namespace Netsphere.Core;
@@ -133,8 +136,18 @@ public sealed class NetSocket
         var udp = new UdpClient(port, addressFamily);
         try
         {
+            udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);//
+
             const int SIO_UDP_CONNRESET = -1744830452;
             udp.Client.IOControl((IOControlCode)SIO_UDP_CONNRESET, new byte[] { 0, 0, 0, 0 }, null);
+
+            if (ipv6 &&
+                !this.netTerminal.NetBase.NetOptions.EnableTemporaryIpv6Address &&
+                OperatingSystem.IsWindows() &&
+                NetHelper.TryGetStaticIpv6Address(out var ipv6Address))
+            {
+                udp.Client.Bind(new IPEndPoint(ipv6Address, port));
+            }
         }
         catch
         {
