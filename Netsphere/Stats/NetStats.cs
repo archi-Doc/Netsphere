@@ -94,8 +94,8 @@ public sealed partial class NetStats
         }
         else if (endpointResolution == EndpointResolution.NetAddress)
         {
-            if (this.IsIpv6Supported && address.IsValidIpv6)
-            {
+            if (this.IsIpv6Supported || !address.IsValidIpv4)
+            {// Ipv6 supported or Ipv6 only
                 address.TryCreateIpv6(ref endPoint);
                 if (endPoint.IsValid)
                 {

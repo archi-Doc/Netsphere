@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuickStartServer", "QuickSt
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "xUnitTest", "xUnitTest\xUnitTest.csproj", "{5949EAE5-2BF2-F16B-F237-6550F6F74BCC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Playground", "Playground\Playground.csproj", "{C1D6A96A-D514-4D76-829B-B739BCD23B69}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -68,6 +70,10 @@ Global
 		{5949EAE5-2BF2-F16B-F237-6550F6F74BCC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5949EAE5-2BF2-F16B-F237-6550F6F74BCC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5949EAE5-2BF2-F16B-F237-6550F6F74BCC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1D6A96A-D514-4D76-829B-B739BCD23B69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1D6A96A-D514-4D76-829B-B739BCD23B69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1D6A96A-D514-4D76-829B-B739BCD23B69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1D6A96A-D514-4D76-829B-B739BCD23B69}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

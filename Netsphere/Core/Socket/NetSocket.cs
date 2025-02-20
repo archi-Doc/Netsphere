@@ -3,6 +3,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Versioning;
 using Netsphere.Packet;
 
@@ -133,21 +134,29 @@ public sealed class NetSocket
     private void PrepareUdpClient(int port, bool ipv6)
     {
         var addressFamily = ipv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
-        var udp = new UdpClient(port, addressFamily);
+        var udp = new UdpClient(addressFamily);
+
+        udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);//
+
+        IPEndPoint endpoint;
+        if (ipv6 &&
+            !this.netTerminal.NetBase.NetOptions.EnableTemporaryIpv6Address &&
+            OperatingSystem.IsWindows() &&
+            NetHelper.TryGetStaticIpv6Address(out var ipv6Address))
+        {
+            endpoint = new IPEndPoint(ipv6Address, port);
+        }
+        else
+        {
+            endpoint = new IPEndPoint(ipv6 ? IPAddress.IPv6Any : IPAddress.Any, port);
+        }
+
+        udp.Client.Bind(endpoint);
+
         try
         {
-            udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);//
-
             const int SIO_UDP_CONNRESET = -1744830452;
             udp.Client.IOControl((IOControlCode)SIO_UDP_CONNRESET, new byte[] { 0, 0, 0, 0 }, null);
-
-            if (ipv6 &&
-                !this.netTerminal.NetBase.NetOptions.EnableTemporaryIpv6Address &&
-                OperatingSystem.IsWindows() &&
-                NetHelper.TryGetStaticIpv6Address(out var ipv6Address))
-            {
-                udp.Client.Bind(new IPEndPoint(ipv6Address, port));
-            }
         }
         catch
         {
