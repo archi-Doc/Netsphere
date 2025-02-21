@@ -134,9 +134,9 @@ public sealed class NetSocket
     private void PrepareUdpClient(int port, bool ipv6)
     {
         var addressFamily = ipv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
-        var udp = new UdpClient(addressFamily);
+        var udp = new UdpClient(port, addressFamily);
 
-        udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);//
+        /*udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);//
 
         IPEndPoint endpoint;
         if (ipv6 &&
@@ -151,7 +151,7 @@ public sealed class NetSocket
             endpoint = new IPEndPoint(ipv6 ? IPAddress.IPv6Any : IPAddress.Any, port);
         }
 
-        udp.Client.Bind(endpoint);
+        udp.Client.Bind(endpoint);*/
 
         try
         {
