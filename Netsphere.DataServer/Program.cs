@@ -58,7 +58,7 @@ public class Program
             .SetupOptions<NetOptions>((context, options) =>
             {// Modify NetOptions
                 options.NodeName = "RemoteDataServer";
-                options.Port = 50000; // Specify the port number.
+                // options.Port = 50000; // Specify the port number.
                 options.EnablePing = true;
                 options.EnableServer = true;
             })
