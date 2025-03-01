@@ -161,7 +161,7 @@ public class Program
             .SetupOptions<FileLoggerOptions>((context, options) =>
             {// FileLoggerOptions
                 var logfile = "Logs/Debug.txt";
-                options.Path = Path.Combine(context.RootDirectory, logfile);
+                options.Path = Path.Combine(context.DataDirectory, logfile);
                 options.MaxLogCapacity = 10;
                 options.Formatter.TimestampFormat = "mm:ss.ffffff K"; // "yyyy-MM-dd HH:mm:ss.ffffff K";
                 options.ClearLogsAtStartup = true;

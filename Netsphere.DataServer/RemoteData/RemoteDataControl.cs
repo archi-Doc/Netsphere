@@ -12,7 +12,7 @@ public class RemoteDataControl
     {
         this.logger = logger;
         this.baseDirectory = string.IsNullOrEmpty(unitOptions.DataDirectory) ?
-            unitOptions.RootDirectory : unitOptions.DataDirectory;
+            unitOptions.ProgramDirectory : unitOptions.DataDirectory;
         this.limitAreement = new ConnectionAgreement() with
         {
             MaxStreamLength = 100_000_000,
