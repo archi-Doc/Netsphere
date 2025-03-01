@@ -54,10 +54,11 @@ public sealed class NetSocket
                         // core.socket.netTerminal.UnitLogger.Get<NetSocket>(LogLevel.Debug)?.Log($"Receive actual {received}");
                     }
 
-                    if (received <= PacketHeader.Length)
+                    if (received <= PacketHeader.Length &&
+                        remoteEP is IPEndPoint endpoint)
                     {
-                        if (remoteEP is IPEndPoint endpoint &&
-                            IPAddress.IsLoopback(endpoint.Address))
+                        var address = new NetAddress(endpoint.Address, (ushort)endpoint.Port);
+                        if (address.IsPrivateOrLocalLoopbackAddress())
                         {// Healthcheck
                             udp.Client.SendTo(rentArray.AsSpan(0, received), endpoint);
                         }
