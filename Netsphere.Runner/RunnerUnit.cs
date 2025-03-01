@@ -54,7 +54,7 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
             this.SetupOptions<FileLoggerOptions>((context, options) =>
             {// FileLoggerOptions
                 var logfile = "Logs/Log.txt";
-                options.Path = Path.Combine(context.RootDirectory, logfile);
+                options.Path = Path.Combine(context.DataDirectory, logfile);
                 options.MaxLogCapacity = 2;
             });
 
