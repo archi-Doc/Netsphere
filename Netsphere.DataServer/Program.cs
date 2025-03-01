@@ -58,7 +58,7 @@ public class Program
             .SetupOptions<NetOptions>((context, options) =>
             {// Modify NetOptions
                 options.NodeName = "RemoteDataServer";
-                options.Port = 50000; // Specify the port number.
+                // options.Port = 50000; // Specify the port number.
                 options.EnablePing = true;
                 options.EnableServer = true;
             })
@@ -77,15 +77,6 @@ public class Program
             });
 
         var unit = builder.Build(); // Create a unit that provides network functionality.
-        var options = unit.Context.ServiceProvider.GetRequiredService<NetOptions>();
-        await unit.Run(options, false); // Execute the created unit with the specified options.
-
-        // NtpCorrection
-        var ntpCorrection = unit.Context.ServiceProvider.GetRequiredService<Netsphere.Misc.NtpCorrection>();
-        await ntpCorrection.CorrectMicsAndUnitLogger();
-
-        await Console.Out.WriteLineAsync(options.ToString()); // Display the NetOptions.
-        await Console.Out.WriteLineAsync();
 
         var parserOptions = SimpleParserOptions.Standard with
         {
