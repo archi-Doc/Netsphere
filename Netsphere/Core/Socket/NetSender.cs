@@ -274,7 +274,7 @@ internal class NetSender
 
                 try
                 {
-                    ipv4.Send(item.MemoryOwner.Span, item.EndPoint);
+                    ipv4.Client.SendTo(item.MemoryOwner.Span, item.EndPoint);
                 }
                 catch
                 {
@@ -308,7 +308,7 @@ internal class NetSender
 
                 try
                 {
-                    ipv6.Send(item.MemoryOwner.Span, item.EndPoint);
+                    ipv6.Client.SendTo(item.MemoryOwner.Span, item.EndPoint);
                 }
                 catch
                 {

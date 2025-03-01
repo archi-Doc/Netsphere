@@ -54,9 +54,16 @@ public sealed class NetSocket
                         // core.socket.netTerminal.UnitLogger.Get<NetSocket>(LogLevel.Debug)?.Log($"Receive actual {received}");
                     }
 
-                    if (received > PacketHeader.Length &&
-                        received <= NetConstants.MaxPacketLength)
-                    {// nspi
+                    if (received <= PacketHeader.Length)
+                    {
+                        if (remoteEP is IPEndPoint endpoint &&
+                            IPAddress.IsLoopback(endpoint.Address))
+                        {// Healthcheck
+                            udp.Client.SendTo(rentArray.AsSpan(0, received), endpoint);
+                        }
+                    }
+                    else if (received <= NetConstants.MaxPacketLength)
+                    {
                         core.socket.netTerminal.ProcessReceive((IPEndPoint)remoteEP, rentArray, received);
                         if (rentArray.Count > 1)
                         {// Byte array is used by multiple owners. Return and rent a new one next time.

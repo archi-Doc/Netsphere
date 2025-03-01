@@ -29,15 +29,15 @@
     <PackageReference Include="Arc.Threading" Version="0.30.2" />
     <PackageReference Include="Arc.Crypto" Version="1.39.1" />
     <PackageReference Include="Arc.Unit" Version="0.18.2" />
-    <PackageReference Include="BigMachines" Version="0.40.1" />
+    <PackageReference Include="BigMachines" Version="0.41.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.2" />
     <PackageReference Include="SimpleCommandLine" Version="0.26.0" />
-    <PackageReference Include="Tinyhand" Version="0.96.2" />
-    <PackageReference Include="ValueLink" Version="0.75.1" />
+    <PackageReference Include="Tinyhand" Version="0.97.0" />
+    <PackageReference Include="ValueLink" Version="0.76.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\README.md" Pack="true" PackagePath="\"/>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
     <None Include="..\NetsphereGenerator\bin\$(Configuration)\netstandard2.0\NetsphereGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
 
