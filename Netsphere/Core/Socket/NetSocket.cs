@@ -58,7 +58,6 @@ public sealed class NetSocket
                         remoteEP is IPEndPoint endpoint)
                     {
                         var address = new NetAddress(endpoint.Address, (ushort)endpoint.Port);
-                        Console.WriteLine($"{endpoint.ToString()}, {received}, {address.IsPrivateOrLocalLoopbackAddress()}");
                         if (address.IsPrivateOrLocalLoopbackAddress())
                         {// Healthcheck
                             udp.Client.SendTo(rentArray.AsSpan(0, received), endpoint);
