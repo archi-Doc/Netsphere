@@ -13,13 +13,7 @@ namespace Netsphere.Runner;
 [MachineObject(UseServiceProvider = true)]
 public partial class RestartMachine : Machine
 {
-    private const int NoContainerRetries = 3;
-    private const int CreateContainerInvervalInSeconds = 30;
-    private const int CreateContainerRetries = 10;
-    private const int CheckInvervalInSeconds = 10;
-    private const int UnhealthyRetries = 3;
-    private const int TerminatingInvervalInSeconds = 2;
-    private const int TerminatingRetries = 30;
+    private const int ListContainersLimit = 100;
 
     public RestartMachine(ILogger<RestartMachine> logger, NetTerminal netTerminal)
     {
@@ -27,7 +21,7 @@ public partial class RestartMachine : Machine
         this.netTerminal = netTerminal;
         this.options = default!;
 
-        this.DefaultTimeout = TimeSpan.FromSeconds(CheckInvervalInSeconds);
+        this.DefaultTimeout = TimeSpan.FromSeconds(5);
     }
 
     protected override void OnCreate(object? createParam)
@@ -64,19 +58,15 @@ public partial class RestartMachine : Machine
 
         var hostname = Environment.GetEnvironmentVariable("HOSTNAME");
         var containers = await this.dockerClient.Containers.ListContainersAsync(new ContainersListParameters { All = false });
-
         if (hostname is not null &&
             containers.FirstOrDefault(c => c.ID.StartsWith(hostname)) is { } myContainer)
         {
-            Console.WriteLine($"My Container Name: {string.Join(", ", myContainer.Names)}");
+            // Console.WriteLine($"My Container Name: {string.Join(", ", myContainer.Names)}");
             if (myContainer.Labels.TryGetValue("com.docker.compose.project", out var projectName))
             {
-                Console.WriteLine($"Docker Compose Project Name: {projectName}");
+                this.projectName = projectName;
+                this.logger.TryGet()?.Log($"Docker Compose Project Name: {projectName}");
             }
-        }
-        else
-        {
-            Console.WriteLine("Container not found.");
         }
 
         this.logger.TryGet()?.Log("Press Ctrl+C to exit, Ctrl+R to restart container, Ctrl+Q to stop container and exit");
@@ -94,13 +84,18 @@ public partial class RestartMachine : Machine
             return StateResult.Terminate;
         }
 
-        /*var containers = await this.docker.EnumerateContainersAsync2();
-        foreach (var x in containers)
-        {
+        var containerName = string.IsNullOrEmpty(this.projectName) ? this.options.Service : $"{this.projectName}-{this.options.Service}";
+        Console.WriteLine($"Container name: {containerName}");
+        var list = await this.dockerClient.Containers.ListContainersAsync(new() { Limit = ListContainersLimit, });
+        foreach(var x in list)
+        {// list.Where(x => x.Image.StartsWith(this.options.Image)
             this.logger.TryGet()?.Log($"{x.Image} {x.State}");
-        }*/
+            foreach (var y in x.Names)
+            {
+                this.logger.TryGet()?.Log($"{y}");
+            }
+        }
 
-        this.TimeUntilRun = TimeSpan.FromSeconds(CreateContainerInvervalInSeconds);
         return StateResult.Continue;
     }
 
@@ -108,4 +103,5 @@ public partial class RestartMachine : Machine
     private readonly NetTerminal netTerminal;
     private RestartOptions options;
     private DockerClient? dockerClient;
+    private string projectName = string.Empty;
 }
