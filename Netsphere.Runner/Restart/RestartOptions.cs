@@ -6,6 +6,6 @@ namespace Netsphere.Runner;
 
 public partial record RestartOptions : RunnerOptions
 {
-    [SimpleOption(nameof(Service), Description = "Service name that the Runner operates")]
+    [SimpleOption(nameof(Service), Description = "Service name that the Runner operates", Required = true, ReadFromEnvironment = true)]
     public string Service { get; init; } = string.Empty;
 }

@@ -33,6 +33,7 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
                 // Machines
                 context.AddTransient<RunMachine>();
+                context.AddTransient<RestartMachine>();
 
                 // Net Services
                 context.AddSingleton<RemoteControlAgent>();

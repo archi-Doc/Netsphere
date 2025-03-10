@@ -2,11 +2,27 @@
 
 using System.Diagnostics;
 using Arc.Unit;
+using Docker.DotNet;
 
 namespace Netsphere.Runner;
 
 internal static class RunnerHelper
 {
+    public static async Task<DockerClient?> CreateDockerClient()
+    {
+        var client = new DockerClientConfiguration().CreateClient();
+        try
+        {
+            _ = await client.Containers.ListContainersAsync(new() { Limit = 10, });
+        }
+        catch
+        {// No docker
+            return default;
+        }
+
+        return client;
+    }
+
     public static void DispatchCommand(ILogger logger, string command)
     {
         string shellName;

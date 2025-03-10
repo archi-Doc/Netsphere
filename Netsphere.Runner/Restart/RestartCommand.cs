@@ -11,18 +11,18 @@ using Tinyhand;
 namespace Netsphere.Runner;
 
 [SimpleCommand("restart")]
-public class RestartCommand : RunnerCommand, ISimpleCommandAsync<RunOptions>
+public class RestartCommand : RunnerCommand, ISimpleCommandAsync<RestartOptions>
 {
     public RestartCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Unit unit, BigMachine bigMachine)
         : base(serviceProvider, unitContext, unit, bigMachine)
     {
     }
 
-    public async Task RunAsync(RunOptions options, string[] args)
+    public async Task RunAsync(RestartOptions options, string[] args)
     {
         await this.Run(options);
 
-        var runner = this.bigMachine.RunMachine.GetOrCreate(options);
+        var runner = this.bigMachine.RestartMachine.GetOrCreate(options);
         this.bigMachine.Start(ThreadCore.Root);
 
         _ = Task.Run(async () =>
@@ -32,11 +32,11 @@ public class RestartCommand : RunnerCommand, ISimpleCommandAsync<RunOptions>
                 var keyInfo = Console.ReadKey(true);
                 if (keyInfo.Key == ConsoleKey.R && keyInfo.Modifiers == ConsoleModifiers.Control)
                 {// Restart
-                    await runner.Command.Restart();
+                    // await runner.Command.Restart();
                 }
                 else if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers == ConsoleModifiers.Control)
                 {// Stop and quit
-                    await runner.Command.StopAll();
+                    // await runner.Command.StopAll();
                     runner.TerminateMachine();
                 }
             }

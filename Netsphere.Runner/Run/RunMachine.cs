@@ -48,7 +48,7 @@ public partial class RunMachine : Machine
             return StateResult.Terminate;
         }
 
-        this.logger.TryGet()?.Log($"Runner start");
+        this.logger.TryGet()?.Log($"Netsphere.Runner (Run)");
         this.logger.TryGet()?.Log($"{this.options.ToString()}");
 
         var address = await NetStatsHelper.GetOwnAddress((ushort)this.options.Port);
