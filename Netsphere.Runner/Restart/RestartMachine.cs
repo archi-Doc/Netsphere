@@ -84,7 +84,7 @@ public partial class RestartMachine : Machine
             return StateResult.Terminate;
         }
 
-        var containerName = string.IsNullOrEmpty(this.projectName) ? $"\\{this.options.Service}" : $"\\{this.projectName}-{this.options.Service}";
+        var containerName = string.IsNullOrEmpty(this.projectName) ? $"/{this.options.Service}" : $"/{this.projectName}-{this.options.Service}";
         Console.WriteLine($"Container name: {containerName}");
         var list = await this.dockerClient.Containers.ListContainersAsync(new() { Limit = ListContainersLimit, });
         foreach(var x in list)
@@ -103,6 +103,37 @@ public partial class RestartMachine : Machine
         }
 
         return StateResult.Continue;
+    }
+
+    [CommandMethod]
+    protected async Task<CommandResult> Restart()
+    {
+        this.logger.TryGet()?.Log("Restart");
+
+        // Remove container
+        if (this.dockerClient is null)
+        {
+            return CommandResult.Failure;
+        }
+
+        var containerName = string.IsNullOrEmpty(this.projectName) ? $"/{this.options.Service}" : $"/{this.projectName}-{this.options.Service}";
+        var list = await this.dockerClient.Containers.ListContainersAsync(new() { Limit = ListContainersLimit, });
+        foreach (var x in list)
+        {// list.Where(x => x.Image.StartsWith(this.options.Image)
+            this.logger.TryGet()?.Log($"{x.Image} {x.State}");
+            foreach (var y in x.Names)
+            {
+                this.logger.TryGet()?.Log($"{y}");
+            }
+
+            if (x.Names.Any(z => z.StartsWith(containerName)))
+            {
+                this.logger.TryGet()?.Log($"Restart: {string.Join(' ', x.Names)} {x.Image}");
+                await this.dockerClient.Containers.RestartContainerAsync(x.ID, new());
+            }
+        }
+
+        return CommandResult.Success;
     }
 
     private readonly ILogger logger;

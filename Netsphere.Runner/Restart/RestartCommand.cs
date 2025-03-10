@@ -22,7 +22,7 @@ public class RestartCommand : RunnerCommand, ISimpleCommandAsync<RestartOptions>
     {
         await this.Run(options);
 
-        var runner = this.bigMachine.RestartMachine.GetOrCreate(options);
+        var machine = this.bigMachine.RestartMachine.GetOrCreate(options);
         this.bigMachine.Start(ThreadCore.Root);
 
         _ = Task.Run(async () =>
@@ -32,12 +32,12 @@ public class RestartCommand : RunnerCommand, ISimpleCommandAsync<RestartOptions>
                 var keyInfo = Console.ReadKey(true);
                 if (keyInfo.Key == ConsoleKey.R && keyInfo.Modifiers == ConsoleModifiers.Control)
                 {// Restart
-                    // await runner.Command.Restart();
+                    await machine.Command.Restart();
                 }
                 else if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers == ConsoleModifiers.Control)
                 {// Stop and quit
                     // await runner.Command.StopAll();
-                    runner.TerminateMachine();
+                    machine.TerminateMachine();
                 }
             }
         });

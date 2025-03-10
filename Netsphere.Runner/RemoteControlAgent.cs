@@ -32,6 +32,12 @@ internal class RemoteControlAgent : IRemoteControl
             _ = machine.Command.Restart();
         }
 
+        var machine2 = this.bigMachine.RestartMachine.GetOrCreate();
+        if (machine2 != null)
+        {
+            _ = machine2.Command.Restart();
+        }
+
         return NetResult.Success;
 
         /*var address = this.information.TryGetDualAddress();
