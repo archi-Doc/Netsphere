@@ -26,7 +26,7 @@ internal class RemoteControlAgent : IRemoteControl
             return NetResult.NotAuthenticated;
         }
 
-        var machine = this.bigMachine.RunnerMachine.GetOrCreate();
+        var machine = this.bigMachine.RunMachine.GetOrCreate();
         if (machine != null)
         {
             _ = machine.Command.Restart();

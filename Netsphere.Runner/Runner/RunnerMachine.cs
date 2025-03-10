@@ -9,7 +9,7 @@ using Netsphere.Stats;
 namespace Netsphere.Runner;
 
 [MachineObject(UseServiceProvider = true)]
-public partial class RunnerMachine : Machine
+public partial class RunMachine : Machine
 {
     private const int NoContainerRetries = 3;
     private const int CreateContainerInvervalInSeconds = 30;
@@ -19,13 +19,18 @@ public partial class RunnerMachine : Machine
     private const int TerminatingInvervalInSeconds = 2;
     private const int TerminatingRetries = 30;
 
-    public RunnerMachine(ILogger<RunnerMachine> logger, NetTerminal netTerminal, RunOptions options)
+    public RunMachine(ILogger<RunMachine> logger, NetTerminal netTerminal)
     {
         this.logger = logger;
         this.netTerminal = netTerminal;
-        this.options = options;
+        this.options = default!;
 
         this.DefaultTimeout = TimeSpan.FromSeconds(CheckInvervalInSeconds);
+    }
+
+    protected override void OnCreate(object? createParam)
+    {
+        this.options = (RunOptions)createParam!;
     }
 
     [StateMethod(0)]
@@ -259,7 +264,7 @@ public partial class RunnerMachine : Machine
 
     private readonly ILogger logger;
     private readonly NetTerminal netTerminal;
-    private readonly RunOptions options;
+    private RunOptions options;
     private DockerRunner? docker;
     private int retries;
     private int createContainerRetries;

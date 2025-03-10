@@ -6,6 +6,7 @@ using BigMachines;
 using Microsoft.Extensions.DependencyInjection;
 using Netsphere.Interfaces;
 using SimpleCommandLine;
+using Tinyhand;
 
 namespace Netsphere.Runner;
 
@@ -21,7 +22,7 @@ public class RestartCommand : RunnerCommand, ISimpleCommandAsync<RunOptions>
     {
         await this.Run(options);
 
-        var runner = this.bigMachine.RunnerMachine.GetOrCreate(options);
+        var runner = this.bigMachine.RunMachine.GetOrCreate(options);
         this.bigMachine.Start(ThreadCore.Root);
 
         _ = Task.Run(async () =>

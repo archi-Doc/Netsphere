@@ -22,7 +22,8 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
             this.Configure(context =>
             {
                 context.AddSingleton<RunnerUnit>();
-                context.AddSingleton<RunnerOptions>();
+                context.AddSingleton<RunOptions>();
+                context.AddSingleton<RestartOptions>();
                 context.CreateInstance<RunnerUnit>();
                 context.AddSingleton<BigMachine>();
 
@@ -31,7 +32,7 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 context.AddSingleton<RestartCommand>();
 
                 // Machines
-                context.AddTransient<RunnerMachine>();
+                context.AddTransient<RunMachine>();
 
                 // Net Services
                 context.AddSingleton<RemoteControlAgent>();
