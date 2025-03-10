@@ -91,7 +91,7 @@ public partial class RunnerMachine : Machine
 
         this.logger.TryGet()?.Log($"Status({this.retries}): {this.GetState()} -> Create container");
 
-        if (await this.docker.RunContainer() == false)
+        if (await this.docker.RunContainer(this.options.DockerParameters, this.options.ContainerParameters) == false)
         {
             return StateResult.Terminate;
         }

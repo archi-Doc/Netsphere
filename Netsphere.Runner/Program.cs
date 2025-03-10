@@ -4,6 +4,7 @@ using Arc.Threading;
 using Arc.Unit;
 using BigMachines;
 using Microsoft.Extensions.DependencyInjection;
+using SimpleCommandLine;
 
 namespace Netsphere.Runner;
 
@@ -33,6 +34,7 @@ public class Program
             });
 
         var unit = builder.Build();
+        SimpleParser.ParseAndRunAsync()
         await unit.RunAsync();
 
         ThreadCore.Root.Terminate();

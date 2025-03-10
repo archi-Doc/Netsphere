@@ -86,7 +86,7 @@ internal class DockerRunner
         }
     }
 
-    public async Task<bool> RunContainer()
+    public async Task<bool> RunContainer(string dockerParameters, string containerParameters)
     {
         // Create image
         this.logger.TryGet()?.Log($"Pull image: {this.options.Image}");
@@ -123,7 +123,7 @@ internal class DockerRunner
         // Create container
         this.logger.TryGet()?.Log($"Start container: {this.options.Image}");
 
-        var command = $"docker run {this.options.DockerParameters} {this.options.Image} {this.options.ContainerParameters}"; // -i: key input, -t: , -d: leave the container running
+        var command = $"docker run {dockerParameters} {this.options.Image} {containerParameters}"; // -i: key input, -t: , -d: leave the container running
         RunnerHelper.DispatchCommand(this.logger, command);
 
         /*try
