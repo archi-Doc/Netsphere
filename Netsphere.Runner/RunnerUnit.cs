@@ -81,62 +81,7 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
             this.Context.CreateInstances();
 
             var args = SimpleParserHelper.GetCommandLineArguments();
-            var options = this.Context.ServiceProvider.GetRequiredService<RunnerOptions>();
-            SimpleParser.TryParseOptions<RunnerOptions>(args, out _, options);
-            options.Prepare();
-
-            var netOptions = new NetOptions()
-            {
-                NodeName = "Netsphere.Runner",
-                Port = options.Port,
-                NodeSecretKey = options.NodeSecretKeyString,
-                EnablePing = false,
-                EnableServer = true,
-                EnableAlternative = false,
-            };
-
-            options.NodeSecretKeyString = string.Empty;
-
-            var netControl = this.Context.ServiceProvider.GetRequiredService<NetControl>();
-            netControl.Services.Register<IRemoteControl, RemoteControlAgent>();
-
-            await this.Run(netOptions, true);
-
-            var bigMachine = this.Context.ServiceProvider.GetRequiredService<BigMachine>();
-            var runner = bigMachine.RunnerMachine.GetOrCreate(options);
-            bigMachine.Start(ThreadCore.Root);
-
-            _ = Task.Run(async () =>
-            {
-                while (!ThreadCore.Root.IsTerminated)
-                {
-                    var keyInfo = Console.ReadKey(true);
-                    if (keyInfo.Key == ConsoleKey.R && keyInfo.Modifiers == ConsoleModifiers.Control)
-                    {// Restart
-                        await runner.Command.Restart();
-                    }
-                    else if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers == ConsoleModifiers.Control)
-                    {// Stop and quit
-                        await runner.Command.StopAll();
-                        runner.TerminateMachine();
-                    }
-                }
-            });
-
-            while (!((IBigMachine)bigMachine).Core.IsTerminated)
-            {
-                if (!((IBigMachine)bigMachine).CheckActiveMachine())
-                {
-                    break;
-                }
-                else
-                {
-                    // await runner.Command.Restart();
-                    await ((IBigMachine)bigMachine).Core.WaitForTerminationAsync(1000);
-                }
-            }
-
-            await this.Context.SendTerminateAsync(new());
+            await SimpleParser.ParseAndRunAsync([typeof(RunCommand),], args);
         }
 
         /*private async Task<RunnerInformation?> LoadInformation(ILogger logger, string path)

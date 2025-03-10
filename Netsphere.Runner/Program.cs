@@ -34,7 +34,6 @@ public class Program
             });
 
         var unit = builder.Build();
-        SimpleParser.ParseAndRunAsync()
         await unit.RunAsync();
 
         ThreadCore.Root.Terminate();
