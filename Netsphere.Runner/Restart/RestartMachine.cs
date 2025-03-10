@@ -84,7 +84,7 @@ public partial class RestartMachine : Machine
             return StateResult.Terminate;
         }
 
-        var containerName = string.IsNullOrEmpty(this.projectName) ? $"/{this.options.Service}" : $"/{this.projectName}-{this.options.Service}";
+        /*var containerName = string.IsNullOrEmpty(this.projectName) ? $"/{this.options.Service}" : $"/{this.projectName}-{this.options.Service}";
         Console.WriteLine($"Container name: {containerName}");
         var list = await this.dockerClient.Containers.ListContainersAsync(new() { Limit = ListContainersLimit, });
         foreach(var x in list)
@@ -97,10 +97,9 @@ public partial class RestartMachine : Machine
 
             if (x.Names.Any(z => z.StartsWith(containerName)))
             {
-                this.logger.TryGet()?.Log("-----------------");
                 // await this.dockerClient.Containers.RestartContainerAsync(x.ID, new());
             }
-        }
+        }*/
 
         return StateResult.Continue;
     }
