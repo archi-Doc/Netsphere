@@ -19,7 +19,7 @@ public partial class RunnerMachine : Machine
     private const int TerminatingInvervalInSeconds = 2;
     private const int TerminatingRetries = 30;
 
-    public RunnerMachine(ILogger<RunnerMachine> logger, NetTerminal netTerminal, RunnerOptions options)
+    public RunnerMachine(ILogger<RunnerMachine> logger, NetTerminal netTerminal, RunOptions options)
     {
         this.logger = logger;
         this.netTerminal = netTerminal;
@@ -259,7 +259,7 @@ public partial class RunnerMachine : Machine
 
     private readonly ILogger logger;
     private readonly NetTerminal netTerminal;
-    private readonly RunnerOptions options;
+    private readonly RunOptions options;
     private DockerRunner? docker;
     private int retries;
     private int createContainerRetries;
