@@ -17,6 +17,8 @@ public partial class RestartMachine : Machine
 {
     private const int ListContainersLimit = 100;
 
+    public string ContainerName => string.IsNullOrEmpty(this.projectName) ? $"/{this.options.Service}" : $"/{this.projectName}-{this.options.Service}";
+
     public RestartMachine(ILogger<RestartMachine> logger, NetTerminal netTerminal)
     {
         this.logger = logger;
@@ -71,7 +73,10 @@ public partial class RestartMachine : Machine
             }
         }
 
-        this.logger.TryGet()?.Log("Press Ctrl+C to exit, Ctrl+R to restart container, Ctrl+Q to stop container and exit");
+        this.logger.TryGet()?.Log($"Target Container Name: {this.ContainerName}");
+
+        Console.WriteLine();
+        Console.WriteLine("Press Ctrl+C to exit, Ctrl+R to restart container, Ctrl+Q to stop container and exit");
         await Console.Out.WriteLineAsync();
 
         this.ChangeState(State.Main, true);
@@ -117,16 +122,15 @@ public partial class RestartMachine : Machine
             return CommandResult.Failure;
         }
 
-        var containerName = string.IsNullOrEmpty(this.projectName) ? $"/{this.options.Service}" : $"/{this.projectName}-{this.options.Service}";
         var list = await this.dockerClient.Containers.ListContainersAsync(new() { Limit = ListContainersLimit, });
         foreach (var x in list)
         {
-            if (x.Names.Any(z => z.StartsWith(containerName)))
+            if (x.Names.Any(z => z.StartsWith(this.ContainerName)))
             {
                 this.logger.TryGet()?.Log($"Restart: {string.Join(' ', x.Names)} {x.Image}");
 
                 // Pull
-                try
+                /*try
                 {
                     var progress = new Progress<JSONMessage>();
                     await this.dockerClient.Images.CreateImageAsync(
@@ -140,7 +144,7 @@ public partial class RestartMachine : Machine
                 }
                 catch
                 {
-                }
+                }*/
 
                 await this.dockerClient.Containers.RestartContainerAsync(x.ID, new());
             }
