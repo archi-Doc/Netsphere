@@ -22,9 +22,6 @@ public partial record RunnerOptions
     [SimpleOption(NetConstants.RemotePublicKeyName, Description = "Public key for remote operation", Required = true, ReadFromEnvironment = true)]
     public string RemotePublicKeyString { get; set; } = string.Empty;
 
-    [SimpleOption("Image", Description = "Container image", Required = true, ReadFromEnvironment = true)]
-    public string Image { get; init; } = string.Empty;
-
     public virtual bool Check(ILogger logger)
     {
         var result = true;

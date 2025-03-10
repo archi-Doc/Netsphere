@@ -8,6 +8,9 @@ namespace Netsphere.Runner;
 
 public partial record RunOptions : RunnerOptions
 {
+    [SimpleOption("Image", Description = "Container image", Required = true, ReadFromEnvironment = true)]
+    public string Image { get; init; } = string.Empty;
+
     [SimpleOption("DockerParam", Description = "Parameters to be passed to the docker run command.")]
     public string DockerParameters { get; init; } = string.Empty;
 
