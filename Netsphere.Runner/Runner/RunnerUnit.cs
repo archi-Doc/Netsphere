@@ -83,38 +83,6 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
             var args = SimpleParserHelper.GetCommandLineArguments();
             await SimpleParser.ParseAndRunAsync([typeof(RunCommand),], args);
         }
-
-        /*private async Task<RunnerInformation?> LoadInformation(ILogger logger, string path)
-        {
-            try
-            {
-                var utf8 = await File.ReadAllBytesAsync(path);
-                var information = TinyhandSerializer.DeserializeFromUtf8<RunnerInformation>(utf8);
-                if (information != null)
-                {// Success
-                 // Update RunnerInformation
-                    information.SetDefault();
-                    var update = TinyhandSerializer.SerializeToUtf8(information);
-                    if (!update.SequenceEqual(utf8))
-                    {
-                        await File.WriteAllBytesAsync(path, update);
-                    }
-
-                    return information;
-                }
-            }
-            catch
-            {
-            }
-
-            var newInformation = new RunnerInformation().SetDefault();
-            await File.WriteAllBytesAsync(path, TinyhandSerializer.SerializeToUtf8(newInformation));
-
-            logger.TryGet(LogLevel.Error)?.Log($"'{path}' could not be found and was created.");
-            logger.TryGet(LogLevel.Error)?.Log($"Modify '{RunnerInformation.Path}', and restart LpRunner.");
-
-            return null;
-        }*/
     }
 
     public RunnerUnit(UnitContext context, ILogger<RunnerUnit> logger)
@@ -133,7 +101,6 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
     void IUnitExecutable.Stop(UnitMessage.Stop message)
     {
-        throw new NotImplementedException();
     }
 
     async Task IUnitExecutable.TerminateAsync(UnitMessage.TerminateAsync message, CancellationToken cancellationToken)

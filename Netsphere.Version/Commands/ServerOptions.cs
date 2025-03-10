@@ -9,13 +9,13 @@ public partial record ServerOptions
     [SimpleOption("Port", Description = "Port number associated with the address")]
     public int Port { get; set; } = 55555;
 
-    // [SimpleOption(NetConstants.NodePrivateKeyName, Description = "Node secret key for connection", GetEnvironmentVariable = true)]
+    // [SimpleOption(NetConstants.NodePrivateKeyName, Description = "Node secret key for connection", ReadFromEnvironment = true)]
     // public string NodePrivateKeyString { get; set; } = string.Empty;
 
-    [SimpleOption(NetConstants.RemotePublicKeyName, Description = "Public signature key for remote operation", GetEnvironmentVariable = true)]
+    [SimpleOption(NetConstants.RemotePublicKeyName, Description = "Public signature key for remote operation", ReadFromEnvironment = true)]
     public string RemotePublicKey { get; set; } = string.Empty;
 
-    [SimpleOption("VersionIdentifier", Description = "Version identifier", GetEnvironmentVariable = true)]
+    [SimpleOption("VersionIdentifier", Description = "Version identifier", ReadFromEnvironment = true)]
     public int VersionIdentifier { get; set; }
 
     public bool Check(ILogger logger)

@@ -10,39 +10,16 @@ using SimpleCommandLine;
 namespace Netsphere.Runner;
 
 [SimpleCommand("run")]
-public class RunCommand : ISimpleCommandAsync<RunOptions>
+public class RunCommand : RunnerCommand, ISimpleCommandAsync<RunOptions>
 {
-    private readonly IServiceProvider serviceProvider;
-    private readonly UnitContext unitContext;
-    private readonly RunnerUnit.Unit unit;
-
-    public RunCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Unit unit)
+    public RunCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Unit unit, BigMachine bigMachine)
+        : base(serviceProvider, unitContext, unit, bigMachine)
     {
-        this.serviceProvider = serviceProvider;
-        this.unitContext = unitContext;
-        this.unit = unit;
     }
 
     public async Task RunAsync(RunOptions options, string[] args)
     {
-        options.Prepare();
-
-        var netOptions = new NetOptions()
-        {
-            NodeName = "Netsphere.Runner",
-            Port = options.Port,
-            NodeSecretKey = options.NodeSecretKeyString,
-            EnablePing = false,
-            EnableServer = true,
-            EnableAlternative = false,
-        };
-
-        options.NodeSecretKeyString = string.Empty;
-
-        var netControl = this.serviceProvider.GetRequiredService<NetControl>();
-        netControl.Services.Register<IRemoteControl, RemoteControlAgent>();
-
-        await this.unit.Run(netOptions, true);
+        await this.Run(options);
 
         var bigMachine = this.serviceProvider.GetRequiredService<BigMachine>();
         var runner = bigMachine.RunnerMachine.GetOrCreate(options);
@@ -65,19 +42,6 @@ public class RunCommand : ISimpleCommandAsync<RunOptions>
             }
         });
 
-        while (!((IBigMachine)bigMachine).Core.IsTerminated)
-        {
-            if (!((IBigMachine)bigMachine).CheckActiveMachine())
-            {
-                break;
-            }
-            else
-            {
-                // await runner.Command.Restart();
-                await((IBigMachine)bigMachine).Core.WaitForTerminationAsync(1000);
-            }
-        }
-
-        await this.unitContext.SendTerminateAsync(new());
+        await this.Loop();
     }
 }

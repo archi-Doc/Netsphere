@@ -108,18 +108,18 @@ public class DefaultCommand : ISimpleCommandAsync<DefaultCommandOptions>
 
 public record DefaultCommandOptions
 {
-    [SimpleOption("Port", Description = "Port number", GetEnvironmentVariable = true)]
+    [SimpleOption("Port", Description = "Port number", ReadFromEnvironment = true)]
     public int Port { get; set; }
 
-    [SimpleOption("DataDirectory", Description = "Data directory", GetEnvironmentVariable = true)]
+    [SimpleOption("DataDirectory", Description = "Data directory", ReadFromEnvironment = true)]
     public string DataDirectory { get; init; } = "Data";
 
     [SimpleOption("PunchNode", Description = "Punch node")]
     public string PunchNode { get; init; } = string.Empty;
 
-    [SimpleOption("NodeSecretKey", Description = "Node secret key", GetEnvironmentVariable = true)]
+    [SimpleOption("NodeSecretKey", Description = "Node secret key", ReadFromEnvironment = true)]
     public string NodeSecretKey { get; init; } = string.Empty;
 
-    [SimpleOption("RemotePublickey", Description = "Remote public key", GetEnvironmentVariable = true)]
+    [SimpleOption("RemotePublickey", Description = "Remote public key", ReadFromEnvironment = true)]
     public string RemotePublicKey { get; set; } = string.Empty;
 }
