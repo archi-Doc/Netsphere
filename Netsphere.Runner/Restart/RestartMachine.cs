@@ -1,5 +1,6 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System;
 using System.Net;
 using Arc.Unit;
 using BigMachines;
@@ -7,6 +8,7 @@ using Docker.DotNet;
 using Docker.DotNet.Models;
 using Netsphere.Packet;
 using Netsphere.Stats;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Netsphere.Runner;
 
@@ -118,16 +120,28 @@ public partial class RestartMachine : Machine
         var containerName = string.IsNullOrEmpty(this.projectName) ? $"/{this.options.Service}" : $"/{this.projectName}-{this.options.Service}";
         var list = await this.dockerClient.Containers.ListContainersAsync(new() { Limit = ListContainersLimit, });
         foreach (var x in list)
-        {// list.Where(x => x.Image.StartsWith(this.options.Image)
-            this.logger.TryGet()?.Log($"{x.Image} {x.State}");
-            foreach (var y in x.Names)
-            {
-                this.logger.TryGet()?.Log($"{y}");
-            }
-
+        {
             if (x.Names.Any(z => z.StartsWith(containerName)))
             {
                 this.logger.TryGet()?.Log($"Restart: {string.Join(' ', x.Names)} {x.Image}");
+
+                // Pull
+                try
+                {
+                    var progress = new Progress<JSONMessage>();
+                    await this.dockerClient.Images.CreateImageAsync(
+                        new ImagesCreateParameters
+                        {
+                            FromImage = x.Image,
+                            // Tag = tag,
+                        },
+                        null,
+                        progress);
+                }
+                catch
+                {
+                }
+
                 await this.dockerClient.Containers.RestartContainerAsync(x.ID, new());
             }
         }
