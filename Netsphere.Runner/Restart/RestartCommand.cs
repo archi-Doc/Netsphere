@@ -9,10 +9,10 @@ using SimpleCommandLine;
 
 namespace Netsphere.Runner;
 
-[SimpleCommand("run")]
-public class RunCommand : RunnerCommand, ISimpleCommandAsync<RunOptions>
+[SimpleCommand("restart")]
+public class RestartCommand : RunnerCommand, ISimpleCommandAsync<RunOptions>
 {
-    public RunCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Unit unit, BigMachine bigMachine)
+    public RestartCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Unit unit, BigMachine bigMachine)
         : base(serviceProvider, unitContext, unit, bigMachine)
     {
     }

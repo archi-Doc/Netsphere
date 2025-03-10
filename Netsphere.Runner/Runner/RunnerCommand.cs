@@ -46,26 +46,6 @@ public abstract class RunnerCommand
         netControl.Services.Register<IRemoteControl, RemoteControlAgent>();
 
         await this.unit.Run(netOptions, true);
-
-        var runner = this.bigMachine.RunnerMachine.GetOrCreate(options);
-        this.bigMachine.Start(ThreadCore.Root);
-
-        _ = Task.Run(async () =>
-        {
-            while (!ThreadCore.Root.IsTerminated)
-            {
-                var keyInfo = Console.ReadKey(true);
-                if (keyInfo.Key == ConsoleKey.R && keyInfo.Modifiers == ConsoleModifiers.Control)
-                {// Restart
-                    await runner.Command.Restart();
-                }
-                else if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers == ConsoleModifiers.Control)
-                {// Stop and quit
-                    await runner.Command.StopAll();
-                    runner.TerminateMachine();
-                }
-            }
-        });
     }
 
     public async Task Loop()

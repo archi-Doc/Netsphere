@@ -27,6 +27,8 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 context.AddSingleton<BigMachine>();
 
                 // Command
+                context.AddSingleton<RunCommand>();
+                context.AddSingleton<RestartCommand>();
 
                 // Machines
                 context.AddTransient<RunnerMachine>();
@@ -77,11 +79,18 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
         public async Task RunAsync()
         {
+            var parserOptions = SimpleParserOptions.Standard with
+            {
+                ServiceProvider = this.Context.ServiceProvider,
+                RequireStrictCommandName = false,
+                RequireStrictOptionName = false,
+            };
+
             // Create optional instances
             this.Context.CreateInstances();
 
             var args = SimpleParserHelper.GetCommandLineArguments();
-            await SimpleParser.ParseAndRunAsync([typeof(RunCommand),], args);
+            await SimpleParser.ParseAndRunAsync([typeof(RunCommand), typeof(RestartCommand),], args, parserOptions);
         }
     }
 
