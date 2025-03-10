@@ -13,28 +13,16 @@ public partial record RunnerOptions
     // [SimpleOption("lifespan", Description = "Time in seconds until the runner automatically shuts down (set to -1 for infinite).")]
     // public long Lifespan { get; init; } = 6;
 
-    [SimpleOption("Port", Description = "Port number associated with the runner")]
+    [SimpleOption(nameof(Port), Description = "Port number associated with the runner", Required = true, ReadFromEnvironment = true)]
     public ushort Port { get; set; } = 49999;
 
-    [SimpleOption(NetConstants.NodeSecretKeyName, Description = "Node secret key for connection", GetEnvironmentVariable = true)]
+    [SimpleOption(NetConstants.NodeSecretKeyName, Description = "Node secret key for connection", Required = true, ReadFromEnvironment = true)]
     public string NodeSecretKeyString { get; set; } = string.Empty;
 
-    [SimpleOption(NetConstants.RemotePublicKeyName, Description = "Public key for remote operation", GetEnvironmentVariable = true)]
+    [SimpleOption(NetConstants.RemotePublicKeyName, Description = "Public key for remote operation", Required = true, ReadFromEnvironment = true)]
     public string RemotePublicKeyString { get; set; } = string.Empty;
 
-    [SimpleOption("Image", Description = "Container image")]
-    public string Image { get; init; } = string.Empty;
-
-    [SimpleOption("DockerParam", Description = "Parameters to be passed to the docker run command.")]
-    public string DockerParameters { get; init; } = string.Empty;
-
-    [SimpleOption("ContainerPort", Description = "Port number associated with the container")]
-    public ushort ContainerPort { get; set; } = 0; // 0: Disabled
-
-    [SimpleOption("ContainerParam", Description = "Parameters to be passed to the container.")]
-    public string ContainerParameters { get; init; } = string.Empty;
-
-    public bool Check(ILogger logger)
+    public virtual bool Check(ILogger logger)
     {
         var result = true;
         if (!this.RemotePublicKey.IsValid)
@@ -43,42 +31,7 @@ public partial record RunnerOptions
             result = false;
         }
 
-        if (string.IsNullOrEmpty(this.Image))
-        {
-            logger.TryGet(LogLevel.Fatal)?.Log($"Specify the container image (-image).");
-            result = false;
-        }
-
         return result;
-    }
-
-    public bool TryGetContainerAddress(out NetAddress netAddress)
-    {
-        if (this.ContainerPort == 0)
-        {
-            netAddress = default;
-            return false;
-        }
-
-        netAddress = new NetAddress(IPAddress.Loopback, this.ContainerPort);
-        return true;
-    }
-
-    public async ValueTask<NetNode?> TryGetContainerNode(NetTerminal netTerminal)
-    {
-        if (this.containerNode is not null)
-        {
-            return this.containerNode;
-        }
-
-        if (this.ContainerPort == 0)
-        {
-            return default;
-        }
-
-        var address = new NetAddress(IPAddress.Loopback, this.ContainerPort);
-        this.containerNode = await netTerminal.UnsafeGetNetNode(address).ConfigureAwait(false);
-        return this.containerNode;
     }
 
     public void Prepare()
@@ -114,10 +67,6 @@ public partial record RunnerOptions
             }
         }
     }
-
-    private NetNode? containerNode;
-
-    // internal NodeSecretKey? NodeSecretKey { get; set; }
 
     internal SignaturePublicKey RemotePublicKey { get; set; }
 }

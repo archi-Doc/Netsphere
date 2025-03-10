@@ -9,7 +9,7 @@ using Netsphere.Stats;
 namespace Netsphere.Runner;
 
 [MachineObject(UseServiceProvider = true)]
-public partial class RunnerMachine : Machine
+public partial class RunMachine : Machine
 {
     private const int NoContainerRetries = 3;
     private const int CreateContainerInvervalInSeconds = 30;
@@ -19,13 +19,18 @@ public partial class RunnerMachine : Machine
     private const int TerminatingInvervalInSeconds = 2;
     private const int TerminatingRetries = 30;
 
-    public RunnerMachine(ILogger<RunnerMachine> logger, NetTerminal netTerminal, RunnerOptions options)
+    public RunMachine(ILogger<RunMachine> logger, NetTerminal netTerminal)
     {
         this.logger = logger;
         this.netTerminal = netTerminal;
-        this.options = options;
+        this.options = default!;
 
         this.DefaultTimeout = TimeSpan.FromSeconds(CheckInvervalInSeconds);
+    }
+
+    protected override void OnCreate(object? createParam)
+    {
+        this.options = (RunOptions)createParam!;
     }
 
     [StateMethod(0)]
@@ -43,7 +48,7 @@ public partial class RunnerMachine : Machine
             return StateResult.Terminate;
         }
 
-        this.logger.TryGet()?.Log($"Runner start");
+        this.logger.TryGet()?.Log($"Netsphere.Runner (Run)");
         this.logger.TryGet()?.Log($"{this.options.ToString()}");
 
         var address = await NetStatsHelper.GetOwnAddress((ushort)this.options.Port);
@@ -91,7 +96,7 @@ public partial class RunnerMachine : Machine
 
         this.logger.TryGet()?.Log($"Status({this.retries}): {this.GetState()} -> Create container");
 
-        if (await this.docker.RunContainer() == false)
+        if (await this.docker.RunContainer(this.options.DockerParameters, this.options.ContainerParameters) == false)
         {
             return StateResult.Terminate;
         }
@@ -259,7 +264,7 @@ public partial class RunnerMachine : Machine
 
     private readonly ILogger logger;
     private readonly NetTerminal netTerminal;
-    private readonly RunnerOptions options;
+    private RunOptions options;
     private DockerRunner? docker;
     private int retries;
     private int createContainerRetries;

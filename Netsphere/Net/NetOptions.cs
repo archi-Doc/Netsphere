@@ -7,22 +7,22 @@ namespace Netsphere;
 [TinyhandObject(ImplicitKeyAsName = true)]
 public partial record NetOptions
 {
-    [SimpleOption("NodeName", Description = "Node name", GetEnvironmentVariable = true)]
+    [SimpleOption("NodeName", Description = "Node name", ReadFromEnvironment = true)]
     public string NodeName { get; set; } = string.Empty;
 
     // [SimpleOption("address", Description = "Global IP address")]
     // public string Address { get; set; } = string.Empty;
 
-    [SimpleOption("Port", Description = "Port number associated with the address", GetEnvironmentVariable = true)]
+    [SimpleOption("Port", Description = "Port number associated with the address", ReadFromEnvironment = true)]
     public int Port { get; set; }
 
-    [SimpleOption("NodeSecretkey", Description = "Node secret key", GetEnvironmentVariable = true)]
+    [SimpleOption("NodeSecretkey", Description = "Node secret key", ReadFromEnvironment = true)]
     public string NodeSecretKey { get; set; } = string.Empty;
 
-    [SimpleOption("NodeList", Description = "Node addresses to connect", GetEnvironmentVariable = true)]
+    [SimpleOption("NodeList", Description = "Node addresses to connect", ReadFromEnvironment = true)]
     public string NodeList { get; set; } = string.Empty;
 
-    [SimpleOption("NetsphereId", Description = "Netsphere Id", GetEnvironmentVariable = true)]
+    [SimpleOption("NetsphereId", Description = "Netsphere Id", ReadFromEnvironment = true)]
     public int NetsphereId { get; set; }
 
     [SimpleOption("Ping", Description = "Enable ping function")]

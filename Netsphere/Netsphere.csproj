@@ -28,11 +28,11 @@
     <PackageReference Include="Arc.CrossChannel" Version="2.5.0" />
     <PackageReference Include="Arc.Threading" Version="0.30.2" />
     <PackageReference Include="Arc.Crypto" Version="1.39.1" />
-    <PackageReference Include="Arc.Unit" Version="0.19.0" />
+    <PackageReference Include="Arc.Unit" Version="0.19.1" />
     <PackageReference Include="BigMachines" Version="0.41.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.2" />
-    <PackageReference Include="SimpleCommandLine" Version="0.26.0" />
-    <PackageReference Include="Tinyhand" Version="0.97.1" />
+    <PackageReference Include="SimpleCommandLine" Version="0.27.0" />
+    <PackageReference Include="Tinyhand" Version="0.97.2" />
     <PackageReference Include="ValueLink" Version="0.76.0" />
   </ItemGroup>
 

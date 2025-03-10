@@ -11,7 +11,7 @@ internal class DockerRunner
 {
     private const int ListContainersLimit = 100;
 
-    public static async Task<DockerRunner?> Create(ILogger logger, RunnerOptions options)
+    public static async Task<DockerRunner?> Create(ILogger logger, RunOptions options)
     {
         var client = new DockerClientConfiguration().CreateClient();
         try
@@ -26,7 +26,7 @@ internal class DockerRunner
         return new DockerRunner(client, logger, options);
     }
 
-    private DockerRunner(DockerClient client, ILogger logger, RunnerOptions options)
+    private DockerRunner(DockerClient client, ILogger logger, RunOptions options)
     {
         this.client = client;
         this.logger = logger;
@@ -86,7 +86,7 @@ internal class DockerRunner
         }
     }
 
-    public async Task<bool> RunContainer()
+    public async Task<bool> RunContainer(string dockerParameters, string containerParameters)
     {
         // Create image
         this.logger.TryGet()?.Log($"Pull image: {this.options.Image}");
@@ -123,7 +123,7 @@ internal class DockerRunner
         // Create container
         this.logger.TryGet()?.Log($"Start container: {this.options.Image}");
 
-        var command = $"docker run {this.options.DockerParameters} {this.options.Image} {this.options.ContainerParameters}"; // -i: key input, -t: , -d: leave the container running
+        var command = $"docker run {dockerParameters} {this.options.Image} {containerParameters}"; // -i: key input, -t: , -d: leave the container running
         RunnerHelper.DispatchCommand(this.logger, command);
 
         /*try
@@ -187,5 +187,5 @@ internal class DockerRunner
 
     private readonly DockerClient client;
     private readonly ILogger logger;
-    private readonly RunnerOptions options;
+    private readonly RunOptions options;
 }

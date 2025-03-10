@@ -9,7 +9,7 @@ public record RestartOptions
     [SimpleOption("RunnerNode", Description = "Runner nodes", Required = true)]
     public string RunnerNode { get; init; } = string.Empty;
 
-    [SimpleOption(NetConstants.RemoteSecretKeyName, Description = "Secret signature key for remote operation", GetEnvironmentVariable = true)]
+    [SimpleOption(NetConstants.RemoteSecretKeyName, Description = "Secret signature key for remote operation", ReadFromEnvironment = true)]
     public string RemoteSecretKey { get; set; } = string.Empty;
 
     [SimpleOption("ContainerPort", Description = "Port number associated with the container")]
