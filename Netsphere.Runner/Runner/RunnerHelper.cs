@@ -8,6 +8,21 @@ namespace Netsphere.Runner;
 
 internal static class RunnerHelper
 {
+    public static bool CanReadFile(string path)
+    {
+        try
+        {
+            using (var stream = File.Open(path, FileMode.Open, FileAccess.Read))
+            {
+                return true;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public static async Task<DockerClient?> CreateDockerClient()
     {
         var client = new DockerClientConfiguration().CreateClient();

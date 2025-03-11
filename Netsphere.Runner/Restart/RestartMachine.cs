@@ -1,14 +1,12 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
-using System;
-using System.Net;
-using System.Net.Sockets;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using Arc.Unit;
 using BigMachines;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Netsphere.Stats;
-using static SimpleCommandLine.SimpleParser;
 
 namespace Netsphere.Runner;
 
@@ -16,6 +14,7 @@ namespace Netsphere.Runner;
 public partial class RestartMachine : Machine
 {
     private const int ListContainersLimit = 100;
+    private const string ConfigFile = "/restart.yml";
 
     public string ContainerName => string.IsNullOrEmpty(this.projectName) ? $"/{this.options.Service}" : $"/{this.projectName}-{this.options.Service}";
 
@@ -65,7 +64,6 @@ public partial class RestartMachine : Machine
         if (hostname is not null &&
             containers.FirstOrDefault(c => c.ID.StartsWith(hostname)) is { } myContainer)
         {
-            // Console.WriteLine($"My Container Name: {string.Join(", ", myContainer.Names)}");
             if (myContainer.Labels.TryGetValue("com.docker.compose.project", out var projectName))
             {
                 this.projectName = projectName;
@@ -176,7 +174,7 @@ public partial class RestartMachine : Machine
 
         this.logger.TryGet()?.Log($"Project: {projectName}");
 
-        if (!inspect.Config.Labels.TryGetValue("com.docker.compose.project.config_files", out var configFile))
+        if (!this.TryGetConfigurationFile(inspect, out var configFile))
         {
             return;
         }
@@ -188,11 +186,32 @@ public partial class RestartMachine : Machine
         Console.WriteLine("\r");
 
         // Create and start container
-        await RunnerHelper.DispatchCommand(this.logger, $"docker compose -f '{configFile}' up -d --build {this.options.Service}");
+        await RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {projectName} -f {configFile} up -d --build {this.options.Service}");
         Console.WriteLine("\r");
 
         this.logger.TryGet()?.Log($"Restart complete");
         Console.WriteLine();
+    }
+
+    private bool TryGetConfigurationFile(ContainerInspectResponse inspect, [MaybeNullWhen(false)] out string configurationFile)
+    {
+        if (inspect.Config.Labels.TryGetValue("com.docker.compose.project.config_files", out var path))
+        {
+            if (RunnerHelper.CanReadFile(path))
+            {
+                configurationFile = path;
+                return true;
+            }
+        }
+
+        if (RunnerHelper.CanReadFile(ConfigFile))
+        {
+            configurationFile = ConfigFile;
+            return true;
+        }
+
+        configurationFile = default;
+        return false;
     }
 
     private async Task RestartContainer(ContainerListResponse targetContainer)
