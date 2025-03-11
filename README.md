@@ -196,3 +196,8 @@ await unit.Terminate(); // Perform the termination process for the unit.
 
    
 
+## Checklist for NetService
+
+- Ensure that NetService is registered on the server (`Context.AddNetService()` or `NetTerminal.Services.Register()`).
+- Verify that the Service agent is registered in the DI container.
+- Check if the DI container can create instances (ensure no injection errors occur).
