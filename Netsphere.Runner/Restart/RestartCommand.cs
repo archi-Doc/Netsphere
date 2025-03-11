@@ -2,11 +2,7 @@
 
 using Arc.Threading;
 using Arc.Unit;
-using BigMachines;
-using Microsoft.Extensions.DependencyInjection;
-using Netsphere.Interfaces;
 using SimpleCommandLine;
-using Tinyhand;
 
 namespace Netsphere.Runner;
 
@@ -36,7 +32,6 @@ public class RestartCommand : RunnerCommand, ISimpleCommandAsync<RestartOptions>
                 }
                 else if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers == ConsoleModifiers.Control)
                 {// Stop and quit
-                    // await runner.Command.StopAll();
                     machine.TerminateMachine();
                 }
             }

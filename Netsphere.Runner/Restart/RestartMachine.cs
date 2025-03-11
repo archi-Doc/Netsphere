@@ -6,9 +6,7 @@ using Arc.Unit;
 using BigMachines;
 using Docker.DotNet;
 using Docker.DotNet.Models;
-using Netsphere.Packet;
 using Netsphere.Stats;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Netsphere.Runner;
 
@@ -130,7 +128,7 @@ public partial class RestartMachine : Machine
                 this.logger.TryGet()?.Log($"Restart: {string.Join(' ', x.Names)} {x.Image}");
 
                 // Pull
-                /*try
+                try
                 {
                     var progress = new Progress<JSONMessage>();
                     await this.dockerClient.Images.CreateImageAsync(
@@ -144,7 +142,7 @@ public partial class RestartMachine : Machine
                 }
                 catch
                 {
-                }*/
+                }
 
                 await this.dockerClient.Containers.RestartContainerAsync(x.ID, new());
             }
