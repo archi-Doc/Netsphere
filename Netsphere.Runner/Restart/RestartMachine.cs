@@ -174,7 +174,7 @@ public partial class RestartMachine : Machine
             return CommandResult.Failure;
         }
 
-        if (string.IsNullOrEmpty(this.projectName))
+        if (!string.IsNullOrEmpty(this.projectName))
         {
             var mount = container.Mounts.FirstOrDefault(x => x.Destination == ConfigFile);
             var source = mount?.Source;
