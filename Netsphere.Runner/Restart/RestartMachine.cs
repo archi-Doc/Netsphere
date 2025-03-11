@@ -115,8 +115,9 @@ public partial class RestartMachine : Machine
     {
         this.logger.TryGet()?.Log("Restart");
 
-        RunnerHelper.DispatchCommand(this.logger, $"docker compose rm -sf {this.options.Service}");
-        RunnerHelper.DispatchCommand(this.logger, $"docker compose up -d --build {this.options.Service}");
+        RunnerHelper.DispatchCommand(this.logger, $"docker compose ls");
+        RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {this.projectName} rm -sf {this.options.Service}");
+        RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {this.projectName} up -d --build {this.options.Service}");
 
         /*if (this.dockerClient is null)
         {
