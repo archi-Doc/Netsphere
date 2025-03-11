@@ -2,6 +2,7 @@
 
 using System;
 using System.Net;
+using System.Net.Sockets;
 using Arc.Unit;
 using BigMachines;
 using Docker.DotNet;
@@ -115,11 +116,7 @@ public partial class RestartMachine : Machine
     {
         this.logger.TryGet()?.Log("Restart");
 
-        RunnerHelper.DispatchCommand(this.logger, $"docker compose ls");
-        RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {this.projectName} rm -sf {this.options.Service}");
-        RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {this.projectName} up -d --build {this.options.Service}");
-
-        /*if (this.dockerClient is null)
+        if (this.dockerClient is null)
         {
             return CommandResult.Failure;
         }
@@ -131,7 +128,7 @@ public partial class RestartMachine : Machine
             {
                 this.logger.TryGet()?.Log($"Restart: {string.Join(' ', x.Names)} {x.Image}");
 
-                try
+                /*try
                 {// Pull
                     var progress = new Progress<JSONMessage>();
                     await this.dockerClient.Images.CreateImageAsync(
@@ -145,13 +142,81 @@ public partial class RestartMachine : Machine
                 }
                 catch
                 {
+                }*/
+
+                if (x.Labels.TryGetValue("com.docker.compose.project", out var projectName))
+                {
+                    await this.RestarService(x);
+                }
+                else
+                {
+                    await this.RestartContainer(x);
                 }
 
-                await this.dockerClient.Containers.RestartContainerAsync(x.ID, new());
+                // await this.dockerClient.Containers.RestartContainerAsync(x.ID, new());
             }
-        }*/
+        }
 
         return CommandResult.Success;
+    }
+
+    private async Task RestarService(ContainerListResponse targetContainer)
+    {
+        if (this.dockerClient is null)
+        {
+            return;
+        }
+
+        var inspect = await this.dockerClient.Containers.InspectContainerAsync(targetContainer.ID);
+
+        if (!inspect.Config.Labels.TryGetValue("com.docker.compose.project", out var projectName))
+        {
+            return;
+        }
+
+        this.logger.TryGet()?.Log($"Project: {projectName}");
+
+        if (!inspect.Config.Labels.TryGetValue("com.docker.compose.project.config_files", out var configFile))
+        {
+            return;
+        }
+
+        this.logger.TryGet()?.Log($"Config: {configFile}");
+
+        // Stop and remove container
+        await RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {projectName} rm -sf {this.options.Service}");
+        Console.WriteLine("\r");
+
+        // Create and start container
+        await RunnerHelper.DispatchCommand(this.logger, $"docker compose -f '{configFile}' up -d --build {this.options.Service}");
+        Console.WriteLine("\r");
+
+        this.logger.TryGet()?.Log($"Restart complete");
+        Console.WriteLine();
+    }
+
+    private async Task RestartContainer(ContainerListResponse targetContainer)
+    {
+        if (this.dockerClient is null)
+        {
+            return;
+        }
+
+        var inspect = await this.dockerClient.Containers.InspectContainerAsync(targetContainer.ID);
+
+        // Stop container
+        await this.dockerClient.Containers.StopContainerAsync(targetContainer.ID, new ContainerStopParameters());
+
+        // Remove container
+        await this.dockerClient.Containers.RemoveContainerAsync(targetContainer.ID, new());
+
+        // Create container
+        var createParams = new CreateContainerParameters(inspect.Config);
+        createParams.Name = targetContainer.Names.First().Trim('/');
+        var created = await this.dockerClient.Containers.CreateContainerAsync(createParams);
+
+        // Start container
+        await this.dockerClient.Containers.StartContainerAsync(created.ID, new ContainerStartParameters());
     }
 
     private readonly ILogger logger;
