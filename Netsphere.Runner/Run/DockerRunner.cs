@@ -124,7 +124,7 @@ internal class DockerRunner
         this.logger.TryGet()?.Log($"Start container: {this.options.Image}");
 
         var command = $"docker run {dockerParameters} {this.options.Image} {containerParameters}"; // -i: key input, -t: , -d: leave the container running
-        RunnerHelper.DispatchCommand(this.logger, command);
+        await RunnerHelper.DispatchCommand(this.logger, command);
 
         /*try
         {

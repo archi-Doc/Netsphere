@@ -8,6 +8,21 @@ namespace Netsphere.Runner;
 
 internal static class RunnerHelper
 {
+    public static bool CanReadFile(string path)
+    {
+        try
+        {
+            using (var stream = File.Open(path, FileMode.Open, FileAccess.Read))
+            {
+                return true;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public static async Task<DockerClient?> CreateDockerClient()
     {
         var client = new DockerClientConfiguration().CreateClient();
@@ -23,7 +38,41 @@ internal static class RunnerHelper
         return client;
     }
 
-    public static void DispatchCommand(ILogger logger, string command)
+    /*public static Task DispatchCommand(ILogger logger, string filename, string arguments)
+    {
+        logger.TryGet()?.Log($"Dispatch: {filename}");
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = filename,
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+        };
+
+        try
+        {
+            using (var process = Process.Start(startInfo))
+            {
+                if (process is null)
+                {
+                    return Task.CompletedTask;
+                }
+
+                var output = process.StandardOutput.ReadToEnd();
+                Console.WriteLine(output);
+            }
+
+            return Task.CompletedTask;
+        }
+        catch
+        {
+            logger.TryGet(LogLevel.Fatal)?.Log("A fatal error occurred during execution.");
+            return Task.CompletedTask;
+        }
+    }*/
+
+    public static Task DispatchCommand(ILogger logger, string command)
     {
         string shellName;
         if (Environment.OSVersion.Platform == PlatformID.Win32NT)
@@ -49,10 +98,13 @@ internal static class RunnerHelper
         {
             var process = new Process { StartInfo = startInfo };
             process.Start();
+
+            return process.WaitForExitAsync();
         }
         catch
         {
             logger.TryGet(LogLevel.Fatal)?.Log("A fatal error occurred during execution.");
+            return Task.CompletedTask;
         }
     }
 
