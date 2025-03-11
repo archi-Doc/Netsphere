@@ -14,7 +14,7 @@ namespace Netsphere.Runner;
 public partial class RestartMachine : Machine
 {
     private const int ListContainersLimit = 100;
-    private const string ConfigFile = "/restart.yml";
+    private const string ConfigFile = "/target.yml";
 
     private readonly ILogger logger;
     private readonly NetTerminal netTerminal;
@@ -175,18 +175,29 @@ public partial class RestartMachine : Machine
         }
 
         if (!string.IsNullOrEmpty(this.projectName))
-        {
+        {// Check configuration file
+            foreach (var x in container.Mounts)
+            {
+                this.logger.TryGet()?.Log($"{x.Source} : {x.Destination}");
+            }
+
             var mount = container.Mounts.FirstOrDefault(x => x.Destination == ConfigFile);
             var source = mount?.Source;
             this.logger.TryGet()?.Log($"Mount source: {source}");
-            if (!string.IsNullOrEmpty(source))
-            {
-            }
 
             if (container.Labels.TryGetValue("com.docker.compose.project.config_files", out var config))
             {
                 this.logger.TryGet()?.Log($"Config: {config}");
             }
+        }
+
+        if (string.IsNullOrEmpty(this.options.Service))
+        {// Restart project
+            // await this.RestarProject(container);
+        }
+        else
+        {// Restart service
+            await this.RestarService(container);
         }
 
         return CommandResult.Success;
@@ -210,6 +221,7 @@ public partial class RestartMachine : Machine
 
         if (!this.TryGetConfigurationFile(inspect, out var configFile))
         {
+            this.logger.TryGet(LogLevel.Error)?.Log($"Project: {projectName}");
             return;
         }
 
