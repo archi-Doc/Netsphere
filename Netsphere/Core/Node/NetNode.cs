@@ -61,7 +61,7 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
 
             if (!address.Address.Validate())
             {
-                logger?.TryGet(LogLevel.Error)?.Log($"Invalid port: {source.ToString()}");
+                logger?.TryGet(LogLevel.Error)?.Log($"Invalid address: {source.ToString()}");
                 return false;
             }
 

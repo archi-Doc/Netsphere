@@ -36,6 +36,7 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 context.AddTransient<RestartMachine>();
 
                 // Net Services
+                context.AddSingleton<RemoteControlBase>();
                 context.AddSingleton<RemoteControlAgent>();
 
                 // Log filter
