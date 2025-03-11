@@ -1,8 +1,6 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using Arc.Unit;
 using BigMachines;
 using Docker.DotNet;
@@ -22,7 +20,7 @@ public partial class RestartMachine : Machine
     private RestartOptions options;
     private DockerClient? docker;
     private string projectName = string.Empty;
-    private string mountSource = string.Empty;
+    private string configurationSource = string.Empty;
 
     // public string ContainerName => string.IsNullOrEmpty(this.projectName) ? $"/{this.options.Service}" : $"/{this.projectName}-{this.options.Service}";
 
@@ -79,10 +77,10 @@ public partial class RestartMachine : Machine
             }
 
             var mount = myContainer.Mounts.FirstOrDefault(x => x.Destination == ConfigFile);
-            this.mountSource = mount?.Source ?? string.Empty;
-            if (!string.IsNullOrEmpty(this.mountSource))
+            this.configurationSource = mount?.Source ?? string.Empty;
+            if (!string.IsNullOrEmpty(this.configurationSource))
             {
-                this.logger.TryGet()?.Log($"Mount source: {this.mountSource}");
+                this.logger.TryGet()?.Log($"Configuration source: {this.configurationSource}");
             }
         }
 
@@ -187,24 +185,38 @@ public partial class RestartMachine : Machine
         {// Check configuration file
             if (container.Labels.TryGetValue("com.docker.compose.project.config_files", out var config))
             {
+                config = config.Replace('\\', '/');
+                var index = config.IndexOf(':');
+                if (index != -1)
+                {
+                    config = config.Substring(index + 1);
+                }
+
                 this.logger.TryGet()?.Log($"Config: {config}");
-                this.logger.TryGet()?.Log($"{config == this.mountSource}");
+                if (this.configurationSource.EndsWith(config))
+                {
+                    this.logger.TryGet()?.Log($"/target.yml matches the underlying YAML file.");
+                }
+                else
+                {
+                    this.logger.TryGet(LogLevel.Warning)?.Log($"/target.yml does not match the underlying YAML file.");
+                }
             }
         }
 
         if (string.IsNullOrEmpty(this.options.Service))
         {// Restart project
-            // await this.RestarProject(container);
+            await this.Restart(container, true);
         }
         else
         {// Restart service
-            await this.RestarService(container);
+            await this.Restart(container, false);
         }
 
         return CommandResult.Success;
     }
 
-    private async Task RestarService(ContainerListResponse targetContainer)
+    private async Task Restart(ContainerListResponse targetContainer, bool restartProject)
     {
         if (this.docker is null)
         {
@@ -229,11 +241,13 @@ public partial class RestartMachine : Machine
         this.logger.TryGet()?.Log($"Config: {configFile}");
 
         // Stop and remove container
-        await RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {projectName} rm -sf {this.options.Service}");
+        var param = restartProject ? string.Empty : $" {this.options.Service}";
+        await RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {projectName} rm -sf{param}");
         Console.WriteLine("\r");
 
         // Create and start container
-        await RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {projectName} -f {configFile} up -d --build {this.options.Service}");
+        param = restartProject ? string.Empty : $" --build {this.options.Service}";
+        await RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {projectName} -f {configFile} up -d{param}");
         Console.WriteLine("\r");
 
         this.logger.TryGet()?.Log($"Restart complete");
