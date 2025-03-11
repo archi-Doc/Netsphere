@@ -17,7 +17,7 @@ public partial class RestartMachine : Machine
 
     private readonly ILogger logger;
     private readonly NetTerminal netTerminal;
-    private RestartOptions options;
+    private RestartOptions? options;
     private DockerClient? docker;
     private string projectName = string.Empty;
     private string configurationSource = string.Empty;
@@ -41,6 +41,11 @@ public partial class RestartMachine : Machine
     [StateMethod(0)]
     protected async Task<StateResult> Initial(StateParameter parameter)
     {
+        if (this.options == null)
+        {
+            return StateResult.Continue;
+        }
+
         if (!this.options.Check(this.logger))
         {
             return StateResult.Terminate;
@@ -125,6 +130,11 @@ public partial class RestartMachine : Machine
     [CommandMethod]
     protected async Task<CommandResult> Restart()
     {
+        if (this.options == null)
+        {
+            return CommandResult.Failure;
+        }
+
         this.logger.TryGet()?.Log("Restart");
 
         if (this.docker is null)
@@ -218,6 +228,11 @@ public partial class RestartMachine : Machine
 
     private async Task Restart(ContainerListResponse targetContainer, bool restartProject)
     {
+        if (this.options == null)
+        {
+            return;
+        }
+
         if (this.docker is null)
         {
             return;
@@ -237,8 +252,6 @@ public partial class RestartMachine : Machine
             this.logger.TryGet(LogLevel.Error)?.Log($"Failed to load the configuration file. Please specify it using 'volumes: - ./docker-compose.yml:{ConfigFile}:ro'");
             return;
         }
-
-        this.logger.TryGet()?.Log($"Config: {configFile}");
 
         // Stop and remove container
         var param = restartProject ? string.Empty : $" {this.options.Service}";
