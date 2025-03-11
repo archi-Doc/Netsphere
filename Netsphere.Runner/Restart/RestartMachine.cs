@@ -7,6 +7,7 @@ using BigMachines;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Netsphere.Stats;
+using static SimpleCommandLine.SimpleParser;
 
 namespace Netsphere.Runner;
 
@@ -114,8 +115,10 @@ public partial class RestartMachine : Machine
     {
         this.logger.TryGet()?.Log("Restart");
 
-        // Remove container
-        if (this.dockerClient is null)
+        RunnerHelper.DispatchCommand(this.logger, $"docker compose rm -sf {this.options.Service}");
+        RunnerHelper.DispatchCommand(this.logger, $"docker compose up -d --build {this.options.Service}");
+
+        /*if (this.dockerClient is null)
         {
             return CommandResult.Failure;
         }
@@ -127,9 +130,8 @@ public partial class RestartMachine : Machine
             {
                 this.logger.TryGet()?.Log($"Restart: {string.Join(' ', x.Names)} {x.Image}");
 
-                // Pull
                 try
-                {
+                {// Pull
                     var progress = new Progress<JSONMessage>();
                     await this.dockerClient.Images.CreateImageAsync(
                         new ImagesCreateParameters
@@ -146,7 +148,7 @@ public partial class RestartMachine : Machine
 
                 await this.dockerClient.Containers.RestartContainerAsync(x.ID, new());
             }
-        }
+        }*/
 
         return CommandResult.Success;
     }
