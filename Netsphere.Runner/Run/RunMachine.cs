@@ -19,11 +19,17 @@ public partial class RunMachine : Machine
     private const int TerminatingInvervalInSeconds = 2;
     private const int TerminatingRetries = 30;
 
+    private readonly ILogger logger;
+    private readonly NetTerminal netTerminal;
+    private RunOptions? options;
+    private DockerRunner? docker;
+    private int retries;
+    private int createContainerRetries;
+
     public RunMachine(ILogger<RunMachine> logger, NetTerminal netTerminal)
     {
         this.logger = logger;
         this.netTerminal = netTerminal;
-        this.options = default!;
 
         this.DefaultTimeout = TimeSpan.FromSeconds(CheckInvervalInSeconds);
     }
@@ -36,6 +42,11 @@ public partial class RunMachine : Machine
     [StateMethod(0)]
     protected async Task<StateResult> Initial(StateParameter parameter)
     {
+        if (this.options == null)
+        {
+            return StateResult.Continue;
+        }
+
         if (!this.options.Check(this.logger))
         {
             return StateResult.Terminate;
@@ -73,6 +84,11 @@ public partial class RunMachine : Machine
     [StateMethod]
     protected async Task<StateResult> NoContainer(StateParameter parameter)
     {// No active containers: Start a container and wait for a specified period. If the container is created, transition to Running; if not, retry a set number of times.
+        if (this.options == null)
+        {
+            return StateResult.Continue;
+        }
+
         if (this.docker == null)
         {
             return StateResult.Terminate;
@@ -108,6 +124,11 @@ public partial class RunMachine : Machine
     [StateMethod]
     protected async Task<StateResult> Running(StateParameter parameter)
     {// Container is running: Check the number of containers. If none exist, transition to NoContainer. If there are containers and the ContainerPort is active, proceed to CheckHealth.
+        if (this.options == null)
+        {
+            return StateResult.Continue;
+        }
+
         if (this.docker == null)
         {
             return StateResult.Terminate;
@@ -133,6 +154,11 @@ public partial class RunMachine : Machine
     [StateMethod]
     protected async Task<StateResult> CheckHealth(StateParameter parameter)
     {
+        if (this.options == null)
+        {
+            return StateResult.Continue;
+
+        }
         if (this.docker == null)
         {
             return StateResult.Terminate;
@@ -246,6 +272,11 @@ public partial class RunMachine : Machine
 
     private async Task<NetResult> Ping(IPAddress addresss)
     {
+        if (this.options == null)
+        {
+            return NetResult.UnknownError;
+        }
+
         NetAddress netAddress;
         if (PathHelper.RunningInContainer)
         {// In container. Use Container address.
@@ -261,11 +292,4 @@ public partial class RunMachine : Machine
 
         return r.Result;
     }
-
-    private readonly ILogger logger;
-    private readonly NetTerminal netTerminal;
-    private RunOptions options;
-    private DockerRunner? docker;
-    private int retries;
-    private int createContainerRetries;
 }
