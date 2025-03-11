@@ -1,5 +1,6 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Arc.Unit;
@@ -21,6 +22,7 @@ public partial class RestartMachine : Machine
     private RestartOptions options;
     private DockerClient? docker;
     private string projectName = string.Empty;
+    private string mountSource = string.Empty;
 
     // public string ContainerName => string.IsNullOrEmpty(this.projectName) ? $"/{this.options.Service}" : $"/{this.projectName}-{this.options.Service}";
 
@@ -74,6 +76,13 @@ public partial class RestartMachine : Machine
             {
                 this.projectName = projectName;
                 this.logger.TryGet()?.Log($"Restart project name: {projectName}");
+            }
+
+            var mount = myContainer.Mounts.FirstOrDefault(x => x.Destination == ConfigFile);
+            this.mountSource = mount?.Source ?? string.Empty;
+            if (!string.IsNullOrEmpty(this.mountSource))
+            {
+                this.logger.TryGet()?.Log($"Mount source: {this.mountSource}");
             }
         }
 
@@ -176,18 +185,10 @@ public partial class RestartMachine : Machine
 
         if (!string.IsNullOrEmpty(this.projectName))
         {// Check configuration file
-            foreach (var x in container.Mounts)
-            {
-                this.logger.TryGet()?.Log($"{x.Source} : {x.Destination}");
-            }
-
-            var mount = container.Mounts.FirstOrDefault(x => x.Destination == ConfigFile);
-            var source = mount?.Source;
-            this.logger.TryGet()?.Log($"Mount source: {source}");
-
             if (container.Labels.TryGetValue("com.docker.compose.project.config_files", out var config))
             {
                 this.logger.TryGet()?.Log($"Config: {config}");
+                this.logger.TryGet()?.Log($"{config == this.mountSource}");
             }
         }
 
@@ -221,7 +222,7 @@ public partial class RestartMachine : Machine
 
         if (!this.TryGetConfigurationFile(inspect, out var configFile))
         {
-            this.logger.TryGet(LogLevel.Error)?.Log($"Project: {projectName}");
+            this.logger.TryGet(LogLevel.Error)?.Log($"Failed to load the configuration file. Please specify it using 'volumes: - ./docker-compose.yml:{ConfigFile}:ro'");
             return;
         }
 
