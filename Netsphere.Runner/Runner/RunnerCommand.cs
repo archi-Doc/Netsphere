@@ -45,6 +45,9 @@ public abstract class RunnerCommand
         var netControl = this.serviceProvider.GetRequiredService<NetControl>();
         netControl.Services.Register<IRemoteControl, RemoteControlAgent>();
 
+        var remoteControlBase = this.serviceProvider.GetRequiredService<RemoteControlBase>();
+        remoteControlBase.RemotePublicKey = options.RemotePublicKey;
+
         await this.unit.Run(netOptions, true);
     }
 

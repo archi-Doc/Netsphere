@@ -6,14 +6,19 @@ using Netsphere.Interfaces;
 
 namespace Netsphere.Runner;
 
+internal class RemoteControlBase
+{
+    public SignaturePublicKey RemotePublicKey { get; set; }
+}
+
 [NetServiceObject]
 internal class RemoteControlAgent : IRemoteControl
 {// Remote -> Netsphere.Runner
-    public RemoteControlAgent(ILogger<RemoteControlAgent> logger, BigMachine bigMachine, RunnerOptions runOptions)
+    public RemoteControlAgent(ILogger<RemoteControlAgent> logger, BigMachine bigMachine, RemoteControlBase remoteControlBase)
     {
         this.logger = logger;
         this.bigMachine = bigMachine;
-        this.runOptions = runOptions;
+        this.remoteControlBase = remoteControlBase;
     }
 
     /*public async NetTask<NetResult> Authenticate(AuthenticationToken token)
@@ -21,22 +26,16 @@ internal class RemoteControlAgent : IRemoteControl
 
     public async NetTask<NetResult> Restart()
     {
-        if (!TransmissionContext.Current.AuthenticationTokenEquals(this.runOptions.RemotePublicKey))
+        if (!TransmissionContext.Current.AuthenticationTokenEquals(this.remoteControlBase.RemotePublicKey))
         {
             return NetResult.NotAuthenticated;
         }
 
         var machine = this.bigMachine.RunMachine.GetOrCreate();
-        if (machine != null)
-        {
-            _ = machine.Command.Restart();
-        }
+        _ = machine.Command.Restart();
 
         var machine2 = this.bigMachine.RestartMachine.GetOrCreate();
-        if (machine2 != null)
-        {
-            _ = machine2.Command.Restart();
-        }
+        _ = machine2.Command.Restart();
 
         return NetResult.Success;
 
@@ -85,5 +84,5 @@ internal class RemoteControlAgent : IRemoteControl
 
     private readonly ILogger logger;
     private readonly BigMachine bigMachine;
-    private readonly RunnerOptions runOptions;
+    private readonly RemoteControlBase remoteControlBase;
 }

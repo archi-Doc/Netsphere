@@ -157,8 +157,8 @@ public partial class RunMachine : Machine
         if (this.options == null)
         {
             return StateResult.Continue;
-
         }
+
         if (this.docker == null)
         {
             return StateResult.Terminate;
