@@ -18,9 +18,9 @@ public sealed partial class PingPacket : IPacket
         this.Message = message;
     }
 
-    [Key(0, AddProperty = "Message", PropertyAccessibility = PropertyAccessibility.ProtectedSetter)]
+    [Key(0)]
     [MaxLength(MaxMessageLength)]
-    private string _message = string.Empty;
+    public partial string Message { get; private set; } = string.Empty;
 
     public override string ToString() => $"{this.Message}";
 }
