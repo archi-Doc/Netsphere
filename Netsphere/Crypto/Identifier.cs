@@ -1,12 +1,14 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Netsphere.Crypto;
 
 /// <summary>
 /// Immutable identifier of objects in Lp.
 /// </summary>
 [TinyhandObject]
-public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<Identifier>
+public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<Identifier>, IStringConvertible<Identifier>
 {
     public const string Name = "Identifier";
     public const int Length = 32;
@@ -21,6 +23,58 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
 
     public static Identifier FromReadOnlySpan(ReadOnlySpan<byte> input)
         => new(Sha3Helper.Get256_UInt64(input));
+
+    #region IStringConvertible
+
+    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out Identifier publicKey, out int read)
+    {
+        Span<byte> keyAndChecksum = stackalloc byte[SeedKeyHelper.PublicKeyAndChecksumSize];
+        if (SeedKeyHelper.TryParsePublicKey(KeyOrientation.Signature, source, keyAndChecksum, out read))
+        {
+            publicKey = new(keyAndChecksum);
+            return true;
+        }
+
+        publicKey = default;
+        return false;
+    }
+
+    public static int MaxStringLength => SeedKeyHelper.PublicKeyLengthInBase64;
+
+    public int GetStringLength()
+    {
+        if (KeyAlias.TryGetAlias(this, out var alias))
+        {
+            return alias.Length;
+        }
+        else
+        {
+            return SeedKeyHelper.PublicKeyLengthInBase64;
+        }
+    }
+
+    public bool TryFormat(Span<char> destination, out int written)
+    {
+        if (KeyAlias.TryGetAlias(this, out var alias))
+        {
+            if (destination.Length < alias.Length)
+            {
+                written = 0;
+                return false;
+            }
+
+            alias.CopyTo(destination);
+            written = alias.Length;
+            return true;
+        }
+        else
+        {
+            return SeedKeyHelper.TryFormatPublicKey(this.AsSpan(), destination, out written);
+        }
+    }
+
+    #endregion
+
 
     public Identifier(int id0)
     {
