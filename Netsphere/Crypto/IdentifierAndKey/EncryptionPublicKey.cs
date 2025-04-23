@@ -11,9 +11,9 @@ namespace Netsphere.Crypto;
 
 [TinyhandObject]
 [StructLayout(LayoutKind.Explicit)]
-public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<SignaturePublicKey>, IStringConvertible<SignaturePublicKey>
+public readonly partial struct EncryptionPublicKey : IValidatable, IEquatable<EncryptionPublicKey>, IStringConvertible<EncryptionPublicKey>
 {// (s:key)
-    public const char Identifier = 's';
+    public const char Identifier = 'e';
 
     #region FieldAndProperty
 
@@ -37,10 +37,10 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
 
     #region TypeSpecific
 
-    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out SignaturePublicKey publicKey, out int read)
+    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out EncryptionPublicKey publicKey, out int read)
     {
         Span<byte> keyAndChecksum = stackalloc byte[SeedKeyHelper.PublicKeyAndChecksumSize];
-        if (SeedKeyHelper.TryParsePublicKey(KeyOrientation.Signature, source, keyAndChecksum, out read))
+        if (SeedKeyHelper.TryParsePublicKey(KeyOrientation.Encryption, source, keyAndChecksum, out read))
         {
             publicKey = new(keyAndChecksum);
             return true;
@@ -53,42 +53,21 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
     public static int MaxStringLength => SeedKeyHelper.PublicKeyLengthInBase64;
 
     public int GetStringLength()
-    {
-        if (KeyAlias.TryGetAlias(this, out var alias))
-        {
-            return alias.Length;
-        }
-        else
-        {
-            return SeedKeyHelper.PublicKeyLengthInBase64;
-        }
-    }
+        => SeedKeyHelper.PublicKeyLengthInBase64;
 
     public bool TryFormat(Span<char> destination, out int written)
-    {
-        if (KeyAlias.TryGetAlias(this, out var alias))
-        {
-            if (destination.Length < alias.Length)
-            {
-                written = 0;
-                return false;
-            }
-
-            alias.CopyTo(destination);
-            written = alias.Length;
-            return true;
-        }
-        else
-        {
-            return SeedKeyHelper.TryFormatPublicKey(this.AsSpan(), destination, out written);
-        }
-    }
+        => SeedKeyHelper.TryFormatPublicKey(this.AsSpan(), destination, out written);
 
     public bool TryFormatWithBracket(Span<char> destination, out int written)
         => SeedKeyHelper.TryFormatPublicKeyWithBracket(Identifier, this.AsSpan(), destination, out written);
 
-    public SignaturePublicKey(ReadOnlySpan<byte> b)
+    public EncryptionPublicKey(ReadOnlySpan<byte> b)
     {
+        if (b.Length < SeedKeyHelper.PublicKeySize)
+        {
+            throw new ArgumentException($"Length of a byte array must be at least {SeedKeyHelper.PublicKeySize}");
+        }
+
         this.x0 = BitConverter.ToUInt64(b);
         b = b.Slice(sizeof(ulong));
         this.x1 = BitConverter.ToUInt64(b);
@@ -98,7 +77,7 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
         this.x3 = BitConverter.ToUInt64(b);
     }
 
-    public SignaturePublicKey(ulong x0, ulong x1, ulong x2, ulong x3)
+    public EncryptionPublicKey(ulong x0, ulong x1, ulong x2, ulong x3)
     {
         this.x0 = x0;
         this.x1 = x1;
@@ -106,24 +85,55 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
         this.x3 = x3;
     }
 
-    public EncryptionPublicKey ConvertToEncryptionPublicKey()
+    public SignaturePublicKey ConvertToSignaturePublicKey()
     {
-        var key = default(EncryptionPublicKey);
-        CryptoDual.PublicKey_SignToBox(this.AsSpan(), key.UnsafeAsSpan());
+        var key = default(SignaturePublicKey);
+        CryptoDual.PublicKey_BoxToSign(this.AsSpan(), key.UnsafeAsSpan());
         return key;
     }
 
-    public bool Equals(SignaturePublicKey other)
+    public bool Equals(EncryptionPublicKey other)
         => this.x0 == other.x0 && this.x1 == other.x1 && this.x2 == other.x2 && this.x3 == other.x3;
 
-    public bool Verify(ReadOnlySpan<byte> data, ReadOnlySpan<byte> signature)
+    public bool TryEncrypt(ReadOnlySpan<byte> data, ReadOnlySpan<byte> nonce24, ReadOnlySpan<byte> secretKey32, Span<byte> cipher)
     {
-        if (signature.Length != SeedKeyHelper.SignatureSize)
+        if (nonce24.Length != CryptoBox.NonceSize)
         {
             return false;
         }
 
-        return CryptoSign.Verify(data, this.AsSpan(), signature);
+        if (secretKey32.Length != CryptoBox.SecretKeySize)
+        {
+            return false;
+        }
+
+        if (cipher.Length != data.Length + CryptoBox.MacSize)
+        {
+            return false;
+        }
+
+        CryptoBox.Encrypt(data, nonce24, secretKey32, this.AsSpan(), cipher);
+        return true;
+    }
+
+    public bool TryDecrypt(ReadOnlySpan<byte> cipher, ReadOnlySpan<byte> nonce24, ReadOnlySpan<byte> secretKey32, Span<byte> data)
+    {
+        if (nonce24.Length != CryptoBox.NonceSize)
+        {
+            return false;
+        }
+
+        if (secretKey32.Length != CryptoBox.SecretKeySize)
+        {
+            return false;
+        }
+
+        if (data.Length != cipher.Length - CryptoBox.MacSize)
+        {
+            return false;
+        }
+
+        return CryptoBox.TryDecrypt(cipher, nonce24, secretKey32, this.AsSpan(), data);
     }
 
     #endregion

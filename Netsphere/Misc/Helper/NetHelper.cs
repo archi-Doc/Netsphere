@@ -20,6 +20,24 @@ public static class NetHelper
     internal const string TripleQuotes = "\"\"\"";
     private const int StreamBufferSize = 1024 * 1024 * 4; // 4 MB
 
+    public static Identifier GetIdentifier<T>(this T? value, int level = TinyhandWriter.DefaultSignatureLevel)
+        where T : ITinyhandSerializable<T>
+    {
+        var writer = TinyhandWriter.CreateFromThreadStaticBuffer();
+        writer.Level = level;
+        try
+        {
+            TinyhandSerializer.SerializeObject(ref writer, value, TinyhandSerializerOptions.Signature);
+            writer.FlushAndGetReadOnlySpan(out var span, out _);
+            var identifier = new Identifier(Blake3.Get256_UInt64(span));
+            return identifier;
+        }
+        finally
+        {
+            writer.Dispose();
+        }
+    }
+
     [SupportedOSPlatform("windows")]
     public static bool TryGetStaticIpv6Address([MaybeNullWhen(false)] out IPAddress ipv6)
     {

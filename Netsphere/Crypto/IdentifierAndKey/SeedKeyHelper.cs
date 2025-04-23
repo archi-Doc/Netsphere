@@ -1,5 +1,6 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -20,12 +21,16 @@ public static class SeedKeyHelper
     public const char PublicKeyOpenBracket = '(';
     public const char PublicKeySeparator = ':';
     public const char PublicKeyCloseBracket = ')';
+    public const char Separator1 = '#';
+    public const char Separator2 = '/';
+    public const char Separator3 = '+';
 
     public static ReadOnlySpan<char> PrivateKeyBracket => "!!!";
 
     public static readonly int SeedLengthInBase64; // !!!seed and checksum!!!
     public static readonly int RawPublicKeyLengthInBase64; // key and checksum
     public static readonly int PublicKeyLengthInBase64; // (s:key and checksum)
+    public static readonly int PublicKeyLengthInBase64B; // (key and checksum)
     public static readonly int MaxPrivateKeyLengthInBase64; // !!!seed and checksum!!!(s:key and checksum)
 
     static SeedKeyHelper()
@@ -33,7 +38,36 @@ public static class SeedKeyHelper
         SeedLengthInBase64 = Base64.Url.GetEncodedLength(SeedSize + ChecksumSize) + 6; // "!!!!!!"
         RawPublicKeyLengthInBase64 = Base64.Url.GetEncodedLength(PublicKeySize + ChecksumSize); // "key"
         PublicKeyLengthInBase64 = RawPublicKeyLengthInBase64 + 4; // "(s:key)"
+        PublicKeyLengthInBase64B = RawPublicKeyLengthInBase64 + 2; // "(key)"
         MaxPrivateKeyLengthInBase64 = SeedLengthInBase64 + PublicKeyLengthInBase64; // !!!seed!!!(s:key)
+
+        Debug.Assert(RawPublicKeyLengthInBase64 > Alias.MaxAliasLength);
+    }
+
+    public static int CalculateStringLength(ReadOnlySpan<char> source)
+    {// identifier, key, (s:key), (key)
+        if (source.Length >= 3)
+        {
+            if (source[0] == PublicKeyOpenBracket && source[2] == PublicKeySeparator)
+            {// (s:key)
+                if (source.Length >= PublicKeyLengthInBase64 &&
+                    source[PublicKeyLengthInBase64 - 1] == PublicKeyCloseBracket)
+                {
+                    return PublicKeyLengthInBase64;
+                }
+            }
+            else if (source[0] == PublicKeyOpenBracket && source[2] != PublicKeySeparator)
+            {// (key)
+                if (source.Length >= PublicKeyLengthInBase64B &&
+                    source[PublicKeyLengthInBase64B - 1] == PublicKeyCloseBracket)
+                {
+                    return PublicKeyLengthInBase64B;
+                }
+            }
+        }
+
+        var n = source.IndexOfAny(Separator1, Separator2, Separator3);
+        return n == -1 ? source.Length : n;
     }
 
     public static bool TryParsePublicKey(KeyOrientation orientation, ReadOnlySpan<char> source, Span<byte> keyAndChecksum, out int read)
@@ -44,40 +78,10 @@ public static class SeedKeyHelper
             BaseHelper.ThrowSizeMismatchException(nameof(keyAndChecksum), PublicKeySize);
         }
 
-        source = source.Trim();
-        if (source.Length < RawPublicKeyLengthInBase64)
-        {
-            return false;
-        }
-
-        if (source[0] != PublicKeyOpenBracket)
-        {// key
-            if (source.Length < RawPublicKeyLengthInBase64)
-            {
-                return false;
-            }
-
-            if (Base64.Url.FromStringToSpan(source.Slice(0, RawPublicKeyLengthInBase64), keyAndChecksum, out _) &&
-                ValidateChecksum(keyAndChecksum))
-            {
-                read = RawPublicKeyLengthInBase64;
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        if (source[2] == PublicKeySeparator)
+        read = CalculateStringLength(source);
+        if (read == PublicKeyLengthInBase64)
         {// (s:key)
             if (IdentifierToOrientation(source[1]) != orientation)
-            {
-                return false;
-            }
-
-            if (source.Length < PublicKeyLengthInBase64 ||
-                source[PublicKeyLengthInBase64 - 1] != PublicKeyCloseBracket)
             {
                 return false;
             }
@@ -85,33 +89,27 @@ public static class SeedKeyHelper
             if (Base64.Url.FromStringToSpan(source.Slice(3, RawPublicKeyLengthInBase64), keyAndChecksum, out _) &&
                 ValidateChecksum(keyAndChecksum))
             {
-                read = PublicKeyLengthInBase64;
                 return true;
             }
-            else
-            {
-                return false;
-            }
         }
-        else
+        else if (read == PublicKeyLengthInBase64B)
         {// (key)
-            if (source.Length < (RawPublicKeyLengthInBase64 + 2) ||
-                source[RawPublicKeyLengthInBase64 + 1] != PublicKeyCloseBracket)
-            {
-                return false;
-            }
-
             if (Base64.Url.FromStringToSpan(source.Slice(1, RawPublicKeyLengthInBase64), keyAndChecksum, out _) &&
                 ValidateChecksum(keyAndChecksum))
             {
-                read = RawPublicKeyLengthInBase64 + 2;
                 return true;
             }
-            else
+        }
+        else if (read == RawPublicKeyLengthInBase64)
+        {// key
+            if (Base64.Url.FromStringToSpan(source.Slice(0, RawPublicKeyLengthInBase64), keyAndChecksum, out _) &&
+                ValidateChecksum(keyAndChecksum))
             {
-                return false;
+                return true;
             }
         }
+
+        return false;
     }
 
     public static KeyOrientation IdentifierToOrientation(char identifier)
@@ -154,7 +152,7 @@ public static class SeedKeyHelper
 
     [SkipLocalsInit]
     internal static bool TryFormatPublicKey(ReadOnlySpan<byte> publicKey, Span<char> destination, out int written)
-    {
+    {// key
         if (destination.Length < RawPublicKeyLengthInBase64)
         {
             written = 0;
