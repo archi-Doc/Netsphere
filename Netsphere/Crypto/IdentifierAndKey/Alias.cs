@@ -15,7 +15,7 @@ public static class Alias
     private static readonly NotThreadsafeHashtable<Identifier, string> IdentifierToAliasTable = new();
     private static readonly Utf16Hashtable<Identifier> AliasToIdentifierTable = new();
 
-    public static void AddAlias(SignaturePublicKey publicKey, string alias)
+    public static void Add(SignaturePublicKey publicKey, string alias)
     {
         if (alias.Length > MaxAliasLength)
         {
@@ -38,7 +38,7 @@ public static class Alias
         }
     }
 
-    public static void AddAlias(Identifier identifier, string alias)
+    public static void Add(Identifier identifier, string alias)
     {
         if (alias.Length > MaxAliasLength)
         {

@@ -1,6 +1,5 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -159,8 +158,8 @@ public readonly partial struct EncryptionPublicKey : IValidatable, IEquatable<En
     public override string ToString()
     {
         Span<char> s = stackalloc char[SeedKeyHelper.PublicKeyLengthInBase64];
-        this.TryFormatWithBracket(s, out _);
-        return s.ToString();
+        this.TryFormatWithBracket(s, out var written);
+        return s.Slice(0, written).ToString();
     }
 
     #endregion

@@ -1,6 +1,5 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -89,7 +88,24 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
     }
 
     public bool TryFormatWithBracket(Span<char> destination, out int written)
-        => SeedKeyHelper.TryFormatPublicKeyWithBracket(Identifier, this.AsSpan(), destination, out written);
+    {
+        if (Alias.TryGetAliasFromPublicKey(this, out var alias))
+        {
+            if (destination.Length < alias.Length)
+            {
+                written = 0;
+                return false;
+            }
+
+            alias.CopyTo(destination);
+            written = alias.Length;
+            return true;
+        }
+        else
+        {
+            return SeedKeyHelper.TryFormatPublicKeyWithBracket(Identifier, this.AsSpan(), destination, out written);
+        }
+    }
 
     public SignaturePublicKey(ReadOnlySpan<byte> b)
     {
@@ -158,8 +174,8 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
     public override string ToString()
     {
         Span<char> s = stackalloc char[SeedKeyHelper.PublicKeyLengthInBase64];
-        this.TryFormatWithBracket(s, out _);
-        return s.ToString();
+        this.TryFormatWithBracket(s, out var written);
+        return s.Slice(0, written).ToString();
     }
 
     #endregion

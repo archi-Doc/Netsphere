@@ -1,10 +1,8 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
-using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography.X509Certificates;
 
 namespace Netsphere.Crypto;
 
@@ -185,8 +183,8 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
     public override string ToString()
     {
         Span<char> s = stackalloc char[SeedKeyHelper.RawPublicKeyLengthInBase64];
-        this.TryFormat(s, out _);
-        return s.ToString();
+        this.TryFormat(s, out var written);
+        return s.Slice(0, written).ToString();
     }
 
     public int CompareTo(Identifier other)
