@@ -1,12 +1,16 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace Netsphere.Crypto;
 
 /// <summary>
 /// Immutable identifier of objects in Lp.
 /// </summary>
 [TinyhandObject]
-public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<Identifier>
+public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<Identifier>, IStringConvertible<Identifier>
 {
     public const string Name = "Identifier";
     public const int Length = 32;
@@ -21,6 +25,66 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
 
     public static Identifier FromReadOnlySpan(ReadOnlySpan<byte> input)
         => new(Sha3Helper.Get256_UInt64(input));
+
+    #region IStringConvertible
+
+    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out Identifier identifier, out int read)
+    {// Base64(Length) or Alias(*)
+        read = SeedKeyHelper.CalculateStringLength(source);
+        if (read == SeedKeyHelper.RawPublicKeyLengthInBase64)
+        {// key
+            Span<byte> keyAndChecksum = stackalloc byte[SeedKeyHelper.PublicKeyAndChecksumSize];
+            if (Base64.Url.FromStringToSpan(source.Slice(0, SeedKeyHelper.RawPublicKeyLengthInBase64), keyAndChecksum, out _) &&
+                    SeedKeyHelper.ValidateChecksum(keyAndChecksum))
+            {
+                identifier = new(keyAndChecksum);
+                return true;
+            }
+        }
+        else if (read > 0 && Alias.TryGetIdentifierFromAlias(source.Slice(0, read), out identifier))
+        {
+            return true;
+        }
+
+        identifier = default;
+        return false;
+    }
+
+    public static int MaxStringLength => SeedKeyHelper.RawPublicKeyLengthInBase64;
+
+    public int GetStringLength()
+    {
+        if (Alias.TryGetAliasFromIdentifier(this, out var alias))
+        {
+            return alias.Length;
+        }
+        else
+        {
+            return SeedKeyHelper.RawPublicKeyLengthInBase64;
+        }
+    }
+
+    public bool TryFormat(Span<char> destination, out int written)
+    {
+        if (Alias.TryGetAliasFromIdentifier(this, out var alias))
+        {
+            if (destination.Length < alias.Length)
+            {
+                written = 0;
+                return false;
+            }
+
+            alias.CopyTo(destination);
+            written = alias.Length;
+            return true;
+        }
+        else
+        {
+            return SeedKeyHelper.TryFormatPublicKey(this.AsSpan(), destination, out written);
+        }
+    }
+
+    #endregion
 
     public Identifier(int id0)
     {
@@ -62,21 +126,20 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
         this.Id3 = identifier.Id3;
     }
 
-    public Identifier(byte[] byteArray)
+    public Identifier(ReadOnlySpan<byte> b)
     {
-        if (byteArray.Length < Length)
+        if (b.Length < Length)
         {
             throw new ArgumentException($"Length of a byte array must be at least {Length}");
         }
 
-        var s = byteArray.AsSpan();
-        this.Id0 = BitConverter.ToUInt64(s);
-        s = s.Slice(8);
-        this.Id1 = BitConverter.ToUInt64(s);
-        s = s.Slice(8);
-        this.Id2 = BitConverter.ToUInt64(s);
-        s = s.Slice(8);
-        this.Id3 = BitConverter.ToUInt64(s);
+        this.Id0 = BitConverter.ToUInt64(b);
+        b = b.Slice(sizeof(ulong));
+        this.Id1 = BitConverter.ToUInt64(b);
+        b = b.Slice(sizeof(ulong));
+        this.Id2 = BitConverter.ToUInt64(b);
+        b = b.Slice(sizeof(ulong));
+        this.Id3 = BitConverter.ToUInt64(b);
     }
 
     [Key(0)]
@@ -109,7 +172,7 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
         return true;
     }
 
-    public bool IsDefault()
+    public bool IsDefault
         => this.Id0 == 0 && this.Id1 == 0 && this.Id2 == 0 && this.Id3 == 0;
 
     public bool Equals(Identifier other)
@@ -117,14 +180,12 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
 
     public override int GetHashCode() => (int)this.Id0; // HashCode.Combine(this.Id0, this.Id1, this.Id2, this.Id3);
 
-    public override string ToString() => this.Id0 switch
+    public override string ToString()
     {
-        0 => $"{Name} Zero",
-        1 => $"{Name} One",
-        2 => $"{Name} Two",
-        3 => $"{Name} Three",
-        _ => $"{Name} {this.Id0:D4}",
-    };
+        Span<char> s = stackalloc char[SeedKeyHelper.RawPublicKeyLengthInBase64];
+        this.TryFormat(s, out var written);
+        return s.Slice(0, written).ToString();
+    }
 
     public int CompareTo(Identifier other)
     {
@@ -166,4 +227,11 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
 
         return 0;
     }
+
+    [UnscopedRef]
+    public ReadOnlySpan<byte> AsSpan()
+        => MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in this), 1));
+
+    internal Span<byte> UnsafeAsSpan()
+        => MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in this), 1));
 }
