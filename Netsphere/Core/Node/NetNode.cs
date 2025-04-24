@@ -130,7 +130,7 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
             span = span.Slice(written);
         }
 
-        if (!this.PublicKey.TryFormatWithBracket(span, out written))
+        if (!this.PublicKey.TryFormat(span, out written))
         {
             return false;
         }

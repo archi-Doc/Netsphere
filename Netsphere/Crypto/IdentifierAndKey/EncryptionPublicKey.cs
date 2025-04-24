@@ -55,10 +55,10 @@ public readonly partial struct EncryptionPublicKey : IValidatable, IEquatable<En
         => SeedKeyHelper.PublicKeyLengthInBase64;
 
     public bool TryFormat(Span<char> destination, out int written)
-        => SeedKeyHelper.TryFormatPublicKey(this.AsSpan(), destination, out written);
+        => SeedKeyHelper.TryFormatPublicKey(Identifier, this.AsSpan(), destination, out written);
 
-    public bool TryFormatWithBracket(Span<char> destination, out int written)
-        => SeedKeyHelper.TryFormatPublicKeyWithBracket(Identifier, this.AsSpan(), destination, out written);
+    public bool TryFormatWithoutBracket(Span<char> destination, out int written)
+        => SeedKeyHelper.TryFormatPublicKeyWithoutBracket(this.AsSpan(), destination, out written);
 
     public EncryptionPublicKey(ReadOnlySpan<byte> b)
     {
@@ -158,7 +158,7 @@ public readonly partial struct EncryptionPublicKey : IValidatable, IEquatable<En
     public override string ToString()
     {
         Span<char> s = stackalloc char[SeedKeyHelper.PublicKeyLengthInBase64];
-        this.TryFormatWithBracket(s, out var written);
+        this.TryFormat(s, out var written);
         return s.Slice(0, written).ToString();
     }
 
