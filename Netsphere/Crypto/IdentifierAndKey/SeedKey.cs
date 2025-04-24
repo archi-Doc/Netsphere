@@ -369,7 +369,7 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
             if (this.KeyOrientation == KeyOrientation.Encryption)
             {
                 var publicKey = this.GetEncryptionPublicKey();
-                if (publicKey.TryFormatWithBracket(span, out w))
+                if (publicKey.TryFormat(span, out w))
                 {
                     written += w;
                 }
@@ -377,7 +377,7 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
             else if (this.KeyOrientation == KeyOrientation.Signature)
             {
                 var publicKey = this.GetSignaturePublicKey();
-                if (publicKey.TryFormatWithBracket(span, out w))
+                if (publicKey.TryFormat(span, out w))
                 {
                     written += w;
                 }

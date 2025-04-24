@@ -67,6 +67,26 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
         }
     }
 
+    public bool TryFormatWithoutBracket(Span<char> destination, out int written)
+    {
+        if (Alias.TryGetAliasFromPublicKey(this, out var alias))
+        {
+            if (destination.Length < alias.Length)
+            {
+                written = 0;
+                return false;
+            }
+
+            alias.CopyTo(destination);
+            written = alias.Length;
+            return true;
+        }
+        else
+        {
+            return SeedKeyHelper.TryFormatPublicKeyWithoutBracket(this.AsSpan(), destination, out written);
+        }
+    }
+
     public bool TryFormat(Span<char> destination, out int written)
     {
         if (Alias.TryGetAliasFromPublicKey(this, out var alias))
@@ -83,27 +103,7 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
         }
         else
         {
-            return SeedKeyHelper.TryFormatPublicKey(this.AsSpan(), destination, out written);
-        }
-    }
-
-    public bool TryFormatWithBracket(Span<char> destination, out int written)
-    {
-        if (Alias.TryGetAliasFromPublicKey(this, out var alias))
-        {
-            if (destination.Length < alias.Length)
-            {
-                written = 0;
-                return false;
-            }
-
-            alias.CopyTo(destination);
-            written = alias.Length;
-            return true;
-        }
-        else
-        {
-            return SeedKeyHelper.TryFormatPublicKeyWithBracket(Identifier, this.AsSpan(), destination, out written);
+            return SeedKeyHelper.TryFormatPublicKey(Identifier, this.AsSpan(), destination, out written);
         }
     }
 
@@ -174,7 +174,7 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
     public override string ToString()
     {
         Span<char> s = stackalloc char[SeedKeyHelper.PublicKeyLengthInBase64];
-        this.TryFormatWithBracket(s, out var written);
+        this.TryFormat(s, out var written);
         return s.Slice(0, written).ToString();
     }
 

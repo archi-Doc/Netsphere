@@ -151,7 +151,7 @@ public static class SeedKeyHelper
     }
 
     [SkipLocalsInit]
-    internal static bool TryFormatPublicKey(ReadOnlySpan<byte> publicKey, Span<char> destination, out int written)
+    internal static bool TryFormatPublicKeyWithoutBracket(ReadOnlySpan<byte> publicKey, Span<char> destination, out int written)
     {// key
         if (destination.Length < RawPublicKeyLengthInBase64)
         {
@@ -166,7 +166,7 @@ public static class SeedKeyHelper
     }
 
     [SkipLocalsInit]
-    internal static bool TryFormatPublicKeyWithBracket(char identifier, ReadOnlySpan<byte> publicKey, Span<char> destination, out int written)
+    internal static bool TryFormatPublicKey(char identifier, ReadOnlySpan<byte> publicKey, Span<char> destination, out int written)
     {// (s:key)
         if (destination.Length < PublicKeyLengthInBase64)
         {

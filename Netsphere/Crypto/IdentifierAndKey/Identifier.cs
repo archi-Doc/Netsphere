@@ -80,7 +80,7 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
         }
         else
         {
-            return SeedKeyHelper.TryFormatPublicKey(this.AsSpan(), destination, out written);
+            return SeedKeyHelper.TryFormatPublicKeyWithoutBracket(this.AsSpan(), destination, out written);
         }
     }
 
