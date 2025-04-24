@@ -4,7 +4,7 @@ namespace Netsphere;
 
 #pragma warning disable SA1101 // Prefix local calls with this
 
-public static class Extensions
+/*public static class Extensions
 {
     extension(NetResult result)
     {
@@ -12,4 +12,4 @@ public static class Extensions
 
         public bool IsFailure => result != NetResult.Success;
     }
-}
+}*/
