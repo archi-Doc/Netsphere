@@ -253,7 +253,7 @@ public partial class RestartMachine : Machine
             return;
         }
 
-        this.ShowConfigurationFile(configFile);
+        // this.ShowConfigurationFile(configFile);
 
         // Stop and remove container
         var param = restartProject ? string.Empty : $" {this.options.Service}";
