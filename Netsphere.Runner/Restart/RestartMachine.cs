@@ -205,11 +205,11 @@ public partial class RestartMachine : Machine
                 this.logger.TryGet()?.Log($"Config: {config}");
                 if (this.configurationSource.EndsWith(config))
                 {
-                    this.logger.TryGet()?.Log($"/target.yml matches the underlying YAML file.");
+                    this.logger.TryGet()?.Log($"{ConfigFile} matches the underlying YAML file.");
                 }
                 else
                 {
-                    this.logger.TryGet(LogLevel.Warning)?.Log($"/target.yml does not match the underlying YAML file.");
+                    this.logger.TryGet(LogLevel.Warning)?.Log($"{ConfigFile} does not match the underlying YAML file.");
                 }
             }
         }
@@ -253,6 +253,8 @@ public partial class RestartMachine : Machine
             return;
         }
 
+        this.ShowConfigurationFile(configFile);
+
         // Stop and remove container
         var param = restartProject ? string.Empty : $" {this.options.Service}";
         await RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {projectName} rm -sf{param}");
@@ -265,6 +267,21 @@ public partial class RestartMachine : Machine
 
         this.logger.TryGet()?.Log($"Restart complete");
         Console.WriteLine();
+    }
+
+    private void ShowConfigurationFile(string configurationFile)
+    {
+        try
+        {
+            var lines = File.ReadAllLines(configurationFile);
+            foreach (var x in lines)
+            {
+                Console.WriteLine(x);
+            }
+        }
+        catch
+        {
+        }
     }
 
     private bool TryGetConfigurationFile(ContainerInspectResponse inspect, [MaybeNullWhen(false)] out string configurationFile)
