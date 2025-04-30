@@ -72,6 +72,7 @@ public sealed partial class NetStats
     private readonly Lock lockObject = new();
     private readonly ILogger logger;
     private readonly NetBase netBase;
+    private int ownNetNodeCount;
 
     #endregion
 
@@ -168,8 +169,10 @@ public sealed partial class NetStats
     {
         this.IsIpv6Supported = this.Ipv6Endpoint.TryGet(out _, out _);
 
-        if (this.OwnNetNode is null)
+        if (this.OwnNetNode is null ||
+            this.ownNetNodeCount++ >= 10)
         {
+            this.ownNetNodeCount = 0;
             if (this.TryGetOwnNetNode(out var netNode))
             {
                 this.OwnNetNode = netNode;
