@@ -13,7 +13,7 @@ public class NetBase : UnitBase, IUnitPreparable
         this.UnitLogger = logger;
 
         this.NetOptions = new();
-        this.NetOptions.NodeName = System.Environment.OSVersion.ToString();
+        this.NetOptions.NodeName = System.Environment.OSVersion.ToString();// Node_1234abcd
         this.NewServerConnectionContext = connection => new ServerConnectionContext(connection);
         this.NewClientConnectionContext = connection => new ClientConnectionContext(connection);
     }
