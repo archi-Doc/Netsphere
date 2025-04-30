@@ -15,6 +15,36 @@ public static class Alias
     private static readonly NotThreadsafeHashtable<Identifier, string> IdentifierToAliasTable = new();
     private static readonly Utf16Hashtable<Identifier> AliasToIdentifierTable = new();
 
+    public static bool IsValid(ReadOnlySpan<char> alias)
+    {
+        if (alias.Length == 0 ||
+            alias.Length > MaxAliasLength)
+        {
+            return false;
+        }
+
+        if (!IsAlphabet(alias[0]))
+        {
+            return false;
+        }
+
+        for (var i = 1; i < alias.Length; i++)
+        {
+            if (!IsAlphabetOrDigit(alias[i]) && alias[i] != '_')
+            {
+                return false;
+            }
+        }
+
+        return true;
+
+        static bool IsAlphabet(char c)
+            => (uint)(c - 'A') <= ('Z' - 'A') || (uint)(c - 'a') <= ('z' - 'a');
+
+        static bool IsAlphabetOrDigit(char c)
+            => (uint)(c - 'A') <= ('Z' - 'A') || (uint)(c - 'a') <= ('z' - 'a') || (uint)(c - '0') <= ('9' - '0');
+    }
+
     public static void Add(SignaturePublicKey publicKey, string alias)
     {
         if (alias.Length > MaxAliasLength)
