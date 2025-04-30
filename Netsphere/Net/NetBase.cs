@@ -13,7 +13,6 @@ public class NetBase : UnitBase, IUnitPreparable
         this.UnitLogger = logger;
 
         this.NetOptions = new();
-        this.NetOptions.NodeName = System.Environment.OSVersion.ToString();
         this.NewServerConnectionContext = connection => new ServerConnectionContext(connection);
         this.NewClientConnectionContext = connection => new ClientConnectionContext(connection);
     }
@@ -86,6 +85,11 @@ public class NetBase : UnitBase, IUnitPreparable
     public void SetOptions(NetOptions netsphereOptions)
     {
         this.NetOptions = netsphereOptions;
+
+        if (string.IsNullOrEmpty(this.NetOptions.NodeName))
+        {
+            this.NetOptions.NodeName = $"{NetOptions.NodeNamePrefix}{RandomVault.Default.NextUInt32():X8}"; // System.Environment.OSVersion.ToString();
+        }
 
         if (!string.IsNullOrEmpty(this.NetOptions.NodeSecretKey) &&
             SeedKey.TryParse(this.NetOptions.NodeSecretKey, out var seedKey))

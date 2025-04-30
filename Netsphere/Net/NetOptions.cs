@@ -7,6 +7,8 @@ namespace Netsphere;
 [TinyhandObject(ImplicitKeyAsName = true)]
 public partial record NetOptions
 {
+    public const string NodeNamePrefix = "Ns_";
+
     [SimpleOption("NodeName", Description = "Node name", ReadFromEnvironment = true)]
     public string NodeName { get; set; } = string.Empty;
 
