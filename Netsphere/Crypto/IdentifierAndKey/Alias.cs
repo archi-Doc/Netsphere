@@ -4,38 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Netsphere.Crypto;
 
-public sealed class Utf16StringEqualityComparer : IEqualityComparer<char[]>, IAlternateEqualityComparer<ReadOnlySpan<char>, char[]>
-{
-    public static IEqualityComparer<char[]> Default { get; } = new Utf16StringEqualityComparer();
-
-    public bool Equals(char[]? x, char[]? y)
-    {
-        if (x == null && y == null)
-        {
-            return true;
-        }
-
-        if (x == null || y == null)
-        {
-            return false;
-        }
-
-        return x.AsSpan().SequenceEqual(y);
-    }
-
-    public int GetHashCode([DisallowNull] char[] obj)
-        => this.GetHashCode(obj.AsSpan());
-
-    public char[] Create(ReadOnlySpan<char> alternate)
-        => alternate.ToArray();
-
-    public bool Equals(ReadOnlySpan<char> alternate, char[] other)
-        => other.AsSpan().SequenceEqual(alternate);
-
-    public int GetHashCode(ReadOnlySpan<char> alternate)
-        => unchecked((int)XxHash3.Hash64(alternate));
-}
-
 public static class Alias
 {// Identifier/PublicKey <-> Alias
     public const int MaxAliasLength = 32; //  <= RawPublicKeyLengthInBase64
