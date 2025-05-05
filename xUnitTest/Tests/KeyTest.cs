@@ -51,7 +51,7 @@ public class KeyTest
         read.Is(st.Length);
         publicKey.Equals(publicKey2).IsTrue();
 
-        Alias.Add(publicKey, AliasName);
+        Alias.Set(publicKey, AliasName);
         Alias.TryGetPublicKeyFromAlias(AliasName, out publicKey2).IsTrue();
         publicKey.Equals(publicKey2).IsTrue();
 

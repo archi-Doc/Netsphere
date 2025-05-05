@@ -4,16 +4,56 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Netsphere.Crypto;
 
+public sealed class Utf16StringEqualityComparer : IEqualityComparer<char[]>, IAlternateEqualityComparer<ReadOnlySpan<char>, char[]>
+{
+    public static IEqualityComparer<char[]> Default { get; } = new Utf16StringEqualityComparer();
+
+    public bool Equals(char[]? x, char[]? y)
+    {
+        if (x == null && y == null)
+        {
+            return true;
+        }
+
+        if (x == null || y == null)
+        {
+            return false;
+        }
+
+        return x.AsSpan().SequenceEqual(y);
+    }
+
+    public int GetHashCode([DisallowNull] char[] obj)
+        => this.GetHashCode(obj.AsSpan());
+
+    public char[] Create(ReadOnlySpan<char> alternate)
+        => alternate.ToArray();
+
+    public bool Equals(ReadOnlySpan<char> alternate, char[] other)
+        => other.AsSpan().SequenceEqual(alternate);
+
+    public int GetHashCode(ReadOnlySpan<char> alternate)
+        => unchecked((int)XxHash3.Hash64(alternate));
+}
+
 public static class Alias
 {// Identifier/PublicKey <-> Alias
     public const int MaxAliasLength = 32; //  <= RawPublicKeyLengthInBase64
-    private static readonly Lock LockPublicKey = new();
-    private static readonly NotThreadsafeHashtable<SignaturePublicKey, string> PublicKeyToAliasTable = new();
-    private static readonly Utf16Hashtable<SignaturePublicKey> AliasToPublicKeyTable = new();
+    // private static readonly Lock LockPublicKey = new();
+    private static readonly Dictionary<SignaturePublicKey, string> PublicKeyToAliasTable;
+    private static readonly Dictionary<string, SignaturePublicKey> AliasToPublicKeyTable;
+    private static readonly Dictionary<string, SignaturePublicKey>.AlternateLookup<Utf16StringEqualityComparer> AliasToPublicKeyLookup;
 
-    private static readonly Lock LockIdentifier = new();
-    private static readonly NotThreadsafeHashtable<Identifier, string> IdentifierToAliasTable = new();
-    private static readonly Utf16Hashtable<Identifier> AliasToIdentifierTable = new();
+    // private static readonly Lock LockIdentifier = new();
+    private static readonly Dictionary<Identifier, string> IdentifierToAliasTable = new();
+    private static readonly Dictionary<string, Identifier> AliasToIdentifierTable = new();
+
+    static Alias()
+    {
+        PublicKeyToAliasTable = new();
+        AliasToPublicKeyTable = new();
+        AliasToPublicKeyLookup = AliasToPublicKeyTable.GetAlternateLookup<Utf16StringEqualityComparer>();
+    }
 
     public static bool IsValid(ReadOnlySpan<char> alias)
     {
@@ -45,27 +85,45 @@ public static class Alias
             => (uint)(c - 'A') <= ('Z' - 'A') || (uint)(c - 'a') <= ('z' - 'a') || (uint)(c - '0') <= ('9' - '0');
     }
 
-    public static void Add(SignaturePublicKey publicKey, string alias)
+    public static void Set(SignaturePublicKey publicKey, string alias)
     {
         if (alias.Length > MaxAliasLength)
         {
             throw new ArgumentOutOfRangeException(nameof(alias), $"Alias length must be less than {MaxAliasLength}.");
         }
 
-        using (LockPublicKey.EnterScope())
+        // using (LockPublicKey.EnterScope())
+        PublicKeyToAliasTable[publicKey] = alias; // PublicKeyToAliasTable.Add(publicKey, alias);
+        AliasToPublicKeyTable[alias] = publicKey; // AliasToPublicKeyTable.Add(alias, publicKey);
+    }
+
+    public static bool Remove(SignaturePublicKey publicKey)
+    {
+        // using (LockPublicKey.EnterScope())
+        if (PublicKeyToAliasTable.TryGetValue(publicKey, out var alias))
         {
-            PublicKeyToAliasTable.Add(publicKey, alias);
-            AliasToPublicKeyTable.Add(alias, publicKey);
+            PublicKeyToAliasTable.Remove(publicKey);
+            AliasToPublicKeyTable.Remove(alias);
+            return true;
+        }
+        else
+        {
+            return false;
         }
     }
 
     public static void ClearPublicKeyAlias()
     {
-        using (LockPublicKey.EnterScope())
-        {
-            PublicKeyToAliasTable.Clear();
-            AliasToPublicKeyTable.Clear();
-        }
+        // using (LockPublicKey.EnterScope())
+        PublicKeyToAliasTable.Clear();
+        AliasToPublicKeyTable.Clear();
+    }
+
+    public static void ClearIdentifierAlias()
+    {
+        // using (LockIdentifier.EnterScope())
+        IdentifierToAliasTable.Clear();
+        AliasToIdentifierTable.Clear();
     }
 
     public static void Add(Identifier identifier, string alias)
@@ -79,15 +137,6 @@ public static class Alias
         {
             IdentifierToAliasTable.Add(identifier, alias);
             AliasToIdentifierTable.Add(alias, identifier);
-        }
-    }
-
-    public static void ClearIdentifierAlias()
-    {
-        using (LockIdentifier.EnterScope())
-        {
-            IdentifierToAliasTable.Clear();
-            AliasToIdentifierTable.Clear();
         }
     }
 
