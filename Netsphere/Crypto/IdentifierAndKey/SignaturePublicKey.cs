@@ -44,10 +44,6 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
             publicKey = new(keyAndChecksum);
             return true;
         }
-        else if (read > 0 && Alias.TryGetPublicKeyFromAlias(source.Slice(0, read), out publicKey))
-        {
-            return true;
-        }
 
         publicKey = default;
         return false;
@@ -57,54 +53,17 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
 
     public int GetStringLength()
     {
-        if (Alias.TryGetAliasFromPublicKey(this, out var alias))
-        {
-            return alias.Length;
-        }
-        else
-        {
-            return SeedKeyHelper.PublicKeyLengthInBase64;
-        }
+        return SeedKeyHelper.PublicKeyLengthInBase64;
     }
 
     public bool TryFormatWithoutBracket(Span<char> destination, out int written)
     {
-        if (Alias.TryGetAliasFromPublicKey(this, out var alias))
-        {
-            if (destination.Length < alias.Length)
-            {
-                written = 0;
-                return false;
-            }
-
-            alias.CopyTo(destination);
-            written = alias.Length;
-            return true;
-        }
-        else
-        {
-            return SeedKeyHelper.TryFormatPublicKeyWithoutBracket(this.AsSpan(), destination, out written);
-        }
+        return SeedKeyHelper.TryFormatPublicKeyWithoutBracket(this.AsSpan(), destination, out written);
     }
 
     public bool TryFormat(Span<char> destination, out int written)
     {
-        if (Alias.TryGetAliasFromPublicKey(this, out var alias))
-        {
-            if (destination.Length < alias.Length)
-            {
-                written = 0;
-                return false;
-            }
-
-            alias.CopyTo(destination);
-            written = alias.Length;
-            return true;
-        }
-        else
-        {
-            return SeedKeyHelper.TryFormatPublicKey(Identifier, this.AsSpan(), destination, out written);
-        }
+        return SeedKeyHelper.TryFormatPublicKey(Identifier, this.AsSpan(), destination, out written);
     }
 
     public SignaturePublicKey(ReadOnlySpan<byte> b)
