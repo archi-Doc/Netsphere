@@ -51,7 +51,7 @@ public class KeyTest
         read.Is(st.Length);
         publicKey.Equals(publicKey2).IsTrue();
 
-        Alias.Set(publicKey, AliasName);
+        Alias.Add(AliasName, publicKey);
         Alias.TryGetPublicKeyFromAlias(AliasName, out publicKey2).IsTrue();
         publicKey.Equals(publicKey2).IsTrue();
 
@@ -76,7 +76,7 @@ public class KeyTest
         Identifier.TryParse(st, out identifier2, out read).IsTrue();
         identifier.Equals(identifier2).IsTrue();
 
-        Alias.Add(identifier, AliasName);
+        Alias.Add(AliasName, identifier);
         Alias.TryGetIdentifierFromAlias(AliasName, out identifier2).IsTrue();
         identifier.Equals(identifier2).IsTrue();
 
