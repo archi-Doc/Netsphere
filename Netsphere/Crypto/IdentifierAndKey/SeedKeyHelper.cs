@@ -40,6 +40,8 @@ public static class SeedKeyHelper
         PublicKeyLengthInBase64 = RawPublicKeyLengthInBase64 + 4; // "(s:key)"
         PublicKeyLengthInBase64B = RawPublicKeyLengthInBase64 + 2; // "(key)"
         MaxPrivateKeyLengthInBase64 = SeedLengthInBase64 + PublicKeyLengthInBase64; // !!!seed!!!(s:key)
+
+        Debug.Assert(RawPublicKeyLengthInBase64 > Alias.MaxAliasLength);
     }
 
     public static int CalculateStringLength(ReadOnlySpan<char> source)

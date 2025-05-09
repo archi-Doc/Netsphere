@@ -8,6 +8,9 @@ namespace xUnitTest;
 
 public class KeyTest
 {
+    public const string AliasName = "test";
+    public const string AliasName2 = "test2";
+
     [Fact]
     public void Test1()
     {
@@ -47,6 +50,15 @@ public class KeyTest
         SignaturePublicKey.TryParse(st, out publicKey2, out read).IsTrue();
         read.Is(st.Length);
         publicKey.Equals(publicKey2).IsTrue();
+
+        Alias.Add(AliasName, publicKey);
+        Alias.TryGetPublicKeyFromAlias(AliasName, out publicKey2).IsTrue();
+        publicKey.Equals(publicKey2).IsTrue();
+
+        SignaturePublicKey.TryParse(AliasName2, out publicKey2, out read).IsFalse();
+        SignaturePublicKey.TryParse(AliasName, out publicKey2, out read).IsTrue();
+        publicKey2.ToString().Is(AliasName);
+        publicKey.Equals(publicKey2).IsTrue();
     }
 
     [Fact]
@@ -62,6 +74,15 @@ public class KeyTest
 
         st = $"{st}/{st}";
         Identifier.TryParse(st, out identifier2, out read).IsTrue();
+        identifier.Equals(identifier2).IsTrue();
+
+        Alias.Add(AliasName, identifier);
+        Alias.TryGetIdentifierFromAlias(AliasName, out identifier2).IsTrue();
+        identifier.Equals(identifier2).IsTrue();
+
+        Identifier.TryParse(AliasName2, out identifier2, out read).IsFalse();
+        Identifier.TryParse(AliasName, out identifier2, out read).IsTrue();
+        identifier2.ToString().Is(AliasName);
         identifier.Equals(identifier2).IsTrue();
     }
 }

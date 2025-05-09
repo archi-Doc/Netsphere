@@ -41,6 +41,10 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
                 return true;
             }
         }
+        else if (read > 0 && Alias.TryGetIdentifierFromAlias(source.Slice(0, read), out identifier))
+        {
+            return true;
+        }
 
         identifier = default;
         return false;
@@ -50,12 +54,34 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
 
     public int GetStringLength()
     {
-        return SeedKeyHelper.RawPublicKeyLengthInBase64;
+        if (Alias.TryGetAliasFromIdentifier(this, out var alias))
+        {
+            return alias.Length;
+        }
+        else
+        {
+            return SeedKeyHelper.RawPublicKeyLengthInBase64;
+        }
     }
 
     public bool TryFormat(Span<char> destination, out int written)
     {
-        return SeedKeyHelper.TryFormatPublicKeyWithoutBracket(this.AsSpan(), destination, out written);
+        if (Alias.TryGetAliasFromIdentifier(this, out var alias))
+        {
+            if (destination.Length < alias.Length)
+            {
+                written = 0;
+                return false;
+            }
+
+            alias.CopyTo(destination);
+            written = alias.Length;
+            return true;
+        }
+        else
+        {
+            return SeedKeyHelper.TryFormatPublicKeyWithoutBracket(this.AsSpan(), destination, out written);
+        }
     }
 
     #endregion
