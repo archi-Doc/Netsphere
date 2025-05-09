@@ -70,7 +70,7 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
         }
     }
 
-    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out NetNode instance, out int read)
+    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out NetNode instance, out int read, IConversionOptions? conversionOptions = default)
     {// Ip address (public key)
         source = source.Trim();
         instance = default;
@@ -112,7 +112,7 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
     public int GetStringLength()
         => -1;
 
-    public bool TryFormat(Span<char> destination, out int written)
+    public bool TryFormat(Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
     {
         var span = destination;
         written = 0;

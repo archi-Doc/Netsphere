@@ -36,7 +36,7 @@ public readonly partial struct EncryptionPublicKey : IValidatable, IEquatable<En
 
     #region TypeSpecific
 
-    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out EncryptionPublicKey publicKey, out int read)
+    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out EncryptionPublicKey publicKey, out int read, IConversionOptions? conversionOptions = default)
     {
         Span<byte> keyAndChecksum = stackalloc byte[SeedKeyHelper.PublicKeyAndChecksumSize];
         if (SeedKeyHelper.TryParsePublicKey(KeyOrientation.Encryption, source, keyAndChecksum, out read))
@@ -54,7 +54,7 @@ public readonly partial struct EncryptionPublicKey : IValidatable, IEquatable<En
     public int GetStringLength()
         => SeedKeyHelper.PublicKeyLengthInBase64;
 
-    public bool TryFormat(Span<char> destination, out int written)
+    public bool TryFormat(Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
         => SeedKeyHelper.TryFormatPublicKey(Identifier, this.AsSpan(), destination, out written);
 
     public bool TryFormatWithoutBracket(Span<char> destination, out int written)

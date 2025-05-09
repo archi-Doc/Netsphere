@@ -167,7 +167,7 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
     public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out NetAddress instance)
         => TryParse(source, out instance, out _);
 
-    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out NetAddress instance, out int read)
+    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out NetAddress instance, out int read, IConversionOptions? conversionOptions = default)
     {// 1.2.3.4:55, []:55, 1.2.3.4:55[]:55
         ushort port = 0;
         uint address4 = 0;
@@ -241,7 +241,7 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
     public int GetStringLength()
         => -1;
 
-    public bool TryFormat(Span<char> destination, out int written)
+    public bool TryFormat(Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
     {// 15 + 1 + 5, 54 + 1 + 5 + 2
         if (destination.Length < MaxStringLength)
         {

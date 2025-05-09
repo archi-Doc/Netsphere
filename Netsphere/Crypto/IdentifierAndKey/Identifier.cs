@@ -28,7 +28,7 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
 
     #region IStringConvertible
 
-    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out Identifier identifier, out int read)
+    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out Identifier identifier, out int read, IConversionOptions? conversionOptions = default)
     {// Base64(Length) or Alias(*)
         read = SeedKeyHelper.CalculateStringLength(source);
         if (read == SeedKeyHelper.RawPublicKeyLengthInBase64)
@@ -41,6 +41,10 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
                 return true;
             }
         }
+        else if (read > 0 && conversionOptions?.GetOption<Alias>() is { } alias && alias.TryGetIdentifierFromAlias(source.Slice(0, read), out identifier))
+        {
+            return true;
+        }
 
         identifier = default;
         return false;
@@ -50,12 +54,34 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
 
     public int GetStringLength()
     {
-        return SeedKeyHelper.RawPublicKeyLengthInBase64;
+        /*if (Alias.TryGetAliasFromIdentifier(this, out var alias))
+        {
+            return alias.Length;
+        }
+        else*/
+        {
+            return SeedKeyHelper.RawPublicKeyLengthInBase64;
+        }
     }
 
-    public bool TryFormat(Span<char> destination, out int written)
+    public bool TryFormat(Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
     {
-        return SeedKeyHelper.TryFormatPublicKeyWithoutBracket(this.AsSpan(), destination, out written);
+        if (conversionOptions?.GetOption<Alias>() is { } aliasOption && aliasOption.TryGetAliasFromIdentifier(this, out var alias))
+        {
+            if (destination.Length < alias.Length)
+            {
+                written = 0;
+                return false;
+            }
+
+            alias.CopyTo(destination);
+            written = alias.Length;
+            return true;
+        }
+        else
+        {
+            return SeedKeyHelper.TryFormatPublicKeyWithoutBracket(this.AsSpan(), destination, out written);
+        }
     }
 
     #endregion
@@ -154,10 +180,12 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
 
     public override int GetHashCode() => (int)this.Id0; // HashCode.Combine(this.Id0, this.Id1, this.Id2, this.Id3);
 
-    public override string ToString()
+    public override string ToString() => this.ToString(null);
+
+    public string ToString(IConversionOptions? conversionOptions)
     {
         Span<char> s = stackalloc char[SeedKeyHelper.RawPublicKeyLengthInBase64];
-        this.TryFormat(s, out var written);
+        this.TryFormat(s, out var written, conversionOptions);
         return s.Slice(0, written).ToString();
     }
 

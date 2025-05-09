@@ -22,13 +22,13 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
         _ => SeedKeyHelper.SeedLengthInBase64,
     };
 
-    public bool TryFormat(Span<char> destination, out int written)
+    public bool TryFormat(Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
         => this.UnsafeTryFormat(destination, out written);
 
     public static bool TryParse(ReadOnlySpan<char> base64url, [MaybeNullWhen(false)] out SeedKey secretKey)
         => TryParse(base64url, out secretKey, out _);
 
-    public static bool TryParse(ReadOnlySpan<char> base64url, [MaybeNullWhen(false)] out SeedKey secretKey, out int read)
+    public static bool TryParse(ReadOnlySpan<char> base64url, [MaybeNullWhen(false)] out SeedKey secretKey, out int read, IConversionOptions? conversionOptions = default)
     {// !!!seed!!!, !!!seed!!!(s:key)
         Span<byte> seed = stackalloc byte[SeedKeyHelper.SeedSize];
         if (TryParseSeed(base64url, seed, out var keyOrientation, out read))

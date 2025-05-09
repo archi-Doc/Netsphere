@@ -59,8 +59,8 @@ public partial class CertificateToken<T> : ISignAndVerify, IEquatable<Certificat
 
     #endregion
 
-    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out CertificateToken<T> token, out int read)
-        => TokenHelper.TryParse(Identifier, source, out token, out read);
+    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out CertificateToken<T> token, out int read, IConversionOptions? conversionOptions = default)
+        => TokenHelper.TryParse(Identifier, source, out token, out read, conversionOptions);
 
     public bool Validate()
     {
@@ -94,6 +94,6 @@ public partial class CertificateToken<T> : ISignAndVerify, IEquatable<Certificat
     public int GetStringLength()
         => -1;
 
-    public bool TryFormat(Span<char> destination, out int written)
-        => TokenHelper.TryFormat(this, Identifier, destination, out written);
+    public bool TryFormat(Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
+        => TokenHelper.TryFormat(this, Identifier, destination, out written, conversionOptions);
 }

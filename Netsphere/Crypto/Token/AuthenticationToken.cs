@@ -50,8 +50,8 @@ public sealed partial class AuthenticationToken : ISignAndVerify, IEquatable<Aut
 
     #endregion
 
-    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out AuthenticationToken instance, out int read)
-        => TokenHelper.TryParse(Identifier, source, out instance, out read);
+    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out AuthenticationToken instance, out int read, IConversionOptions? conversionOptions = default)
+        => TokenHelper.TryParse(Identifier, source, out instance, out read, conversionOptions);
 
     public bool Validate()
     {
@@ -82,6 +82,6 @@ public sealed partial class AuthenticationToken : ISignAndVerify, IEquatable<Aut
     public int GetStringLength()
         => -1;
 
-    public bool TryFormat(Span<char> destination, out int written)
-        => TokenHelper.TryFormat(this, Identifier, destination, out written);
+    public bool TryFormat(Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
+        => TokenHelper.TryFormat(this, Identifier, destination, out written, conversionOptions);
 }

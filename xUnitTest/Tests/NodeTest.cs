@@ -11,6 +11,16 @@ namespace xUnitTest;
 public class NodeTest
 {
     [Fact]
+    public void AliasTest()
+    {
+        Alias.IsValid(string.Empty).IsFalse();
+        Alias.IsValid("test").IsTrue();
+        Alias.IsValid("0test").IsFalse();
+        Alias.IsValid("test1").IsTrue();
+        Alias.IsValid("test1_2").IsTrue();
+    }
+
+    [Fact]
     public void DualAddress1()
     {
         TestDualAddress("192.168.0.0:49152", false).IsTrue();
