@@ -4,17 +4,17 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Netsphere.Crypto;
 
-public static class Alias
+public class Alias
 {// Identifier/PublicKey <-> Alias
     public const int MaxAliasLength = 32; //  <= RawPublicKeyLengthInBase64
 
-    private static readonly Lock LockPublicKey = new();
-    private static readonly UnorderedMapSlim<SignaturePublicKey, string> PublicKeyToAliasTable = new();
-    private static readonly Utf16UnorderedMap<SignaturePublicKey> AliasToPublicKeyTable = new();
+    private readonly Lock lockPublicKey = new();
+    private readonly UnorderedMapSlim<SignaturePublicKey, string> publicKeyToAliasMap = new();
+    private readonly Utf16UnorderedMap<SignaturePublicKey> aliasToPublicKeyMap = new();
 
-    private static readonly Lock LockIdentifier = new();
-    private static readonly UnorderedMapSlim<Identifier, string> IdentifierToAliasTable = new();
-    private static readonly Utf16UnorderedMap<Identifier> AliasToIdentifierTable = new();
+    private readonly Lock lockIdentifier = new();
+    private readonly UnorderedMapSlim<Identifier, string> identifierToAliasMap = new();
+    private readonly Utf16UnorderedMap<Identifier> aliasToIdentifierMap = new();
 
     public static bool IsValid(ReadOnlySpan<char> alias)
     {
@@ -46,70 +46,70 @@ public static class Alias
             => (uint)(c - 'A') <= ('Z' - 'A') || (uint)(c - 'a') <= ('z' - 'a') || (uint)(c - '0') <= ('9' - '0');
     }
 
-    public static void Add(string alias, Identifier identifier)
+    public void Add(string alias, Identifier identifier)
     {
         if (alias.Length > MaxAliasLength)
         {
             throw new ArgumentOutOfRangeException(nameof(alias), $"Alias length must be less than {MaxAliasLength}.");
         }
 
-        using (LockIdentifier.EnterScope())
+        using (this.lockIdentifier.EnterScope())
         {
-            IdentifierToAliasTable.Add(identifier, alias);
-            AliasToIdentifierTable.Add(alias, identifier);
+            this.identifierToAliasMap.Add(identifier, alias);
+            this.aliasToIdentifierMap.Add(alias, identifier);
         }
     }
 
-    public static void TryAdd(string alias, Identifier identifier)
+    public void TryAdd(string alias, Identifier identifier)
     {
         if (alias.Length > MaxAliasLength)
         {
             throw new ArgumentOutOfRangeException(nameof(alias), $"Alias length must be less than {MaxAliasLength}.");
         }
 
-        using (LockIdentifier.EnterScope())
+        using (this.lockIdentifier.EnterScope())
         {
-            IdentifierToAliasTable.TryAdd(identifier, alias);
-            AliasToIdentifierTable.TryAdd(alias, identifier);
+            this.identifierToAliasMap.TryAdd(identifier, alias);
+            this.aliasToIdentifierMap.TryAdd(alias, identifier);
         }
     }
 
-    public static void Add(string alias, SignaturePublicKey publicKey)
+    public void Add(string alias, SignaturePublicKey publicKey)
     {
         if (alias.Length > MaxAliasLength)
         {
             throw new ArgumentOutOfRangeException(nameof(alias), $"Alias length must be less than {MaxAliasLength}.");
         }
 
-        using (LockPublicKey.EnterScope())
+        using (this.lockPublicKey.EnterScope())
         {
-            PublicKeyToAliasTable.Add(publicKey, alias);
-            AliasToPublicKeyTable.Add(alias, publicKey);
+            this.publicKeyToAliasMap.Add(publicKey, alias);
+            this.aliasToPublicKeyMap.Add(alias, publicKey);
         }
     }
 
-    public static void TryAdd(string alias, SignaturePublicKey publicKey)
+    public void TryAdd(string alias, SignaturePublicKey publicKey)
     {
         if (alias.Length > MaxAliasLength)
         {
             throw new ArgumentOutOfRangeException(nameof(alias), $"Alias length must be less than {MaxAliasLength}.");
         }
 
-        using (LockPublicKey.EnterScope())
+        using (this.lockPublicKey.EnterScope())
         {
-            PublicKeyToAliasTable.TryAdd(publicKey, alias);
-            AliasToPublicKeyTable.TryAdd(alias, publicKey);
+            this.publicKeyToAliasMap.TryAdd(publicKey, alias);
+            this.aliasToPublicKeyMap.TryAdd(alias, publicKey);
         }
     }
 
-    public static bool Remove(SignaturePublicKey publicKey)
+    public bool Remove(SignaturePublicKey publicKey)
     {
-        using (LockPublicKey.EnterScope())
+        using (this.lockPublicKey.EnterScope())
         {
-            if (PublicKeyToAliasTable.TryGetValue(publicKey, out var alias))
+            if (this.publicKeyToAliasMap.TryGetValue(publicKey, out var alias))
             {
-                PublicKeyToAliasTable.Remove(publicKey);
-                AliasToPublicKeyTable.Remove(alias);
+                this.publicKeyToAliasMap.Remove(publicKey);
+                this.aliasToPublicKeyMap.Remove(alias);
                 return true;
             }
             else
@@ -119,14 +119,14 @@ public static class Alias
         }
     }
 
-    public static bool Remove(Identifier identifier)
+    public bool Remove(Identifier identifier)
     {
-        using (LockIdentifier.EnterScope())
+        using (this.lockIdentifier.EnterScope())
         {
-            if (IdentifierToAliasTable.TryGetValue(identifier, out var alias))
+            if (this.identifierToAliasMap.TryGetValue(identifier, out var alias))
             {
-                IdentifierToAliasTable.Remove(identifier);
-                AliasToIdentifierTable.Remove(alias);
+                this.identifierToAliasMap.Remove(identifier);
+                this.aliasToIdentifierMap.Remove(alias);
                 return true;
             }
             else
@@ -136,53 +136,53 @@ public static class Alias
         }
     }
 
-    public static void ClearPublicKeyAlias()
+    public void ClearPublicKeyAlias()
     {
-        using (LockPublicKey.EnterScope())
+        using (this.lockPublicKey.EnterScope())
         {
-            PublicKeyToAliasTable.Clear();
-            AliasToPublicKeyTable.Clear();
+            this.publicKeyToAliasMap.Clear();
+            this.aliasToPublicKeyMap.Clear();
         }
     }
 
-    public static void ClearIdentifierAlias()
+    public void ClearIdentifierAlias()
     {
-        using (LockIdentifier.EnterScope())
+        using (this.lockIdentifier.EnterScope())
         {
-            IdentifierToAliasTable.Clear();
-            AliasToIdentifierTable.Clear();
+            this.identifierToAliasMap.Clear();
+            this.aliasToIdentifierMap.Clear();
         }
     }
 
-    public static bool TryGetAliasFromPublicKey(SignaturePublicKey publicKey, [MaybeNullWhen(false)] out string alias)
+    public bool TryGetAliasFromPublicKey(SignaturePublicKey publicKey, [MaybeNullWhen(false)] out string alias)
     {
-        using (LockPublicKey.EnterScope())
+        using (this.lockPublicKey.EnterScope())
         {
-            return PublicKeyToAliasTable.TryGetValue(publicKey, out alias);
+            return this.publicKeyToAliasMap.TryGetValue(publicKey, out alias);
         }
     }
 
-    public static bool TryGetPublicKeyFromAlias(ReadOnlySpan<char> alias, out SignaturePublicKey publicKey)
+    public bool TryGetPublicKeyFromAlias(ReadOnlySpan<char> alias, out SignaturePublicKey publicKey)
     {
-        using (LockPublicKey.EnterScope())
+        using (this.lockPublicKey.EnterScope())
         {
-            return AliasToPublicKeyTable.TryGetValue(alias, out publicKey);
+            return this.aliasToPublicKeyMap.TryGetValue(alias, out publicKey);
         }
     }
 
-    public static bool TryGetAliasFromIdentifier(Identifier identifier, [MaybeNullWhen(false)] out string alias)
+    public bool TryGetAliasFromIdentifier(Identifier identifier, [MaybeNullWhen(false)] out string alias)
     {
-        using (LockIdentifier.EnterScope())
+        using (this.lockIdentifier.EnterScope())
         {
-            return IdentifierToAliasTable.TryGetValue(identifier, out alias);
+            return this.identifierToAliasMap.TryGetValue(identifier, out alias);
         }
     }
 
-    public static bool TryGetIdentifierFromAlias(ReadOnlySpan<char> alias, out Identifier identifier)
+    public bool TryGetIdentifierFromAlias(ReadOnlySpan<char> alias, out Identifier identifier)
     {
-        using (LockIdentifier.EnterScope())
+        using (this.lockIdentifier.EnterScope())
         {
-            return AliasToIdentifierTable.TryGetValue(alias, out identifier);
+            return this.aliasToIdentifierMap.TryGetValue(alias, out identifier);
         }
     }
 }
