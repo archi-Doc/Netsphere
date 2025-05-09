@@ -10,7 +10,7 @@ internal static class TokenHelper
     public const char StartChar = '{';
     public const char EndChar = '}';
 
-    public static bool TryParse<T>(char identifier, ReadOnlySpan<char> source, [MaybeNullWhen(false)] out T instance, out int read)
+    public static bool TryParse<T>(char identifier, ReadOnlySpan<char> source, [MaybeNullWhen(false)] out T instance, out int read, IConversionOptions? conversionOptions = default)
         where T : ITinyhandSerializable<T>
     {
         instance = default;
@@ -64,7 +64,7 @@ internal static class TokenHelper
         }
     }
 
-    public static bool TryFormat<T>(T value, char identifier, Span<char> destination, out int written)
+    public static bool TryFormat<T>(T value, char identifier, Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
         where T : ITinyhandSerializable<T>
     {
         written = 0;

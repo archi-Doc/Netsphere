@@ -4,9 +4,11 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Netsphere.Crypto;
 
-public class Alias
+public class Alias : IConversionOptions
 {// Identifier/PublicKey <-> Alias
     public const int MaxAliasLength = 32; //  <= RawPublicKeyLengthInBase64
+
+    public static Alias Instance { get; } = new();
 
     private readonly Lock lockPublicKey = new();
     private readonly UnorderedMapSlim<SignaturePublicKey, string> publicKeyToAliasMap = new();
@@ -184,5 +186,32 @@ public class Alias
         {
             return this.aliasToIdentifierMap.TryGetValue(alias, out identifier);
         }
+    }
+
+    public object? GetOption(Type optionType)
+    {
+        if (optionType == typeof(Alias))
+        {
+            return this;
+        }
+
+        return default;
+    }
+
+    public T? GetOption<T>(int x)
+        where T : class
+    {
+        return this.GetOption(typeof(T)) as T;
+    }
+
+    T? GetOption2<T>()
+        where T : class
+    {
+        if (typeof(T) == typeof(Alias))
+        {
+            return this as T;
+        }
+
+        return default;
     }
 }

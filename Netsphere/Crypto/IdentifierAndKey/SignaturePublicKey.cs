@@ -36,7 +36,7 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
 
     #region TypeSpecific
 
-    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out SignaturePublicKey publicKey, out int read)
+    public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out SignaturePublicKey publicKey, out int read, IConversionOptions? conversionOptions = default)
     {
         Span<byte> keyAndChecksum = stackalloc byte[SeedKeyHelper.PublicKeyAndChecksumSize];
         if (SeedKeyHelper.TryParsePublicKey(KeyOrientation.Signature, source, keyAndChecksum, out read))
@@ -44,7 +44,7 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
             publicKey = new(keyAndChecksum);
             return true;
         }
-        else if (read > 0 && Alias.TryGetPublicKeyFromAlias(source.Slice(0, read), out publicKey))
+        else if (read > 0 && conversionOptions?.GetOption<Alias>() is { } aliasOption && aliasOption.TryGetPublicKeyFromAlias(source.Slice(0, read), out publicKey))
         {
             return true;
         }
@@ -57,19 +57,19 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
 
     public int GetStringLength()
     {
-        if (Alias.TryGetAliasFromPublicKey(this, out var alias))
+        /*if (Alias.TryGetAliasFromPublicKey(this, out var alias))
         {
             return alias.Length;
         }
-        else
+        else*/
         {
             return SeedKeyHelper.PublicKeyLengthInBase64;
         }
     }
 
-    public bool TryFormatWithoutBracket(Span<char> destination, out int written)
+    public bool TryFormatWithoutBracket(Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
     {
-        if (Alias.TryGetAliasFromPublicKey(this, out var alias))
+        if (conversionOptions?.GetOption<Alias>() is { } aliasOption && aliasOption.TryGetAliasFromPublicKey(this, out var alias))
         {
             if (destination.Length < alias.Length)
             {
@@ -87,9 +87,9 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
         }
     }
 
-    public bool TryFormat(Span<char> destination, out int written)
+    public bool TryFormat(Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
     {
-        if (Alias.TryGetAliasFromPublicKey(this, out var alias))
+        if (conversionOptions?.GetOption<Alias>() is { } aliasOption && aliasOption.TryGetAliasFromPublicKey(this, out var alias))
         {
             if (destination.Length < alias.Length)
             {
@@ -172,9 +172,12 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
         => (int)this.x0;
 
     public override string ToString()
+        => this.ToString(default);
+
+    public string ToString(IConversionOptions? conversionOptions)
     {
         Span<char> s = stackalloc char[SeedKeyHelper.PublicKeyLengthInBase64];
-        this.TryFormat(s, out var written);
+        this.TryFormat(s, out var written, conversionOptions);
         return s.Slice(0, written).ToString();
     }
 

@@ -51,13 +51,13 @@ public class KeyTest
         read.Is(st.Length);
         publicKey.Equals(publicKey2).IsTrue();
 
-        Alias.Add(AliasName, publicKey);
-        Alias.TryGetPublicKeyFromAlias(AliasName, out publicKey2).IsTrue();
+        Alias.Instance.Add(AliasName, publicKey);
+        Alias.Instance.TryGetPublicKeyFromAlias(AliasName, out publicKey2).IsTrue();
         publicKey.Equals(publicKey2).IsTrue();
 
-        SignaturePublicKey.TryParse(AliasName2, out publicKey2, out read).IsFalse();
-        SignaturePublicKey.TryParse(AliasName, out publicKey2, out read).IsTrue();
-        publicKey2.ToString().Is(AliasName);
+        SignaturePublicKey.TryParse(AliasName2, out publicKey2, out read, Alias.Instance).IsFalse();
+        SignaturePublicKey.TryParse(AliasName, out publicKey2, out read, Alias.Instance).IsTrue();
+        publicKey2.ToString(Alias.Instance).Is(AliasName);
         publicKey.Equals(publicKey2).IsTrue();
     }
 
@@ -76,13 +76,13 @@ public class KeyTest
         Identifier.TryParse(st, out identifier2, out read).IsTrue();
         identifier.Equals(identifier2).IsTrue();
 
-        Alias.Add(AliasName, identifier);
-        Alias.TryGetIdentifierFromAlias(AliasName, out identifier2).IsTrue();
+        Alias.Instance.Add(AliasName, identifier);
+        Alias.Instance.TryGetIdentifierFromAlias(AliasName, out identifier2).IsTrue();
         identifier.Equals(identifier2).IsTrue();
 
-        Identifier.TryParse(AliasName2, out identifier2, out read).IsFalse();
-        Identifier.TryParse(AliasName, out identifier2, out read).IsTrue();
-        identifier2.ToString().Is(AliasName);
+        Identifier.TryParse(AliasName2, out identifier2, out read, Alias.Instance).IsFalse();
+        Identifier.TryParse(AliasName, out identifier2, out read, Alias.Instance).IsTrue();
+        identifier2.ToString(Alias.Instance).Is(AliasName);
         identifier.Equals(identifier2).IsTrue();
     }
 }
