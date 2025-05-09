@@ -188,23 +188,7 @@ public class Alias : IConversionOptions
         }
     }
 
-    public object? GetOption(Type optionType)
-    {
-        if (optionType == typeof(Alias))
-        {
-            return this;
-        }
-
-        return default;
-    }
-
-    public T? GetOption<T>(int x)
-        where T : class
-    {
-        return this.GetOption(typeof(T)) as T;
-    }
-
-    T? GetOption2<T>()
+    T? IConversionOptions.GetOption<T>()
         where T : class
     {
         if (typeof(T) == typeof(Alias))
