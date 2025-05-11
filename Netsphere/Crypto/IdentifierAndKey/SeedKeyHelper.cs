@@ -168,6 +168,13 @@ public static class SeedKeyHelper
             return false;
         }
 
+        if (MemoryMarshal.Read<ulong>(publicKey) == 0)
+        {
+            destination[0] = InvalidKey;
+            written = 1;
+            return true;
+        }
+
         Span<byte> span = stackalloc byte[PublicKeySize + ChecksumSize];
         publicKey.CopyTo(span);
         SetChecksum(span);
@@ -181,6 +188,13 @@ public static class SeedKeyHelper
         {
             written = 0;
             return false;
+        }
+
+        if (MemoryMarshal.Read<ulong>(publicKey) == 0)
+        {
+            InvalidPublicKeySpan.CopyTo(destination);
+            written = InvalidPublicKeySpan.Length;
+            return true;
         }
 
         var b = destination;
