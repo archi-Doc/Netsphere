@@ -65,10 +65,13 @@ public class KeyTest
         SignaturePublicKey.TryParse(st, out publicKey2, out read).IsTrue();
         read.Is(st.Length);
         publicKey2.IsValid.IsFalse();
+        publicKey2.ToString().SequenceEqual(st).IsTrue();
+
         st = $"0"; // 0
         SignaturePublicKey.TryParse(st, out publicKey2, out read).IsTrue();
         read.Is(st.Length);
         publicKey2.IsValid.IsFalse();
+        // publicKey2.ToString().SequenceEqual(st).IsTrue();
     }
 
     [Fact]
@@ -99,5 +102,6 @@ public class KeyTest
         Identifier.TryParse(st, out identifier2, out read).IsTrue();
         read.Is(st.Length);
         identifier2.IsValid.IsFalse();
+        identifier2.ToString().SequenceEqual(st).IsTrue();
     }
 }
