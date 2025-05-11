@@ -24,8 +24,11 @@ public static class SeedKeyHelper
     public const char Separator1 = '#';
     public const char Separator2 = '/';
     public const char Separator3 = '+';
+    public const char InvalidKey = '0';
 
     public static ReadOnlySpan<char> PrivateKeyBracket => "!!!";
+
+    public static ReadOnlySpan<char> InvalidPublicKeySpan => "(0)";
 
     public static readonly int SeedLengthInBase64; // !!!seed and checksum!!!
     public static readonly int RawPublicKeyLengthInBase64; // key and checksum
@@ -107,6 +110,12 @@ public static class SeedKeyHelper
             {
                 return true;
             }
+        }
+        else if ((read == 3 && source.Slice(0, 3).SequenceEqual(InvalidPublicKeySpan)) ||
+            (read == 1 && source[0] == InvalidKey))
+        {
+            keyAndChecksum.Clear();
+            return true;
         }
 
         return false;

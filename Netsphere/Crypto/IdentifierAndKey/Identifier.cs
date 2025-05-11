@@ -45,6 +45,11 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
         {
             return true;
         }
+        else if (read == 1 && source[0] == SeedKeyHelper.InvalidKey)
+        {
+            identifier = default;
+            return true;
+        }
 
         identifier = default;
         return false;
@@ -172,8 +177,8 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
         return true;
     }
 
-    public bool IsDefault
-        => this.Id0 == 0 && this.Id1 == 0 && this.Id2 == 0 && this.Id3 == 0;
+    public bool IsValid
+        => this.Id0 != 0;
 
     public bool Equals(Identifier other)
         => this.Id0 == other.Id0 && this.Id1 == other.Id1 && this.Id2 == other.Id2 && this.Id3 == other.Id3;
