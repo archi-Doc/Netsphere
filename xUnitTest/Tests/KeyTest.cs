@@ -1,5 +1,6 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System.Security.Cryptography.X509Certificates;
 using Netsphere;
 using Netsphere.Crypto;
 using Xunit;
@@ -59,6 +60,15 @@ public class KeyTest
         SignaturePublicKey.TryParse(AliasName, out publicKey2, out read, Alias.Instance).IsTrue();
         publicKey2.ToString(Alias.Instance).Is(AliasName);
         publicKey.Equals(publicKey2).IsTrue();
+
+        st = $"(0)"; // (0)
+        SignaturePublicKey.TryParse(st, out publicKey2, out read).IsTrue();
+        read.Is(st.Length);
+        publicKey2.IsValid.IsFalse();
+        st = $"0"; // 0
+        SignaturePublicKey.TryParse(st, out publicKey2, out read).IsTrue();
+        read.Is(st.Length);
+        publicKey2.IsValid.IsFalse();
     }
 
     [Fact]
@@ -84,5 +94,10 @@ public class KeyTest
         Identifier.TryParse(AliasName, out identifier2, out read, Alias.Instance).IsTrue();
         identifier2.ToString(Alias.Instance).Is(AliasName);
         identifier.Equals(identifier2).IsTrue();
+
+        st = $"0"; // 0
+        Identifier.TryParse(st, out identifier2, out read).IsTrue();
+        read.Is(st.Length);
+        identifier2.IsValid.IsFalse();
     }
 }
