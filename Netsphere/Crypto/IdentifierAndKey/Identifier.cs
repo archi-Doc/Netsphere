@@ -24,7 +24,7 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
     public static readonly Identifier Three = new(3);
 
     public static Identifier FromReadOnlySpan(ReadOnlySpan<byte> input)
-        => new(Sha3Helper.Get256_UInt64(input));
+        => new(Blake3.Get256_UInt64(input));
 
     #region IStringConvertible
 
