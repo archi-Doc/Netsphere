@@ -310,6 +310,12 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
         return true;
     }
 
+    public bool EqualsExceptRelayId(NetAddress other)
+        => this.Port == other.Port &&
+            this.Address4 == other.Address4 &&
+            this.Address6A == other.Address6A &&
+            this.Address6B == other.Address6B;
+
     public bool Equals(IPEndPoint? endpoint)
     {
         if (endpoint is null)
