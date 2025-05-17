@@ -86,16 +86,16 @@ public sealed partial class NetStats
     public bool TryCreateEndpoint(ref NetAddress address, EndpointResolution endpointResolution, out NetEndpoint endPoint)
     {
         if (NetConstants.RouteToOwnAddress &&
-              this.OwnNetNode?.Address.Equals(address) == true)
+              this.OwnNetNode?.Address.EqualsExceptRelayId(address) == true)
         {// Route to own address
             if (endpointResolution == EndpointResolution.PreferIpv6)
             {
-                endPoint = new(0, this.Ipv6Loopback);
+                endPoint = new(address.RelayId, this.Ipv6Loopback);
                 return true;
             }
             else
             {
-                endPoint = new(0, this.Ipv4Loopback);
+                endPoint = new(address.RelayId, this.Ipv4Loopback);
                 return true;
             }
         }
