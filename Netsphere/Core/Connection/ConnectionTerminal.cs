@@ -229,8 +229,7 @@ public class ConnectionTerminal
             return null;
         }
 
-#if EnableOpenSesami == true
-        if (node.Address.RelayId != 0)
+        if (NetConstants.EnableOpenSesami && node.Address.RelayId != 0)
         {// Open sesami
             var r1 = await this.packetTerminal.SendAndReceive<OpenSesamiPacket, OpenSesamiResponse>(node.Address, new()).ConfigureAwait(false);
             if (r1.Value is { } r2 && r2.SecretAddress.Validate())
@@ -238,7 +237,6 @@ public class ConnectionTerminal
                 node = new(r2.SecretAddress, node.PublicKey);
             }
         }
-#endif
 
         var address = node.Address;
         if (!this.netStats.TryCreateEndpoint(ref address, endpointResolution, out var endPoint))

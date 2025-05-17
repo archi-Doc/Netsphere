@@ -1,6 +1,5 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
-using System.Net;
 using System.Runtime.InteropServices;
 using Netsphere.Core;
 using Netsphere.Crypto;

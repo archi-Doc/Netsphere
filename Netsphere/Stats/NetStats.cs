@@ -3,6 +3,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Runtime.CompilerServices;
+using Netsphere;
 using Netsphere.Crypto;
 using Netsphere.Relay;
 
@@ -69,15 +70,36 @@ public sealed partial class NetStats
     [IgnoreMember]
     public TrustSource<int> OutboundPort { get; private set; } = new(EndpointTrustCapacity, EndpointTrustMinimum);
 
+    public IPEndPoint Ipv4Loopback => this.ipv4Loopback ??= new(IPAddress.Loopback, (ushort)this.netBase.NetOptions.Port);
+
+    public IPEndPoint Ipv6Loopback => this.ipv6Loopback ??= new(IPAddress.IPv6Loopback, (ushort)this.netBase.NetOptions.Port);
+
     private readonly Lock lockObject = new();
     private readonly ILogger logger;
     private readonly NetBase netBase;
     private int ownNetNodeCount;
+    private IPEndPoint? ipv4Loopback;
+    private IPEndPoint? ipv6Loopback;
 
     #endregion
 
     public bool TryCreateEndpoint(ref NetAddress address, EndpointResolution endpointResolution, out NetEndpoint endPoint)
     {
+        if (NetConstants.RouteToOwnAddress &&
+              this.OwnNetNode?.Address.Equals(address) == true)
+        {// Route to own address
+            if (endpointResolution == EndpointResolution.PreferIpv6)
+            {
+                endPoint = new(0, this.Ipv6Loopback);
+                return true;
+            }
+            else
+            {
+                endPoint = new(0, this.Ipv4Loopback);
+                return true;
+            }
+        }
+
         endPoint = default;
         if (endpointResolution == EndpointResolution.PreferIpv6)
         {

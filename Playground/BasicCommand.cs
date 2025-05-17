@@ -5,6 +5,7 @@ using Arc.Unit;
 using Netsphere;
 using Netsphere.Packet;
 using Netsphere.Relay;
+using Netsphere.Stats;
 using SimpleCommandLine;
 
 namespace Playground;
@@ -21,6 +22,13 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>
 
     public async Task RunAsync(BasicCommandOptions options, string[] args)
     {
+        /*var r = await NetStatsHelper.GetIcanhazipIPv4();
+        var netAddress = new NetAddress(r.Address!, (ushort)this.netControl.NetBase.NetOptions.Port);
+        var netNode = new NetNode(netAddress, this.netControl.NetBase.NodePublicKey);
+        var st = netNode.ToString();
+        options.Node = st;
+        this.netControl.NetStats.SetOwnNetNodeForTest(netAddress, this.netControl.NetBase.NodePublicKey);*/
+
         if (!NetAddress.TryParse(this.logger, options.Node, out var address))
         {
             return;
@@ -57,5 +65,5 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>
 public record BasicCommandOptions
 {
     [SimpleOption("Node", Description = "Node address", Required = true)]
-    public string Node { get; init; } = string.Empty;
+    public string Node { get; set; } = string.Empty;
 }
