@@ -86,7 +86,7 @@ public sealed partial class NetStats
     public bool TryCreateEndpoint(ref NetAddress address, EndpointResolution endpointResolution, out NetEndpoint endPoint)
     {
         if (NetConstants.RouteToOwnAddress &&
-              this.OwnNetNode?.Address.EqualsExceptRelayId(address) == true)
+              this.OwnNetNode?.Address.EqualsIpv4OrIpv6(address) == true)
         {// Route to own address
             /*if (endpointResolution == EndpointResolution.PreferIpv6)
             { // IPv6 loopback address did not work properly in my environment.
