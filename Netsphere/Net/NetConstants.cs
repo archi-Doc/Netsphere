@@ -16,6 +16,7 @@ public static class NetConstants
     public const int MaxPort = 60999;
 
     internal const bool EnableOpenSesami = false;
+    internal const bool RouteToOwnAddress = true;
     internal const bool LogRelay = false;
     internal const bool LogLowRelay = false;
     internal const bool LogLowLevelNet = false;
