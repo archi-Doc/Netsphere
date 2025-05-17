@@ -72,14 +72,14 @@ public sealed partial class NetStats
 
     public IPEndPoint Ipv4Loopback => this.ipv4Loopback ??= new(IPAddress.Loopback, (ushort)this.netBase.NetOptions.Port);
 
-    public IPEndPoint Ipv6Loopback => this.ipv6Loopback ??= new(IPAddress.IPv6Loopback, (ushort)this.netBase.NetOptions.Port);
+    // public IPEndPoint Ipv6Loopback => this.ipv6Loopback ??= new(IPAddress.IPv6Loopback, (ushort)this.netBase.NetOptions.Port);
 
     private readonly Lock lockObject = new();
     private readonly ILogger logger;
     private readonly NetBase netBase;
     private int ownNetNodeCount;
     private IPEndPoint? ipv4Loopback;
-    private IPEndPoint? ipv6Loopback;
+    // private IPEndPoint? ipv6Loopback;
 
     #endregion
 
@@ -88,12 +88,12 @@ public sealed partial class NetStats
         if (NetConstants.RouteToOwnAddress &&
               this.OwnNetNode?.Address.EqualsExceptRelayId(address) == true)
         {// Route to own address
-            if (endpointResolution == EndpointResolution.PreferIpv6)
-            {
+            /*if (endpointResolution == EndpointResolution.PreferIpv6)
+            { // IPv6 loopback address did not work properly in my environment.
                 endPoint = new(address.RelayId, this.Ipv6Loopback);
                 return true;
             }
-            else
+            else*/
             {
                 endPoint = new(address.RelayId, this.Ipv4Loopback);
                 return true;
