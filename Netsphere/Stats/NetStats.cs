@@ -85,7 +85,8 @@ public sealed partial class NetStats
 
     public bool TryCreateEndpoint(ref NetAddress address, EndpointResolution endpointResolution, out NetEndpoint endPoint)
     {
-        if (this.OwnNetNode?.Address.Equals(address) == true)
+        if (NetConstants.RouteToOwnAddress &&
+              this.OwnNetNode?.Address.Equals(address) == true)
         {// Route to own address
             if (endpointResolution == EndpointResolution.PreferIpv6)
             {
@@ -98,9 +99,6 @@ public sealed partial class NetStats
                 return true;
             }
         }
-#if RouteToOwnAddress == true
-
-#endif
 
         endPoint = default;
         if (endpointResolution == EndpointResolution.PreferIpv6)
