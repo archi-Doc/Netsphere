@@ -11,7 +11,7 @@ public class RestartCommand : ISimpleCommandAsync<RestartOptions>
 {
     private const int WaitIntervalInSeconds = 20;
     private const int PingIntervalInSeconds = 1;
-    private const int PingRetries = 7;
+    private const int PingRetries = 8;
 
     public RestartCommand(ILogger<RestartCommand> logger, NetTerminal terminal)
     {

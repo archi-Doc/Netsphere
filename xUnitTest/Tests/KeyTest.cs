@@ -61,13 +61,13 @@ public class KeyTest
         publicKey2.ToString(Alias.Instance).Is(AliasName);
         publicKey.Equals(publicKey2).IsTrue();
 
-        st = $"(0)"; // (0)
+        st = SeedKeyHelper.InvalidPublicKeySpan.ToString(); // (0)
         SignaturePublicKey.TryParse(st, out publicKey2, out read).IsTrue();
         read.Is(st.Length);
         publicKey2.IsValid.IsFalse();
         publicKey2.ToString().SequenceEqual(st).IsTrue();
 
-        st = $"0"; // 0
+        st = $"{SeedKeyHelper.InvalidKey}"; // 0
         SignaturePublicKey.TryParse(st, out publicKey2, out read).IsTrue();
         read.Is(st.Length);
         publicKey2.IsValid.IsFalse();
@@ -98,7 +98,7 @@ public class KeyTest
         identifier2.ToString(Alias.Instance).Is(AliasName);
         identifier.Equals(identifier2).IsTrue();
 
-        st = $"0"; // 0
+        st = $"{SeedKeyHelper.InvalidKey}"; // 0
         Identifier.TryParse(st, out identifier2, out read).IsTrue();
         read.Is(st.Length);
         identifier2.IsValid.IsFalse();
