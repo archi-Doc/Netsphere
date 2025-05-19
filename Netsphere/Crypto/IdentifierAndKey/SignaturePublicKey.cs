@@ -141,6 +141,9 @@ public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<Sig
     public bool Equals(SignaturePublicKey other)
         => this.x0 == other.x0 && this.x1 == other.x1 && this.x2 == other.x2 && this.x3 == other.x3;
 
+    public bool Equals(ref SignaturePublicKey other)
+        => this.x0 == other.x0 && this.x1 == other.x1 && this.x2 == other.x2 && this.x3 == other.x3;
+
     public bool Verify(ReadOnlySpan<byte> data, ReadOnlySpan<byte> signature)
     {
         if (signature.Length != SeedKeyHelper.SignatureSize)

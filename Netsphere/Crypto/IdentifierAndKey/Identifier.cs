@@ -183,6 +183,9 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
     public bool Equals(Identifier other)
         => this.Id0 == other.Id0 && this.Id1 == other.Id1 && this.Id2 == other.Id2 && this.Id3 == other.Id3;
 
+    public bool Equals(ref Identifier other)
+        => this.Id0 == other.Id0 && this.Id1 == other.Id1 && this.Id2 == other.Id2 && this.Id3 == other.Id3;
+
     public override int GetHashCode() => (int)this.Id0; // HashCode.Combine(this.Id0, this.Id1, this.Id2, this.Id3);
 
     public override string ToString() => this.ToString(null);
