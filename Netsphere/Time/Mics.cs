@@ -27,6 +27,7 @@ public static class Mics
     private static long fastUtcNowMics;
     private static long fastFixedUtcNowMics;
     private static long fastCorrectedMics;
+    private static long micsId;
 
     static Mics()
     {
@@ -77,7 +78,28 @@ public static class Mics
 
     public static long UpdateFastFixedUtcNow() => fastFixedUtcNowMics = GetFixedUtcNow();
 
-    public static long UpdateFastCorrected() => fastCorrectedMics = GetCorrected();
+    public static long UpdateFastCorrected()
+    {
+        fastCorrectedMics = GetCorrected();
+
+        long current;
+        do
+        {
+            current = micsId;
+            if (current > fastCorrectedMics)
+            {
+                break;
+            }
+        }
+        while (Interlocked.CompareExchange(ref micsId, fastCorrectedMics, current) != current);
+
+        return fastCorrectedMics;
+    }
+
+    public static long GetMicsId()
+    {
+        return Interlocked.Increment(ref micsId);
+    }
 
     /// <summary>
     /// Gets the <see cref="Mics"/> (microseconds) since system startup (Stopwatch.GetTimestamp()).

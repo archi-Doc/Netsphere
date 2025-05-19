@@ -42,6 +42,12 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>
         var result = await packetTerminal.SendAndReceive<PingPacket, PingPacketResponse>(address, p, 0, default, EndpointResolution.NetAddress);
         Console.WriteLine(result);
 
+        Mics.UpdateFastCorrected();
+        var micsId = Mics.GetMicsId();
+        Console.WriteLine(micsId);
+        micsId = Mics.GetMicsId();
+        Console.WriteLine(micsId);
+
         /*var netNode = await netTerminal.UnsafeGetNetNode(Alternative.NetAddress);
         if (netNode is null)
         {
