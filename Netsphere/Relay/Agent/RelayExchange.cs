@@ -31,7 +31,7 @@ internal partial class RelayExchange
     [Link(Type = ChainType.Unordered, Name = "RelayId", AddValue = false)]
     public RelayId InnerRelayId { get; private set; }
 
-    [Link(UnsafeTargetChain = "RelayIdChain")]
+    [Link(UnsafeTargetChain = "RelayIdChain", AddValue = false)]
     public RelayId OuterRelayId { get; private set; }
 
     public ServerConnection ServerConnection { get; }
