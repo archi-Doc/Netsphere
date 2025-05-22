@@ -44,11 +44,11 @@ public sealed partial class NtpCorrection : UnitBase, IUnitPreparable
         [IgnoreMember]
         public long TimeoffsetMilliseconds { get; set; }
 
-        [Link(Type = ChainType.Ordered)]
+        [Link(Type = ChainType.Ordered, AddValue = true)]
         [Key(0)]
         private string hostname = string.Empty;
 
-        [Link(Type = ChainType.Ordered, Accessibility = ValueLinkAccessibility.Public)]
+        [Link(Type = ChainType.Ordered, Accessibility = ValueLinkAccessibility.Public, AddValue = true)]
         [Key(1)]
         private int roundtripMilliseconds = MaxRoundtripMilliseconds;
     }

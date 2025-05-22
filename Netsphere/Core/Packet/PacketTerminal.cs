@@ -33,7 +33,7 @@ public sealed partial class PacketTerminal
             this.ResponseTcs = responseTcs;
         }
 
-        [Link(Primary = true, Type = ChainType.Unordered)]
+        [Link(Primary = true, Type = ChainType.Unordered, AddValue = true)]
         public ulong PacketId { get; set; }
 
         public IPEndPoint EndPoint { get; }

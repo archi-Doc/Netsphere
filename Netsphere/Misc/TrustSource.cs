@@ -69,7 +69,7 @@ public sealed partial class TrustSource<T>
         public T Value { get; set; }
 
         [Key(1)]
-        [Link(Type = ChainType.Ordered)]
+        [Link(Type = ChainType.Ordered, AddValue = true)]
         public long Count { get; set; }
 
         public override string ToString()

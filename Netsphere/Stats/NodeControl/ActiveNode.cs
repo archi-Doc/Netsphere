@@ -68,7 +68,7 @@ public sealed partial class ActiveNode : NetNode
     #region FieldAndProperty
 
     [Key(2)]
-    [Link(Type = ChainType.ReverseOrdered, Accessibility = ValueLinkAccessibility.Public)]
+    [Link(Type = ChainType.ReverseOrdered, Accessibility = ValueLinkAccessibility.Public, AddValue = true)]
     public long LastConnectedMics { get; private set; }
 
     #endregion
