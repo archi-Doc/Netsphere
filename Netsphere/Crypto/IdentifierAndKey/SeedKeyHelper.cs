@@ -20,6 +20,7 @@ public static class SeedKeyHelper
 
     public const char PublicKeyOpenBracket = '(';
     public const char PublicKeySeparator = ':';
+    public const char PublicKeySeparator2 = '!';
     public const char PublicKeyCloseBracket = ')';
     public const char Separator1 = '#';
     public const char Separator2 = '/';
@@ -51,15 +52,18 @@ public static class SeedKeyHelper
     {// identifier, key, (s:key), (key)
         if (source.Length >= 3)
         {
-            if (source[0] == PublicKeyOpenBracket && source[2] == PublicKeySeparator)
-            {// (s:key)
+            if (source[0] == PublicKeyOpenBracket &&
+                (source[2] == PublicKeySeparator || source[2] == PublicKeySeparator2))
+            {// (s:key) (s!key)
                 if (source.Length >= PublicKeyLengthInBase64 &&
                     source[PublicKeyLengthInBase64 - 1] == PublicKeyCloseBracket)
                 {
                     return PublicKeyLengthInBase64;
                 }
             }
-            else if (source[0] == PublicKeyOpenBracket && source[2] != PublicKeySeparator)
+            else if (source[0] == PublicKeyOpenBracket &&
+                source[2] != PublicKeySeparator &&
+                source[2] != PublicKeySeparator2)
             {// (key)
                 if (source.Length >= PublicKeyLengthInBase64B &&
                     source[PublicKeyLengthInBase64B - 1] == PublicKeyCloseBracket)
@@ -200,7 +204,7 @@ public static class SeedKeyHelper
         var b = destination;
         b[0] = PublicKeyOpenBracket;
         b[1] = identifier;
-        b[2] = PublicKeySeparator;
+        b[2] = PublicKeySeparator2; // PublicKeySeparator
         b = b.Slice(3);
 
         Span<byte> span = stackalloc byte[SeedKeyHelper.PublicKeySize + SeedKeyHelper.ChecksumSize];
