@@ -29,7 +29,7 @@
 
   <ItemGroup>
     <PackageReference Include="Arc.Unit" Version="0.20.0" />
-    <PackageReference Include="Tinyhand" Version="0.109.1" />
+    <PackageReference Include="Tinyhand" Version="0.110.0" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
