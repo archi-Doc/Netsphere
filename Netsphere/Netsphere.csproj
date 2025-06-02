@@ -33,7 +33,7 @@
     <PackageReference Include="BigMachines" Version="0.43.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5" />
     <PackageReference Include="SimpleCommandLine" Version="0.27.0" />
-    <PackageReference Include="Tinyhand" Version="0.110.1" />
+    <PackageReference Include="Tinyhand" Version="0.110.4" />
     <PackageReference Include="ValueLink" Version="0.81.1" />
   </ItemGroup>
 
