@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Netsphere.Misc;
 
-internal static class TokenHelper
+public static class TokenHelper
 {
     public const char StartChar = '{';
     public const char EndChar = '}';
