@@ -16,11 +16,6 @@ public sealed partial class AuthenticationToken : ISignAndVerify, IEquatable<Aut
 {
     private const char Identifier = 'A';
 
-    /*static AuthenticationToken()
-    {
-        var maxLength = SignaturePublicKey.MaxStringLength + Base64.Url.GetEncodedLength(KeyHelper.SignatureLength + 8 + 4); // 146
-    }*/
-
     public static AuthenticationToken CreateAndSign(SeedKey seedKey, Connection connection)
     {
         var token = new AuthenticationToken();
@@ -28,7 +23,7 @@ public sealed partial class AuthenticationToken : ISignAndVerify, IEquatable<Aut
         return token;
     }
 
-    public AuthenticationToken()
+    private AuthenticationToken()
     {
     }
 

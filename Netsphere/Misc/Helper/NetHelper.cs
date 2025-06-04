@@ -20,6 +20,31 @@ public static class NetHelper
     internal const string TripleQuotes = "\"\"\"";
     private const int StreamBufferSize = 1024 * 1024 * 4; // 4 MB
 
+    public static bool SignWithSalt<T>(this SeedKey seedKey, T value, ulong salt)
+        where T : ITinyhandSerializable<T>, ISignAndVerify
+    {
+        var writer = TinyhandWriter.CreateFromThreadStaticBuffer();
+        writer.Level = TinyhandWriter.DefaultSignatureLevel;
+        try
+        {
+            value.PublicKey = seedKey.GetSignaturePublicKey();
+            value.SignedMics = Mics.FastCorrected;
+            value.Salt = salt;
+            TinyhandSerializer.SerializeObject(ref writer, value, TinyhandSerializerOptions.Signature);
+            Span<byte> hash = stackalloc byte[32];
+            writer.FlushAndGetReadOnlySpan(out var span, out _);
+
+            var sign = new byte[CryptoSign.SignatureSize];
+            seedKey.Sign(span, sign);
+            value.Signature = sign;
+            return true;
+        }
+        finally
+        {
+            writer.Dispose();
+        }
+    }
+
     public static Identifier GetIdentifier<T>(this T? value, int level = TinyhandWriter.DefaultSignatureLevel)
         where T : ITinyhandSerializable<T>
     {
