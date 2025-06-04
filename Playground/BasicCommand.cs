@@ -3,6 +3,7 @@
 using System.Diagnostics;
 using Arc.Unit;
 using Netsphere;
+using Netsphere.Crypto;
 using Netsphere.Packet;
 using Netsphere.Relay;
 using Netsphere.Stats;
@@ -38,6 +39,7 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>
         var netTerminal = this.netControl.NetTerminal;
         var packetTerminal = netTerminal.PacketTerminal;
 
+        var length = AuthenticationToken.MaxStringLength;
         var p = new PingPacket("test56789");
         var result = await packetTerminal.SendAndReceive<PingPacket, PingPacketResponse>(address, p, 0, default, EndpointResolution.NetAddress);
         Console.WriteLine(result);
