@@ -10,6 +10,15 @@ public static class TokenHelper
     public const char StartChar = '{';
     public const char EndChar = '}';
 
+    public static int CalculateMaxStringLength<T>(T value)
+        where T : ITinyhandSerializable<T>
+    {
+        var rentMemory = TinyhandSerializer.SerializeObjectToRentMemory(value);
+        var length = 3 + Base64.Url.GetEncodedLength(rentMemory.Length); // {identifier+base64}
+        rentMemory.Return();
+        return length;
+    }
+
     public static bool TryParse<T>(char identifier, ReadOnlySpan<char> source, [MaybeNullWhen(false)] out T instance, out int read, IConversionOptions? conversionOptions = default)
         where T : ITinyhandSerializable<T>
     {

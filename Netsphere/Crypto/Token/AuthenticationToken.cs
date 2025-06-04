@@ -16,6 +16,16 @@ public sealed partial class AuthenticationToken : ISignAndVerify, IEquatable<Aut
 {
     private const char Identifier = 'A';
 
+    static AuthenticationToken()
+    {
+        var token = new AuthenticationToken();
+        token.PublicKey = MaxHelper.SignaturePublicKey;
+        token.Signature = MaxHelper.Signature;
+        token.SignedMics = MaxHelper.Int64;
+        token.Salt = MaxHelper.UInt64;
+        MaxStringLength = TokenHelper.CalculateMaxStringLength(token);
+    }
+
     public static AuthenticationToken CreateAndSign(SeedKey seedKey, Connection connection)
     {
         var token = new AuthenticationToken();
@@ -27,7 +37,7 @@ public sealed partial class AuthenticationToken : ISignAndVerify, IEquatable<Aut
     {
     }
 
-    public static int MaxStringLength => 256;
+    public static int MaxStringLength { get; }
 
     #region FieldAndProperty
 
