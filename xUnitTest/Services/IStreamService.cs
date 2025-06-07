@@ -7,7 +7,7 @@ using Netsphere.Crypto;
 namespace xUnitTest.NetsphereTest;
 
 [NetServiceInterface]
-public interface IStreamService : INetService, INetServiceAgreement
+public interface IStreamService : INetService, INetServiceWithUpdateAgreement
 {
     NetTask<byte[]?> Pingpong(byte[] data);
 

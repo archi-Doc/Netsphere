@@ -16,7 +16,7 @@ public interface INetService
 /// <summary>
 /// An interface for adding functions to <see cref="INetService"/> to update the agreement.
 /// </summary>
-public interface INetServiceAgreement : INetService
+public interface INetServiceWithUpdateAgreement : INetService
 {
     /// <summary>
     /// Determines whether to allow updates to the agreement.<br/>
@@ -30,7 +30,7 @@ public interface INetServiceAgreement : INetService
 /// <summary>
 /// An interface for adding functions to <see cref="INetService"/> to enable bidirectional connection.
 /// </summary>
-public interface INetServiceBidirectional : INetService
+public interface INetServiceWithConnectBidirectionally : INetService
 {
     /// <summary>
     /// Determines whether to enable bidirectional connection.<br/>
@@ -44,7 +44,7 @@ public interface INetServiceBidirectional : INetService
 /// <summary>
 /// An interface for adding functions to <see cref="INetService"/> for authentication.
 /// </summary>
-public interface INetServiceAuthentication : INetService
+public interface INetServiceWithAuthenticate : INetService
 {
     /// <summary>
     /// Authenticates the user with the provided token.

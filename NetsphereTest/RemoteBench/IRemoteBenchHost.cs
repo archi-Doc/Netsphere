@@ -3,7 +3,7 @@
 namespace Lp.NetServices;
 
 [NetServiceInterface]
-public interface IRemoteBenchHost : IRemoteBenchService, INetServiceBidirectional, INetServiceAgreement
+public interface IRemoteBenchHost : IRemoteBenchService, INetServiceWithConnectBidirectionally, INetServiceWithUpdateAgreement
 {
     NetTask<byte[]?> Pingpong(byte[] data);
 
