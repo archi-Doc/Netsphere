@@ -4,6 +4,7 @@ using Netsphere.Crypto;
 
 namespace Netsphere;
 
+/* -> Lp
 /// <summary>
 /// Represents a robust connection that manages client connections with optional authentication.
 /// </summary>
@@ -144,4 +145,4 @@ public class RobustConnection
 
         return newConnection;
     }
-}
+}*/

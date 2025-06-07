@@ -42,7 +42,7 @@ public class NetControl : UnitBase, IUnitPreparable, IUnitExecutable
                 context.AddSingleton<NtpCorrection>();
                 context.AddSingleton<NetTerminal>();
                 context.AddSingleton<ServiceControl>();
-                context.AddSingleton<RobustConnection.Factory>();
+                //context.AddSingleton<RobustConnection.Factory>();
                 context.TryAddSingleton<IRelayControl, NoRelayControl>();
 
                 // Stream logger
