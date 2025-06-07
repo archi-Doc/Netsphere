@@ -3,7 +3,7 @@
 namespace Netsphere.Interfaces;
 
 [NetServiceInterface]
-public interface IRemoteData : INetService, INetServiceAgreement
+public interface IRemoteData : INetService, INetServiceWithUpdateAgreement
 {
     NetTask<ReceiveStream?> Get(string identifier);
 

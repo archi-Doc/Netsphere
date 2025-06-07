@@ -475,7 +475,7 @@ public static class NetHelper
     }
 
     public static async Task<(ClientConnection? Connection, TService? Service)> TryGetStreamService<TService>(NetTerminal netTerminal, string node, string remotePrivateKey, long maxStreamLength)
-        where TService : INetService, INetServiceAgreement
+        where TService : INetService, INetServiceWithUpdateAgreement
     {
         // 1st: node, 2nd: EnvironmentVariable 'node'
         if (!NetNode.TryParse(node, out var netNode, out _))

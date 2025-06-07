@@ -15,7 +15,7 @@ public class RemoteDataAgent : IRemoteData
 
     private readonly RemoteDataControl control;
 
-    NetTask<NetResult> INetServiceAgreement.UpdateAgreement(CertificateToken<ConnectionAgreement> token)
+    NetTask<NetResult> INetServiceWithUpdateAgreement.UpdateAgreement(CertificateToken<ConnectionAgreement> token)
         => this.control.UpdateAgreement(token);
 
     NetTask<ReceiveStream?> IRemoteData.Get(string identifier)
