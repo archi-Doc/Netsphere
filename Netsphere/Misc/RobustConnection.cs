@@ -4,7 +4,7 @@ using Netsphere.Crypto;
 
 namespace Netsphere;
 
-/* -> Lp
+/* -> For rapid development, the code has been temporarily moved to Lp.
 /// <summary>
 /// Represents a robust connection that manages client connections with optional authentication.
 /// </summary>

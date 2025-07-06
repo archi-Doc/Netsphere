@@ -25,13 +25,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Arc.Collections" Version="1.25.1" />
+    <PackageReference Include="Arc.Collections" Version="1.25.2" />
     <PackageReference Include="Arc.CrossChannel" Version="2.7.1" />
     <PackageReference Include="Arc.Threading" Version="0.30.2" />
     <PackageReference Include="Arc.Crypto" Version="1.41.2" />
     <PackageReference Include="Arc.Unit" Version="0.20.0" />
     <PackageReference Include="BigMachines" Version="0.43.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.6" />
     <PackageReference Include="SimpleCommandLine" Version="0.27.0" />
     <PackageReference Include="Tinyhand" Version="0.111.0" />
     <PackageReference Include="ValueLink" Version="0.81.1" />

@@ -110,7 +110,7 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
         => NetAddress.MaxStringLength + SeedKey.MaxStringLength + 2;
 
     public int GetStringLength()
-        => -1;
+        => this.Address.GetStringLength() + this.PublicKey.GetStringLength();
 
     public bool TryFormat(Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
     {
