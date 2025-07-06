@@ -1,8 +1,11 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Tinyhand.Tree;
 
 namespace Netsphere;
 
@@ -227,6 +230,32 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
         }
     }
 
+    private static (int ZeroStart, int ZeroEnd) FindCompressionRange(ReadOnlySpan<ushort> numbers)
+    {
+        int longestSequenceLength = 0, longestSequenceStart = -1, currentSequenceLength = 0;
+
+        for (var i = 0; i < numbers.Length; i++)
+        {
+            if (numbers[i] == 0)
+            {
+                currentSequenceLength++;
+                if (currentSequenceLength > longestSequenceLength)
+                {
+                    longestSequenceLength = currentSequenceLength;
+                    longestSequenceStart = i - currentSequenceLength + 1;
+                }
+            }
+            else
+            {
+                currentSequenceLength = 0;
+            }
+        }
+
+        return longestSequenceLength > 1 ?
+            (longestSequenceStart, longestSequenceStart + longestSequenceLength) :
+            (-1, 0);
+    }
+
     public bool IsValidIpv4 => this.Port != 0 && this.Address4 != 0;
 
     public bool IsValidIpv6 => this.Port != 0 && (this.Address6A != 0 || this.Address6B != 0);
@@ -236,10 +265,97 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
     public bool IsValid => this.Port != 0 && (this.Address4 != 0 || this.Address6A != 0 || this.Address6B != 0);
 
     public static int MaxStringLength
-        => (5 + 1) + (15 + 1 + 5) + (2 + 54 + 1 + 5); // RelayId:12345& IPv4:12345, [IPv6]:12345
+        => (5 + 1) + (15 + 1 + 5) + (2 + 45 + 1 + 5); // RelayId:12345& IPv4:12345, [IPv6]:12345
 
     public int GetStringLength()
-        => -1;
+    {
+        if (!this.IsValid)
+        {
+            return 0;
+        }
+
+        var length = 0;
+        if (this.RelayId != 0)
+        {// 12345&
+            length += BaseHelper.CountDecimalChars(this.RelayId) + 1;
+        }
+
+        if (this.IsValidIpv4)
+        {// 1.2.3.4:12345
+            Span<byte> ipv4byte = stackalloc byte[4];
+            BitConverter.TryWriteBytes(ipv4byte, this.Address4);
+
+            length += 4;
+            length += BaseHelper.CountDecimalChars(ipv4byte[0]);
+            length += BaseHelper.CountDecimalChars(ipv4byte[1]);
+            length += BaseHelper.CountDecimalChars(ipv4byte[2]);
+            length += BaseHelper.CountDecimalChars(ipv4byte[3]);
+            length += BaseHelper.CountDecimalChars(this.Port);
+        }
+
+        if (this.IsValidIpv6)
+        {// [1:2:3:4]:12345
+            Span<byte> ipv6byte = stackalloc byte[16];
+            BitConverter.TryWriteBytes(ipv6byte, this.Address6A);
+            BitConverter.TryWriteBytes(ipv6byte.Slice(sizeof(ulong)), this.Address6B);
+            var ipv6ushort = MemoryMarshal.Cast<byte, ushort>(ipv6byte);
+
+            (int zeroStart, int zeroEnd) = FindCompressionRange(ipv6ushort);
+            bool needsColon = false;
+
+            if (zeroStart >= 0)
+            {
+                for (var i = 0; i < zeroStart; i++)
+                {
+                    if (needsColon)
+                    {
+                        length++; // :
+                    }
+
+                    needsColon = true;
+                    length += HexChars(ipv6ushort[i]);
+                }
+
+                length += 2; // ::
+                needsColon = false;
+            }
+
+            for (var i = zeroEnd; i < ipv6ushort.Length; i++)
+            {
+                if (needsColon)
+                {
+                    length++; // :
+                }
+
+                needsColon = true;
+                length += HexChars(ipv6ushort[i]);
+            }
+
+            length += 3 + BaseHelper.CountDecimalChars(this.Port);
+
+            int HexChars(ushort v)
+            {
+                if ((v & 0x00F0) != 0)
+                {// 0xF000
+                    return 4;
+                }
+
+                if ((v & 0x000F) != 0)
+                {// 0x0F00
+                    return 3;
+                }
+
+                if ((v & 0xF000) != 0)
+                {// 0x00F0
+                    return 2;
+                }
+
+                return 1;
+            }
+        }
+
+        return length;
+    }
 
     public bool TryFormat(Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
     {// 15 + 1 + 5, 54 + 1 + 5 + 2

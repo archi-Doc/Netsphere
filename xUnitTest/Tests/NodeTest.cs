@@ -36,6 +36,7 @@ public class NodeTest
 
         // TestDualAddress("[::]:49152", false, false).IsTrue();
         TestDualAddress("[::1]:49152", false).IsTrue();
+        TestDualAddress("[fe80::123:ab]:49152", false).IsTrue();
         TestDualAddress("[fe80::]:49152", false).IsTrue();
         TestDualAddress("[fe8b::]:49152", false).IsTrue();
         TestDualAddress("[febc:1111::]:49152", false).IsTrue();
@@ -144,6 +145,8 @@ public class NodeTest
         address.TryFormat(destination, out var written).IsTrue();
         destination = destination.Slice(0, written);
 
+        address.GetStringLength().Is(written);
+
         if (compareUtf16)
         {
             utf16.Is(destination.ToString());
@@ -167,6 +170,8 @@ public class NodeTest
         Span<char> destination = stackalloc char[NetNode.MaxStringLength];
         node.TryFormat(destination, out var written).IsTrue();
         destination = destination.Slice(0, written);
+
+        node.GetStringLength().Is(written);
 
         if (compareUtf16)
         {
