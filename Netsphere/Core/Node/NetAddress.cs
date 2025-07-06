@@ -358,24 +358,28 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
     }
 
     public bool TryFormat(Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
-    {// 15 + 1 + 5, 54 + 1 + 5 + 2
-        if (destination.Length < MaxStringLength)
-        {
-            written = 0;
-            return false;
-        }
-
+    {// 15 + 1 + 5, 45 + 1 + 5 + 2
+        written = 0;
         if (!this.IsValid)
         {
-            written = 0;
             return true;
         }
 
         var span = destination;
         if (this.RelayId != 0)
         {
-            this.RelayId.TryFormat(span, out written);
+            if (!this.RelayId.TryFormat(span, out written))
+            {
+                return false;
+            }
+
             span = span.Slice(written);
+
+            if (span.Length == 0)
+            {
+                return false;
+            }
+
             span[0] = RelayIdSeparator;
             span = span.Slice(1);
         }
@@ -392,14 +396,30 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
 
             span = span.Slice(written);
 
+            if (span.Length == 0)
+            {
+                return false;
+            }
+
             span[0] = ':';
             span = span.Slice(1);
-            this.Port.TryFormat(span, out written);
+
+            if (!this.Port.TryFormat(span, out written))
+            {
+                return false;
+            }
+
             span = span.Slice(written);
         }
 
         if (this.IsValidIpv6)
         {
+            if (span.Length == 0)
+            {
+                written = 0;
+                return false;
+            }
+
             span[0] = '[';
             span = span.Slice(1);
 
@@ -414,11 +434,20 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
 
             span = span.Slice(written);
 
+            if (span.Length < 2)
+            {
+                return false;
+            }
+
             span[0] = ']';
             span[1] = ':';
             span = span.Slice(2);
 
-            this.Port.TryFormat(span, out written);
+            if (!this.Port.TryFormat(span, out written))
+            {
+                return false;
+            }
+
             span = span.Slice(written);
         }
 

@@ -116,11 +116,6 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
     {
         var span = destination;
         written = 0;
-        if (span.Length < MaxStringLength)
-        {
-            return false;
-        }
-
         if (!this.Address.TryFormat(span, out written))
         {
             return false;
