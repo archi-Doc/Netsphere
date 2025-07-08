@@ -61,6 +61,10 @@ public class BasicTest
             (await basicTaskService.SumInt(2, 3)).Is(5);
             await basicTaskService.TestResult();
             (await basicTaskService.TestResult2()).Is(NetResult.StreamLengthLimit);
+
+            var resultAndValue = await basicService.TestResult3(42);
+            resultAndValue.Result.Is(NetResult.Completed);
+            resultAndValue.Value.Is(42);
         }
     }
 

@@ -110,7 +110,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         }
     }
 
-    public async Task<NetResultValue<TReceive>> SendAndReceive<TSend, TReceive>(TSend data, ulong dataId = 0, CancellationToken cancellationToken = default)
+    public async Task<NetResultAndValue<TReceive>> SendAndReceive<TSend, TReceive>(TSend data, ulong dataId = 0, CancellationToken cancellationToken = default)
     {
         if (!this.IsActive)
         {

@@ -606,6 +606,16 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                     ssb.AppendLine("NetHelper.DeserializeNetResult(response.DataId, response.Value.Memory.Span, out var result);");
                     ssb.AppendLine("response.Value.Return();");
                 }
+                else if (method.ReturnType == ServiceMethod.Type.NetResultAndValue)
+                {
+                    using (var scopeDeserialize = ssb.ScopeBrace($"if (!Tinyhand.TinyhandSerializer.TryDeserialize<{deserializeString}>(response.Value.Memory.Span, out var result))"))
+                    {
+                        AppendReturn("NetResult.DeserializationFailed");
+                    }
+
+                    ssb.AppendLine();
+                    ssb.AppendLine("response.Value.Return();");
+                }
                 else if (method.ReturnType == ServiceMethod.Type.ByteArray)
                 {
                     ssb.AppendLine("var result = response.Value.Memory.ToArray();");
@@ -1001,6 +1011,21 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             method.ReturnType == ServiceMethod.Type.SendStream ||
             method.ReturnType == ServiceMethod.Type.SendStreamAndReceive)
         {
+        }
+        else if (method.ReturnType == ServiceMethod.Type.NetResultAndValue)
+        {
+            using (var scopeSerialize = ssb.ScopeBrace($"if (NetHelper.TrySerialize(result.Value, out var owner2))"))
+            {
+                this.Generate_ReturnRentMemory(ssb);
+                ssb.AppendLine("context.Result = result.Result;");
+                ssb.AppendLine("context.RentMemory = owner2;");
+            }
+
+            using (var scopeElse = ssb.ScopeBrace("else"))
+            {
+                this.Generate_ReturnRentMemory(ssb);
+                ssb.AppendLine("context.Result = NetResult.SerializationFailed;");
+            }
         }
         else
         {// Other

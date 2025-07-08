@@ -9,7 +9,7 @@ namespace Netsphere;
 
 public interface IReceiveStreamInternal
 {
-    Task<NetResultValue<TReceive>> ReceiveBlock<TReceive>(CancellationToken cancellationToken = default);
+    Task<NetResultAndValue<TReceive>> ReceiveBlock<TReceive>(CancellationToken cancellationToken = default);
 }
 
 public readonly struct ReceiveStream<TResponse>
@@ -94,7 +94,7 @@ public class ReceiveStream : IReceiveStreamInternal // , IDisposable
         return r;
     }
 
-    async Task<NetResultValue<TReceive>> IReceiveStreamInternal.ReceiveBlock<TReceive>(CancellationToken cancellationToken)
+    async Task<NetResultAndValue<TReceive>> IReceiveStreamInternal.ReceiveBlock<TReceive>(CancellationToken cancellationToken)
     {
         var rentArray = BytePool.Default.Rent(TinyhandSerializer.InitialBufferSize);
         try

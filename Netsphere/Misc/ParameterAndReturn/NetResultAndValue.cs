@@ -8,15 +8,15 @@ namespace Netsphere;
 /// Represents a net result and value.
 /// </summary>
 /// <typeparam name="TValue">The type of the value.</typeparam>
-public readonly struct NetResultValue<TValue>
+public readonly struct NetResultAndValue<TValue>
 {
-    public NetResultValue(NetResult result, TValue value)
+    public NetResultAndValue(NetResult result, TValue value)
     {
         this.Result = result;
         this.Value = value;
     }
 
-    public NetResultValue(NetResult result)
+    public NetResultAndValue(NetResult result)
     {
         this.Result = result;
         if (typeof(TValue) == typeof(NetResult))

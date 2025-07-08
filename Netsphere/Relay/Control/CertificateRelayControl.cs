@@ -17,7 +17,7 @@ public class CertificateRelayControl : IRelayControl
             this.relayControl = relayControl;
         }
 
-        public override NetResultValue<AssignRelayResponse> RespondAsync(CertificateToken<AssignRelayBlock> token)
+        public override NetResultAndValue<AssignRelayResponse> RespondAsync(CertificateToken<AssignRelayBlock> token)
         {
             if (this.ServerConnection.NetTerminal.RelayControl is not CertificateRelayControl ||
                 !token.PublicKey.Equals(this.relayControl.CertificatePublicKey) ||
