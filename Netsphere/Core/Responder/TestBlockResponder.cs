@@ -9,6 +9,6 @@ public class TestBlockResponder : SyncResponder<TestBlock, TestBlock>
 {
     public static readonly INetResponder Instance = new TestBlockResponder();
 
-    public override NetResultValue<TestBlock> RespondSync(TestBlock value)
+    public override NetResultAndValue<TestBlock> RespondSync(TestBlock value)
         => new(NetResult.Success, value);
 }

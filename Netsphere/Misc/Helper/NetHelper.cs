@@ -218,7 +218,7 @@ public static class NetHelper
         return result;
     }
 
-    public static async Task<NetResultValue<TReceive>> StreamToSendStream<TReceive>(Stream stream, SendStreamAndReceive<TReceive> sendStream, CancellationToken cancellationToken = default)
+    public static async Task<NetResultAndValue<TReceive>> StreamToSendStream<TReceive>(Stream stream, SendStreamAndReceive<TReceive> sendStream, CancellationToken cancellationToken = default)
     {
         var result = NetResult.Success;
         var rentArray = BytePool.Default.Rent(StreamBufferSize);

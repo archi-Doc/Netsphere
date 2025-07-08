@@ -16,6 +16,8 @@ public interface IBasicService : INetService
     public NetTask TestResult();
 
     public NetTask<NetResult> TestResult2();
+
+    public NetTask<NetResultAndValue<int>> TestResult3(int x);
 }
 
 [NetServiceObject]
@@ -38,5 +40,10 @@ public class BasicServiceImpl : IBasicService
     {
         TransmissionContext.Current.Result = NetResult.BlockSizeLimit;
         return NetResult.StreamLengthLimit;
+    }
+
+    async NetTask<NetResultAndValue<int>> IBasicService.TestResult3(int x)
+    {
+        return new(NetResult.Completed, x);
     }
 }

@@ -17,6 +17,7 @@ public class ServiceMethod
     public const string SendStreamName = "Netsphere.SendStream";
     public const string SendStreamAndReceiveName = "Netsphere.SendStreamAndReceive<TReceive>";
     public const string NetResultName = "Netsphere.NetResult";
+    public const string NetResultAndValueName = "Netsphere.NetResultAndValue<TValue>";
     public const string ConnectBidirectionallyName = "Netsphere.INetServiceWithConnectBidirectionally.ConnectBidirectionally(Netsphere.Crypto.CertificateToken<Netsphere.ConnectionAgreement>)";
     public const string UpdateAgreementName = "Netsphere.INetServiceWithUpdateAgreement.UpdateAgreement(Netsphere.Crypto.CertificateToken<Netsphere.ConnectionAgreement>)";
 
@@ -24,6 +25,7 @@ public class ServiceMethod
     {
         Other,
         NetResult,
+        NetResultAndValue,
         ByteArray,
         Memory,
         ReadOnlyMemory,
@@ -102,9 +104,10 @@ public class ServiceMethod
                 }
 
                 serviceMethod.ReturnType = NameToType(rt.OriginalDefinition?.FullName);
-                if (serviceMethod.ReturnType == Type.SendStreamAndReceive)
+                if (serviceMethod.ReturnType == Type.NetResultAndValue ||
+                    serviceMethod.ReturnType == Type.SendStreamAndReceive)
                 {
-                    serviceMethod.StreamTypeArgument = rt.Generics_Arguments[0].FullName;
+                    serviceMethod.GenericsType = rt.Generics_Arguments[0].FullName;
                 }
             }
         }
@@ -178,7 +181,7 @@ public class ServiceMethod
 
     public Type ReturnType { get; private set; }
 
-    public string StreamTypeArgument { get; private set; } = string.Empty;
+    public string GenericsType { get; private set; } = string.Empty;
 
     public MethodKind Kind { get; private set; }
 
@@ -357,6 +360,7 @@ public class ServiceMethod
     private static Type NameToType(string? name) => name switch
     {
         NetResultName => Type.NetResult,
+        NetResultAndValueName => Type.NetResultAndValue,
         ByteArrayName => Type.ByteArray,
         MemoryName => Type.Memory,
         ReadOnlyMemoryName => Type.ReadOnlyMemory,

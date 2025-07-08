@@ -18,25 +18,25 @@ public readonly record struct MicsRange
     public static MicsRange FromFastCorrectedToFuture(long period)
     {
         var current = Mics.FastCorrected;
-        return new MicsRange(current - Mics.DefaultMarginMics, current + period);
+        return new MicsRange(current, current + period);
     }
 
     public static MicsRange FromFastSystemToFuture(long period)
     {
         var lower = Mics.FastSystem;
-        return new(lower - Mics.DefaultMarginMics, lower + period);
+        return new(lower, lower + period);
     }
 
     public static MicsRange FromPastToFastSystem(long period)
     {
         var upper = Mics.FastSystem;
-        return new(upper - period, upper + Mics.DefaultMarginMics);
+        return new(upper - period, upper);
     }
 
     public static MicsRange FromPastToFastCorrected(long period)
     {
         var upper = Mics.FastCorrected;
-        return new(upper - period, upper + Mics.DefaultMarginMics);
+        return new(upper - period, upper);
     }
 
     public MicsRange(long lowerBoundMics, long upperBoundMics)

@@ -7,7 +7,7 @@ public abstract class SyncResponder<TSend, TReceive> : INetResponder
     public ulong DataId
         => NetHelper.GetDataId<TSend, TReceive>();
 
-    public virtual NetResultValue<TReceive> RespondSync(TSend value) => default;
+    public virtual NetResultAndValue<TReceive> RespondSync(TSend value) => default;
 
     public void Respond(TransmissionContext transmissionContext)
     {

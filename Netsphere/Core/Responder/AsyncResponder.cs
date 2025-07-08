@@ -7,7 +7,7 @@ public abstract class AsyncResponder<TSend, TReceive> : INetResponder
     public ulong DataId
         => NetHelper.GetDataId<TSend, TReceive>();
 
-    public virtual NetResultValue<TReceive> RespondAsync(TSend value) => default;
+    public virtual NetResultAndValue<TReceive> RespondAsync(TSend value) => default;
 
     public void Respond(TransmissionContext transmissionContext)
     {

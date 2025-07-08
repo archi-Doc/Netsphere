@@ -22,7 +22,7 @@ public static class RemoteDataHelper
             return;
         }
 
-        NetResultValue<NetResult> r3 = default;
+        NetResultAndValue<NetResult> r3 = default;
         try
         {
             await fileLogger.Flush(false);

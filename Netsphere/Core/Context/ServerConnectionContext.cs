@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Netsphere.Core;
 using Netsphere.Crypto;
 using Netsphere.Relay;
+using static Netsphere.Misc.TimeCorrection;
 
 #pragma warning disable SA1202
 
@@ -234,7 +235,16 @@ public class ServerConnectionContext
                 else if (!transmissionContext.IsSent)
                 {
                     transmissionContext.CheckReceiveStream();
-                    var result = transmissionContext.Result;
+                    if (transmissionContext.RentMemory.IsEmpty)
+                    {
+                        transmissionContext.SendResultAndForget(transmissionContext.Result);
+                    }
+                    else
+                    {
+                        transmissionContext.SendAndForget(transmissionContext.RentMemory, (ulong)transmissionContext.Result);
+                    }
+
+                    /*var result = transmissionContext.Result;
                     if (result == NetResult.Success)
                     {// Success
                         transmissionContext.SendAndForget(transmissionContext.RentMemory, (ulong)result);
@@ -242,7 +252,7 @@ public class ServerConnectionContext
                     else
                     {// Failure
                         transmissionContext.SendResultAndForget(result);
-                    }
+                    }*/
                 }
             }
             catch
