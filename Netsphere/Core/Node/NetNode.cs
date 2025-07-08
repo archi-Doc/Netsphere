@@ -43,10 +43,10 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
     public bool IsValid
         => this.Address.IsValid && this.PublicKey.IsValid;
 
-    public static bool TryParseNetNode(ILogger? logger, string source, [MaybeNullWhen(false)] out NetNode node)
+    public static bool TryParseNetNode(ILogger? logger, ReadOnlySpan<char> source, [MaybeNullWhen(false)] out NetNode node)
     {
         node = default;
-        if (string.Compare(source, "alt", true) == 0)
+        if (source.SequenceEqual(Alternative.ShortName.AsSpan()))
         {
             node = Alternative.NetNode;
             return true;
@@ -55,19 +55,31 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
         {
             if (!NetNode.TryParse(source, out var address, out _))
             {
-                logger?.TryGet(LogLevel.Error)?.Log($"Could not parse: {source.ToString()}");
+                logger?.TryGet(LogLevel.Error)?.Log($"Could not parse: {source}");
                 return false;
             }
 
             if (!address.Address.Validate())
             {
-                logger?.TryGet(LogLevel.Error)?.Log($"Invalid address: {source.ToString()}");
+                logger?.TryGet(LogLevel.Error)?.Log($"Invalid address: {source}");
                 return false;
             }
 
             node = address;
             return true;
         }
+    }
+
+    public static bool TryParseWithAlternative(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out NetNode instance, out int read, IConversionOptions? conversionOptions = default)
+    {
+        if (source.SequenceEqual(Alternative.ShortName.AsSpan()))
+        {
+            instance = Alternative.NetNode;
+            read = source.Length;
+            return true;
+        }
+
+        return TryParse(source, out instance, out read, conversionOptions);
     }
 
     public static bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out NetNode instance, out int read, IConversionOptions? conversionOptions = default)

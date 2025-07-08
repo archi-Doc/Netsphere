@@ -7,6 +7,7 @@ namespace Netsphere;
 public static class Alternative
 {
     public const string Name = "alternative";
+    public const string ShortName = "alt";
     public const ushort Port = 49151;
 
     static Alternative()
