@@ -537,11 +537,11 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             {
                 if (method.ParameterLength <= 1)
                 {
-                    ssb.AppendLine($"var response = this.ClientConnection.SendStreamAndReceive<{method.StreamTypeArgument}>(a1, {method.IdString});");
+                    ssb.AppendLine($"var response = this.ClientConnection.SendStreamAndReceive<{method.GenericsType}>(a1, {method.IdString});");
                 }
                 else
                 {
-                    ssb.AppendLine($"var response = await this.ClientConnection.SendBlockAndStreamAndReceive<{method.GetParameterTypes(1)}, {method.StreamTypeArgument}>(({method.GetParameterNames(NetsphereBody.ArgumentName, 1)}), a{method.ParameterLength}, {method.IdString}).ConfigureAwait(false);");
+                    ssb.AppendLine($"var response = await this.ClientConnection.SendBlockAndStreamAndReceive<{method.GetParameterTypes(1)}, {method.GenericsType}>(({method.GetParameterNames(NetsphereBody.ArgumentName, 1)}), a{method.ParameterLength}, {method.IdString}).ConfigureAwait(false);");
                 }
 
                 AppendReturn2("response.Stream", "response.Result");
@@ -608,12 +608,13 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 }
                 else if (method.ReturnType == ServiceMethod.Type.NetResultAndValue)
                 {
-                    using (var scopeDeserialize = ssb.ScopeBrace($"if (!Tinyhand.TinyhandSerializer.TryDeserialize<{deserializeString}>(response.Value.Memory.Span, out var result))"))
+                    using (var scopeDeserialize = ssb.ScopeBrace($"if (!Tinyhand.TinyhandSerializer.TryDeserialize<{method.GenericsType}>(response.Value.Memory.Span, out var result2))"))
                     {
                         AppendReturn("NetResult.DeserializationFailed");
                     }
 
                     ssb.AppendLine();
+                    ssb.AppendLine($"{deserializeString} result = new(response.Result, result2);");
                     ssb.AppendLine("response.Value.Return();");
                 }
                 else if (method.ReturnType == ServiceMethod.Type.ByteArray)

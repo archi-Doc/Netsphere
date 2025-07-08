@@ -104,9 +104,10 @@ public class ServiceMethod
                 }
 
                 serviceMethod.ReturnType = NameToType(rt.OriginalDefinition?.FullName);
-                if (serviceMethod.ReturnType == Type.SendStreamAndReceive)
+                if (serviceMethod.ReturnType == Type.NetResultAndValue ||
+                    serviceMethod.ReturnType == Type.SendStreamAndReceive)
                 {
-                    serviceMethod.StreamTypeArgument = rt.Generics_Arguments[0].FullName;
+                    serviceMethod.GenericsType = rt.Generics_Arguments[0].FullName;
                 }
             }
         }
@@ -180,7 +181,7 @@ public class ServiceMethod
 
     public Type ReturnType { get; private set; }
 
-    public string StreamTypeArgument { get; private set; } = string.Empty;
+    public string GenericsType { get; private set; } = string.Empty;
 
     public MethodKind Kind { get; private set; }
 
