@@ -29,6 +29,12 @@ public readonly struct NetResultAndValue<TValue>
         }
     }
 
+    public NetResultAndValue(TValue value)
+    {
+        this.Result = NetResult.Success;
+        this.Value = value;
+    }
+
     public bool IsFailure => this.Result != NetResult.Success;
 
     public bool IsSuccess => this.Result == NetResult.Success;

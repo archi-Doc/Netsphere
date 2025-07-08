@@ -63,7 +63,7 @@ public class BasicTest
             (await basicTaskService.TestResult2()).Is(NetResult.StreamLengthLimit);
 
             var resultAndValue = await basicService.TestResult3(42);
-            resultAndValue.Result.Is(NetResult.Completed);
+            resultAndValue.Result.Is(NetResult.Success);
             resultAndValue.Value.Is(42);
         }
     }
