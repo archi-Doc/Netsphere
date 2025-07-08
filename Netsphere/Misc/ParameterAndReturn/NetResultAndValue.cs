@@ -1,5 +1,6 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace Netsphere;
@@ -8,7 +9,7 @@ namespace Netsphere;
 /// Represents a net result and value.
 /// </summary>
 /// <typeparam name="TValue">The type of the value.</typeparam>
-public readonly struct NetResultAndValue<TValue>
+public readonly record struct NetResultAndValue<TValue>
 {
     public NetResultAndValue(NetResult result, TValue value)
     {
@@ -37,7 +38,8 @@ public readonly struct NetResultAndValue<TValue>
 
     public bool IsFailure => this.Result != NetResult.Success;
 
-    public bool IsSuccess => this.Result == NetResult.Success;
+    [MemberNotNullWhen(true, nameof(Value))]
+    public bool IsSuccess => this.Result == NetResult.Success && this.Value is not null;
 
     public readonly NetResult Result;
     public readonly TValue? Value;

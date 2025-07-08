@@ -614,7 +614,8 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                     }
 
                     ssb.AppendLine();
-                    ssb.AppendLine($"var result = new {deserializeString}(response.Result, result2);");
+                    // ssb.AppendLine($"var result = new {deserializeString}(response.Result, result2);");
+                    ssb.AppendLine($"var result = new {deserializeString}((NetResult)response.DataId, result2);");
                     ssb.AppendLine("response.Value.Return();");
                 }
                 else if (method.ReturnType == ServiceMethod.Type.ByteArray)

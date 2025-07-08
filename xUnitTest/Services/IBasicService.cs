@@ -44,6 +44,6 @@ public class BasicServiceImpl : IBasicService
 
     async NetTask<NetResultAndValue<int>> IBasicService.TestResult3(int x)
     {
-        return new(NetResult.Success, x);
+        return new(NetResult.Completed, x);
     }
 }
