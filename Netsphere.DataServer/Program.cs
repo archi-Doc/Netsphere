@@ -11,6 +11,7 @@ global using Tinyhand;
 global using ValueLink;
 using Microsoft.Extensions.DependencyInjection;
 using SimpleCommandLine;
+using static SimpleCommandLine.SimpleParser;
 
 namespace RemoteDataServer;
 
@@ -55,25 +56,32 @@ public class Program
                     context.SetOutput<ConsoleLogger>();
                 });
             })
-            .SetupOptions<NetOptions>((context, options) =>
-            {// Modify NetOptions
-                options.NodeName = "RemoteDataServer";
-                // options.Port = 50000; // Specify the port number.
-                options.EnablePing = true;
-                options.EnableServer = true;
-            })
-            .SetupOptions<FileLoggerOptions>((context, options) =>
-            {
-                var logfile = "Logs/Net.txt";
-                options.Path = Path.Combine(context.DataDirectory, logfile);
-                options.MaxLogCapacity = 100;
-                options.Formatter.TimestampFormat = "mm:ss.ffffff K";
-                options.ClearLogsAtStartup = true;
-                options.MaxQueue = 100_000;
-            })
             .ConfigureNetsphere(context =>
             {// Register the services provided by the server.
                 context.AddNetService<Netsphere.Interfaces.IRemoteData, RemoteDataAgent>();
+            })
+            .PostConfigure(context =>
+            {
+                // FileLoggerOptions
+                var logfile = "Logs/Net.txt";
+                var fileLoggerOptions = context.GetOptions<FileLoggerOptions>();
+                context.SetOptions(fileLoggerOptions with
+                {
+                    Path = Path.Combine(context.DataDirectory, logfile),
+                    MaxLogCapacity = 100,
+                    Formatter = fileLoggerOptions.Formatter with { TimestampFormat = "mm:ss.ffffff K", },
+                    ClearLogsAtStartup = true,
+                    MaxQueue = 100_000,
+                });
+
+                // NetsphereOptions
+                context.SetOptions(context.GetOptions<NetOptions>() with
+                {
+                    NodeName = "RemoteDataServer",
+                    // Port = 50000, // Specify the port number.
+                    EnablePing = true,
+                    EnableServer = true,
+                });
             });
 
         var unit = builder.Build(); // Create a unit that provides network functionality.

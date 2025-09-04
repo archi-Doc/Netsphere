@@ -73,9 +73,9 @@ public class NetControl : UnitBase, IUnitPreparable, IUnitExecutable
             return this;
         }
 
-        public new Builder Preload(Action<IUnitPreloadContext> @delegate)
+        public new Builder PreConfigure(Action<IUnitPreConfigurationContext> @delegate)
         {
-            base.Preload(@delegate);
+            base.PreConfigure(@delegate);
             return this;
         }
 
@@ -85,10 +85,9 @@ public class NetControl : UnitBase, IUnitPreparable, IUnitExecutable
             return this;
         }
 
-        public new Builder SetupOptions<TOptions>(Action<IUnitSetupContext, TOptions> @delegate)
-            where TOptions : class
+        public new Builder PostConfigure(Action<IUnitPostConfigurationContext> @delegate)
         {
-            base.SetupOptions(@delegate);
+            base.PostConfigure(@delegate);
             return this;
         }
 

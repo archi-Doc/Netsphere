@@ -2,6 +2,7 @@
 
 global using Arc.Threading;
 global using Tinyhand;
+using System.Runtime.Serialization;
 using Arc;
 using Arc.Unit;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +10,7 @@ using Netsphere;
 using Netsphere.Crypto;
 using Netsphere.Relay;
 using SimpleCommandLine;
+using static SimpleCommandLine.SimpleParser;
 
 namespace Playground;
 
@@ -51,22 +53,29 @@ public class Program
              {// Register the services provided by the server.
                  // context.AddNetService<ITestService, TestServiceImpl>();
              })
-            .SetupOptions<FileLoggerOptions>((context, options) =>
-            {// FileLoggerOptions
-                var logfile = "Logs/Debug.txt";
-                options.Path = Path.Combine(context.DataDirectory, logfile);
-                options.MaxLogCapacity = 1;
-                options.Formatter.TimestampFormat = "yyyy-MM-dd HH:mm:ss.ffffff K";
-                options.ClearLogsAtStartup = true;
-                options.MaxQueue = 100_000;
-            })
-            .SetupOptions<NetOptions>((context, options) =>
-            {// NetsphereOptions
-                // options.NodeName = "test";
-                options.EnablePing = true;
-                options.EnableServer = true;
-                options.EnableAlternative = true;
-            });
+             .PostConfigure(context =>
+             {
+                 // FileLoggerOptions
+                 var logfile = "Logs/Debug.txt";
+                 var fileLoggerOptions = context.GetOptions<FileLoggerOptions>();
+                 context.SetOptions(fileLoggerOptions with
+                 {
+                     Path = Path.Combine(context.DataDirectory, logfile),
+                     MaxLogCapacity = 1,
+                     Formatter = fileLoggerOptions.Formatter with { TimestampFormat = "yyyy-MM-dd HH:mm:ss.ffffff K", },
+                     ClearLogsAtStartup = true,
+                     MaxQueue = 100_000,
+                 });
+
+                 // NetsphereOptions
+                 context.SetOptions(context.GetOptions<NetOptions>() with
+                 {
+                     // NodeName = "test",
+                     // EnablePing = true,
+                     EnableServer = true,
+                     EnableAlternative = true,
+                 });
+             });
 
         // Netsphere
         var unit = builder.Build();
