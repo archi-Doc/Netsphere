@@ -5,13 +5,11 @@ global using System.Threading;
 global using System.Threading.Tasks;
 global using Arc.Threading;
 global using Netsphere;
-using System.Runtime.Serialization;
 using Arc.Unit;
 using Lp.NetServices;
 using Microsoft.Extensions.DependencyInjection;
 using Netsphere.Misc;
 using SimpleCommandLine;
-using static SimpleCommandLine.SimpleParser;
 
 namespace NetsphereTest;
 

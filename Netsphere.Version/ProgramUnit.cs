@@ -9,7 +9,6 @@ using Netsphere.Misc;
 using Netsphere.Packet;
 using SimpleCommandLine;
 using Tinyhand;
-using static SimpleCommandLine.SimpleParser;
 
 namespace Netsphere.Version;
 

@@ -34,6 +34,7 @@ public class NetControl : UnitBase, IUnitPreparable, IUnitExecutable
             this.Configure(context =>
             {
                 // Main services
+                context.AddSingleton<NetOptions>();
                 context.AddSingleton<NetControl>();
                 context.AddSingleton<NetBase>();
                 // context.AddSingleton<EssentialAddress>();

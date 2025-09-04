@@ -2,7 +2,6 @@
 
 global using Arc.Threading;
 global using Tinyhand;
-using System.Runtime.Serialization;
 using Arc;
 using Arc.Unit;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,7 +9,6 @@ using Netsphere;
 using Netsphere.Crypto;
 using Netsphere.Relay;
 using SimpleCommandLine;
-using static SimpleCommandLine.SimpleParser;
 
 namespace Playground;
 

@@ -8,7 +8,6 @@ using Netsphere;
 using Netsphere.Interfaces;
 using SimpleCommandLine;
 using Tinyhand;
-using static SimpleCommandLine.SimpleParser;
 
 namespace Netsphere.Runner;
 

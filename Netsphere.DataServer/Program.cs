@@ -11,7 +11,6 @@ global using Tinyhand;
 global using ValueLink;
 using Microsoft.Extensions.DependencyInjection;
 using SimpleCommandLine;
-using static SimpleCommandLine.SimpleParser;
 
 namespace RemoteDataServer;
 
