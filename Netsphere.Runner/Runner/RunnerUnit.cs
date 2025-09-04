@@ -24,7 +24,7 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 context.AddSingleton<RunnerUnit>();
                 context.AddSingleton<RunOptions>();
                 context.AddSingleton<RestartOptions>();
-                context.CreateInstance<RunnerUnit>();
+                context.RegisterInstanceCreation<RunnerUnit>();
                 context.AddSingleton<BigMachine>();
 
                 // Command
@@ -56,16 +56,20 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 });
             });
 
-            this.SetupOptions<FileLoggerOptions>((context, options) =>
-            {// FileLoggerOptions
+            this.PostConfigure(context =>
+            {
                 var logfile = "Logs/Log.txt";
-                options.Path = Path.Combine(context.DataDirectory, logfile);
-                options.MaxLogCapacity = 2;
-            });
+                context.SetOptions(context.GetOptions<FileLoggerOptions>() with
+                {// FileLoggerOptions
+                    Path = Path.Combine(context.DataDirectory, logfile),
+                    MaxLogCapacity = 2,
+                });
 
-            this.SetupOptions<ConsoleLoggerOptions>((context, options) =>
-            {// ConsoleLoggerOptions
-                options.Formatter.EnableColor = true;
+                var consoleLoggerOptions = context.GetOptions<ConsoleLoggerOptions>();
+                context.SetOptions(consoleLoggerOptions with
+                {// ConsoleLoggerOptions
+                    FormatterOptions = consoleLoggerOptions.FormatterOptions with { EnableColor = true, },
+                });
             });
 
             this.AddBuilder(new NetControl.Builder());

@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Netsphere.Core;
 using Netsphere.Crypto;
 using Netsphere.Relay;
-using static Netsphere.Misc.TimeCorrection;
 
 #pragma warning disable SA1202
 

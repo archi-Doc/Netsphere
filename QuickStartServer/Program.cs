@@ -23,24 +23,28 @@ public class Program
             ThreadCore.Root.Terminate(); // Send a termination signal to the root.
         };
 
-        var builder = new NetControl.Builder() // Create a NetControl builder.
-            .SetupOptions<NetOptions>((context, options) =>
-            {// Modify NetOptions
-                options.NodeName = "Test server";
-                options.Port = 1981; // Specify the port number.
-                options.NodeSecretKey = "!!!m6Ao8Rkgsrn1-EqG_kzZgrKmWXt5orPpHAz6DbSaAfUmlLCN!!!(e:XWLus_KiQ3AaNVeBDBp3qaot8wQEbmzlHD3Wkg8cWmXZ5egP)"; // Test Private key.
-                options.EnablePing = true;
-                options.EnableServer = true;
+        // Create a NetControl builder.
+        var builder = new NetControl.Builder()
+            .Configure(context =>
+            {
+                context.Services.AddTransient<TestServiceAgent>(); // Register the service implementation. If a default constructor is available, an instance will be automatically created.
             })
-    .Configure(context =>
-    {
-        context.Services.AddTransient<TestServiceAgent>(); // Register the service implementation. If a default constructor is available, an instance will be automatically created.
-    })
-    .ConfigureNetsphere(context =>
-    {// Register the services provided by the server.
-        context.AddNetService<ITestService, TestServiceAgent>();
-        context.AddNetService<ITestService2, TestServiceAgent>();
-    });
+            .ConfigureNetsphere(context =>
+            {// Register the services provided by the server.
+                context.AddNetService<ITestService, TestServiceAgent>();
+                context.AddNetService<ITestService2, TestServiceAgent>();
+            })
+            .PostConfigure(context =>
+            {
+                context.SetOptions(context.GetOptions<NetOptions>() with
+                {
+                    NodeName = "Test server",
+                    Port = 1981, // Specify the port number.
+                    NodeSecretKey = "!!!m6Ao8Rkgsrn1-EqG_kzZgrKmWXt5orPpHAz6DbSaAfUmlLCN!!!(e:XWLus_KiQ3AaNVeBDBp3qaot8wQEbmzlHD3Wkg8cWmXZ5egP)", // Test Private key.
+                    EnablePing = true,
+                    EnableServer = true,
+                });
+            });
 
         var unit = builder.Build(); // Create a unit that provides network functionality.
         var options = unit.Context.ServiceProvider.GetRequiredService<NetOptions>();

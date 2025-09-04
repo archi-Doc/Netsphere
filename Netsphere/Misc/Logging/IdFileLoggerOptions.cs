@@ -2,16 +2,20 @@
 
 namespace Netsphere.Logging;
 
-public class IdFileLoggerOptions : FileLoggerOptions
+public record class IdFileLoggerOptions : FileLoggerOptions
 {
     public IdFileLoggerOptions()
     {
-        this.Formatter.EventIdFormat = "X4";
+        this.Formatter = new SimpleLogFormatterOptions(true) with
+        {
+            EventIdFormat = "X4",
+        };
+
         this.MaxQueue = 10_000;
     }
 
     /// <summary>
-    /// Gets or sets the upper limit of log stream.
+    /// Gets the upper limit of log stream.
     /// </summary>
-    public int MaxStreamCapacity { get; set; } = 10;
+    public int MaxStreamCapacity { get; init; } = 10;
 }

@@ -25,7 +25,7 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 context.AddSingleton<ProgramUnit>();
                 context.AddSingleton<Unit>();
                 context.AddSingleton<GetOptions>();
-                context.CreateInstance<ProgramUnit>();
+                context.RegisterInstanceCreation<ProgramUnit>();
                 // context.AddSingleton<BigMachine>();
 
                 // Command
@@ -54,34 +54,33 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 });
             });
 
-            this.SetupOptions<FileLoggerOptions>((context, options) =>
-            {// FileLoggerOptions
+            this.PostConfigure(context =>
+            {
                 var logfile = "Logs/Log.txt";
-                options.Path = Path.Combine(context.DataDirectory, logfile);
-                options.MaxLogCapacity = 2;
-            });
+                context.SetOptions(context.GetOptions<FileLoggerOptions>() with
+                {// FileLoggerOptions
+                    Path = Path.Combine(context.DataDirectory, logfile),
+                    MaxLogCapacity = 2,
+                });
 
-            this.SetupOptions<ConsoleLoggerOptions>((context, options) =>
-            {// ConsoleLoggerOptions
-                options.Formatter.EnableColor = true;
-            });
+                context.SetOptions(context.GetOptions<ConsoleLoggerOptions>() with
+                {// ConsoleLoggerOptions
+                });
 
-            this.SetupOptions<NetOptions>((context, options) =>
-            {// NetOptions
+                var netOptions = context.GetOptions<NetOptions>();
                 var args = SimpleParserHelper.GetCommandLineArguments();
                 var cmd = SimpleParserHelper.PeekCommand(args);
                 if (string.IsNullOrEmpty(cmd) || cmd == "server")
                 {// Server command (default)
-                    options.EnableServer = true;
+                    netOptions = netOptions with { EnableServer = true, };
                     if (SimpleParser.TryParseOptions<ServerOptions>(args, out var serverOptions))
                     {
-                        options.Port = serverOptions.Port;
+                        netOptions = netOptions with { Port = serverOptions.Port, };
                     }
                 }
                 else
                 {
-                    options.Port = 0;
-                    options.EnableServer = false;
+                    netOptions = netOptions with { Port = 0, EnableServer = false, };
                 }
             });
 

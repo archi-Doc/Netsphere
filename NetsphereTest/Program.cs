@@ -6,10 +6,10 @@ global using System.Threading.Tasks;
 global using Arc.Threading;
 global using Netsphere;
 using Arc.Unit;
-using Microsoft.Extensions.DependencyInjection;
 using Lp.NetServices;
-using SimpleCommandLine;
+using Microsoft.Extensions.DependencyInjection;
 using Netsphere.Misc;
+using SimpleCommandLine;
 
 namespace NetsphereTest;
 
@@ -84,17 +84,16 @@ public class Program
 
         // 3rd: Builder pattern
         var builder = new NetControl.Builder()
-            .Preload(context =>
+            .PreConfigure(context =>
             {
-                var original = context.GetOrCreateOptions<NetOptions>();
-
+                var originalOptions = context.GetOptions<NetOptions>();
                 NetOptions? options = default;
-                if (context.Arguments.TryGetOption("ns", out var nsArg))
+                if (context.Arguments.TryGetOptionValue("ns", out var nsArg))
                 {
-                    SimpleParser.TryParseOptions(nsArg.UnwrapBracket(), out options, original);
+                    SimpleParser.TryParseOptions(nsArg.UnwrapBracket(), out options, originalOptions);
                 }
 
-                options ??= original;
+                options ??= originalOptions;
                 context.SetOptions(options);
             })
             .Configure(context =>
@@ -148,30 +147,39 @@ public class Program
                     }
                 });
             })
-            .SetupOptions<NetOptions>((context, options) =>
+            .PostConfigure(context =>
             {
-                if (string.IsNullOrEmpty(options.NodeSecretKey) &&
+                var netOptions = context.GetOptions<NetOptions>();
+                if (string.IsNullOrEmpty(netOptions.NodeSecretKey) &&
                 Environment.GetEnvironmentVariable("node_privatekey") is { } nodePrivateKey)
                 {
-                    options.NodeSecretKey = nodePrivateKey;
+                    netOptions.NodeSecretKey = nodePrivateKey;
                 }
 
-                options.Port = 50000;
-            })
-            .SetupOptions<FileLoggerOptions>((context, options) =>
-            {// FileLoggerOptions
+                netOptions.Port = 50000;
+                context.SetOptions(netOptions);
+
                 var logfile = "Logs/Debug.txt";
-                options.Path = Path.Combine(context.DataDirectory, logfile);
-                options.MaxLogCapacity = 10;
-                options.Formatter.TimestampFormat = "mm:ss.ffffff K"; // "yyyy-MM-dd HH:mm:ss.ffffff K";
-                options.ClearLogsAtStartup = true;
-                options.MaxQueue = 100_000;
-            })
-            .SetupOptions<ConsoleLoggerOptions>((context, options) =>
-            {
-                options.Formatter.EnableColor = false;
-                options.EnableBuffering = true;
-                options.Formatter.TimestampFormat = "mm:ss.ffffff K"; // "yyyy-MM-dd HH:mm:ss.ffffff K";
+                var fileLoggerOptions = context.GetOptions<FileLoggerOptions>();
+                context.SetOptions(fileLoggerOptions with
+                {
+                    Path = Path.Combine(context.DataDirectory, logfile),
+                    MaxLogCapacity = 10,
+                    Formatter = fileLoggerOptions.Formatter with { TimestampFormat = "mm:ss.ffffff K", },// "yyyy-MM-dd HH:mm:ss.ffffff K";
+                    ClearLogsAtStartup = true,
+                    MaxQueue = 100_000,
+                });
+
+                var consoleLoggerOptions = context.GetOptions<ConsoleLoggerOptions>();
+                context.SetOptions(consoleLoggerOptions with
+                {
+                    EnableBuffering = true,
+                    FormatterOptions = consoleLoggerOptions.FormatterOptions with
+                    {
+                        EnableColor = false,
+                        TimestampFormat = "mm:ss.ffffff K", // "yyyy-MM-dd HH:mm:ss.ffffff K"
+                    },
+                });
             });
 
         Console.WriteLine(string.Join(' ', args));
