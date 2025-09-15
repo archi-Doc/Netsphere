@@ -6,7 +6,7 @@ namespace Netsphere;
 
 internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
 {
-    void IUnitCustomContext.Configure(IUnitConfigurationContext context)
+    void IUnitCustomContext.ProcessContext(IUnitConfigurationContext context)
     {
         context.SetOptions(this);
 
