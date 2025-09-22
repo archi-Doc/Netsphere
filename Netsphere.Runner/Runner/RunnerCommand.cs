@@ -12,13 +12,13 @@ namespace Netsphere.Runner;
 public abstract class RunnerCommand
 {
     private readonly UnitContext unitContext;
-    private readonly RunnerUnit.Unit unit;
+    private readonly RunnerUnit.Product unit;
 
     protected IServiceProvider serviceProvider { get; }
 
     protected BigMachine bigMachine { get; }
 
-    public RunnerCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Unit unit, BigMachine bigMachine)
+    public RunnerCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Product unit, BigMachine bigMachine)
     {
         this.serviceProvider = serviceProvider;
         this.unitContext = unitContext;

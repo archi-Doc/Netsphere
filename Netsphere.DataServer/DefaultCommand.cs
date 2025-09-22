@@ -14,7 +14,7 @@ namespace RemoteDataServer;
 [SimpleCommand("default", Default = true)]
 public class DefaultCommand : ISimpleCommandAsync<DefaultCommandOptions>
 {
-    public DefaultCommand(NetUnit.Unit unit, ILogger<DefaultCommandOptions> logger, NetUnit netUnit, RemoteDataControl remoteDataBroker)
+    public DefaultCommand(NetUnit.Product unit, ILogger<DefaultCommandOptions> logger, NetUnit netUnit, RemoteDataControl remoteDataBroker)
     {
         this.unit = unit;
         this.logger = logger;
@@ -99,7 +99,7 @@ public class DefaultCommand : ISimpleCommandAsync<DefaultCommandOptions>
         this.logger.TryGet()?.Log($"Punch: {result.ToString()} {sw.ElapsedMilliseconds} ms");
     }
 
-    private readonly NetUnit.Unit unit;
+    private readonly NetUnit.Product unit;
     private readonly NetUnit netUnit;
     private readonly ILogger logger;
     private readonly RemoteDataControl remoteData;

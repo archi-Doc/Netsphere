@@ -68,5 +68,5 @@ public class NetFixture : IDisposable
 
     public NetUnit NetUnit { get; }
 
-    private NetUnit.Unit unit;
+    private NetUnit.Product unit;
 }

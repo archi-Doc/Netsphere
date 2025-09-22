@@ -18,7 +18,7 @@ public partial class PublicIPMachine : Machine
         public IPAddress? IPAddress { get; set; }
     }
 
-    public PublicIPMachine(ILogger<PublicIPMachine> logger, LpBase lpBase, NetUnit netUnit, Crystalizer crystalizer)
+    public PublicIPMachine(ILogger<PublicIPMachine> logger, LpBase lpBase, NetUnit netUnit, CrystalControl crystalControl)
     {
         this.logger = logger;
         this.lpBase = lpBase;
@@ -31,7 +31,7 @@ public partial class PublicIPMachine : Machine
             NumberOfFileHistories = 0,
         };
 
-        this.crystal = crystalizer.GetOrCreateCrystal<Data>(configuration);
+        this.crystal = crystalControl.GetOrCreateCrystal<Data>(configuration);
 
         // this.DefaultTimeout = TimeSpan.FromSeconds(5);
     }

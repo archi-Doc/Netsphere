@@ -13,7 +13,7 @@ namespace Netsphere.Runner;
 
 public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
 {
-    public class Builder : UnitBuilder<Unit>
+    public class Builder : UnitBuilder<Product>
     {// Builder class for customizing dependencies.
         public Builder()
             : base()
@@ -76,9 +76,9 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
         }
     }
 
-    public class Unit : NetUnit.Unit
+    public class Product : NetUnit.Product
     {// Unit class for customizing behaviors.
-        public Unit(UnitContext context)
+        public Product(UnitContext context)
             : base(context)
         {
             TinyhandSerializer.ServiceProvider = context.ServiceProvider;

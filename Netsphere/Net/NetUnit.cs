@@ -28,7 +28,7 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 {
     #region Builder
 
-    public class Builder : UnitBuilder<Unit>
+    public class Builder : UnitBuilder<Product>
     {
         public Builder()
             : base()
@@ -101,9 +101,9 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
     #region Product
 
-    public class Unit : UnitProduct
+    public class Product : UnitProduct
     {
-        public Unit(UnitContext context)
+        public Product(UnitContext context)
             : base(context)
         {
         }
