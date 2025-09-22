@@ -9,7 +9,7 @@ namespace Netsphere.Runner;
 [SimpleCommand("restart")]
 public class RestartCommand : RunnerCommand, ISimpleCommandAsync<RestartOptions>
 {
-    public RestartCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Unit unit, BigMachine bigMachine)
+    public RestartCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Product unit, BigMachine bigMachine)
         : base(serviceProvider, unitContext, unit, bigMachine)
     {
     }

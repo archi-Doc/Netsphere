@@ -12,7 +12,7 @@ namespace Netsphere.Runner;
 [SimpleCommand("run")]
 public class RunCommand : RunnerCommand, ISimpleCommandAsync<RunOptions>
 {
-    public RunCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Unit unit, BigMachine bigMachine)
+    public RunCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Product unit, BigMachine bigMachine)
         : base(serviceProvider, unitContext, unit, bigMachine)
     {
     }

@@ -25,7 +25,7 @@ public class Program
         commandTypes.Add(typeof(BasicTestSubcommand));
         commandTypes.Add(typeof(NetbenchSubcommand));
 
-        NetControl.Register(Container, commandTypes);
+        NetUnit.Register(Container, commandTypes);
         foreach (var x in commandTypes)
         {
             Container.Register(x, Reuse.Singleton);
@@ -40,7 +40,7 @@ public class Program
 
         // 2nd: ServiceCollection
         /*var services = new ServiceCollection();
-        NetControl.Register(services, commandTypes);
+        NetUnit.Register(services, commandTypes);
         foreach (var x in commandTypes)
         {
             services.AddSingleton(x);
@@ -51,9 +51,9 @@ public class Program
         services.AddSingleton<TestFilterB>();
 
         var serviceProvider = services.BuildServiceProvider();
-        NetControl.SetServiceProvider(serviceProvider);*/
+        NetUnit.SetServiceProvider(serviceProvider);*/
 
-        // NetControl.QuickStart(true, () => new TestServerContext(), () => new TestCallContext(), "test", options, true);
+        // NetUnit.QuickStart(true, () => new TestServerContext(), () => new TestCallContext(), "test", options, true);
 
         AppDomain.CurrentDomain.ProcessExit += (s, e) =>
         {// Console window closing or process terminated.
@@ -83,7 +83,7 @@ public class Program
         // BaseHelper.TryParseFromEnvironmentVariable<NodeSecretKey>("k", out var privateKey);
 
         // 3rd: Builder pattern
-        var builder = new NetControl.Builder()
+        var builder = new NetUnit.Builder()
             .PreConfigure(context =>
             {
                 var originalOptions = context.GetOptions<NetOptions>();
@@ -191,9 +191,9 @@ public class Program
         await Console.Out.WriteLineAsync(options.ToString());
         await unit.Run(options, true, x => new TestConnectionContext(x));
 
-        var netControl = unit.Context.ServiceProvider.GetRequiredService<NetControl>();
-        netControl.Services.Register<IRemoteBenchHost, RemoteBenchHostAgent>();
-        netControl.Services.Register<IRemoteBenchRunner, RemoteBenchRunnerAgent>();
+        var netUnit = unit.Context.ServiceProvider.GetRequiredService<NetUnit>();
+        netUnit.Services.Register<IRemoteBenchHost, RemoteBenchHostAgent>();
+        netUnit.Services.Register<IRemoteBenchRunner, RemoteBenchRunnerAgent>();
 
         var parserOptions = SimpleParserOptions.Standard with
         {

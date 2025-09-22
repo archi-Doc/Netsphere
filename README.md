@@ -60,11 +60,11 @@ On the client side:
 Create an instance, connect to the server, obtain the service interface, and call the function.
 
 ```csharp
-var unit = new NetControl.Builder().Build(); // Create a NetControl unit that implements communication functionality.
+var unit = new NetUnit.Builder().Build(); // Create a NetUnit unit that implements communication functionality.
 await unit.Run(new NetOptions(), true); // Execute the created unit with default options.
 
-var netControl = unit.Context.ServiceProvider.GetRequiredService<NetControl>(); // Get a NetControl instance.
-using (var connection = await netControl.NetTerminal.UnsafeConnect(new(IPAddress.Loopback, 1981)))
+var netUnit = unit.Context.ServiceProvider.GetRequiredService<NetUnit>(); // Get a NetUnit instance.
+using (var connection = await netUnit.NetTerminal.UnsafeConnect(new(IPAddress.Loopback, 1981)))
 {// Connect to the server's address (loopback address).
     // All communication in Netsphere is encrypted, and connecting by specifying only the address is not recommended due to the risk of man-in-the-middle attacks.
     if (connection is null)
@@ -101,7 +101,7 @@ internal class TestServiceImpl : ITestService
 Create a builder to instantiate, register Options and Services. From the builder, you create a Unit and execute it.
 
 ```csharp
-var builder = new NetControl.Builder() // Create a NetControl builder.
+var builder = new NetUnit.Builder() // Create a NetUnit builder.
     .SetupOptions<NetOptions>((context, options) =>
     {// Modify NetOptions.
         options.NodeName = "Test server";

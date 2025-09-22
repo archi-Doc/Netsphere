@@ -14,21 +14,21 @@ namespace Playground;
 [SimpleCommand("basic")]
 public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>
 {
-    public BasicCommand(ILogger<BasicCommand> logger, NetControl netControl, IRelayControl relayControl)
+    public BasicCommand(ILogger<BasicCommand> logger, NetUnit netUnit, IRelayControl relayControl)
     {
         this.logger = logger;
-        this.netControl = netControl;
+        this.netUnit = netUnit;
         this.relayControl = relayControl;
     }
 
     public async Task RunAsync(BasicCommandOptions options, string[] args)
     {
         /*var r = await NetStatsHelper.GetIcanhazipIPv4();
-        var netAddress = new NetAddress(r.Address!, (ushort)this.netControl.NetBase.NetOptions.Port);
-        var netNode = new NetNode(netAddress, this.netControl.NetBase.NodePublicKey);
+        var netAddress = new NetAddress(r.Address!, (ushort)this.netUnit.NetBase.NetOptions.Port);
+        var netNode = new NetNode(netAddress, this.netUnit.NetBase.NodePublicKey);
         var st = netNode.ToString();
         options.Node = st;
-        this.netControl.NetStats.SetOwnNetNodeForTest(netAddress, this.netControl.NetBase.NodePublicKey);*/
+        this.netUnit.NetStats.SetOwnNetNodeForTest(netAddress, this.netUnit.NetBase.NodePublicKey);*/
 
         if (!NetAddress.TryParse(this.logger, options.Node, out var address))
         {
@@ -36,7 +36,7 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>
         }
 
         var sw = Stopwatch.StartNew();
-        var netTerminal = this.netControl.NetTerminal;
+        var netTerminal = this.netUnit.NetTerminal;
         var packetTerminal = netTerminal.PacketTerminal;
 
         var length = AuthenticationToken.MaxStringLength;
@@ -65,7 +65,7 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>
         }*/
     }
 
-    private readonly NetControl netControl;
+    private readonly NetUnit netUnit;
     private readonly ILogger logger;
     private readonly IRelayControl relayControl;
 }

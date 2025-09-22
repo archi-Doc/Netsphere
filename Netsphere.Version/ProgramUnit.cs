@@ -14,7 +14,7 @@ namespace Netsphere.Version;
 
 internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
 {
-    public class Builder : UnitBuilder<Unit>
+    public class Builder : UnitBuilder<Product>
     {// Builder class for customizing dependencies.
         public Builder()
             : base()
@@ -23,7 +23,7 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
             this.Configure(context =>
             {
                 context.AddSingleton<ProgramUnit>();
-                context.AddSingleton<Unit>();
+                context.AddSingleton<Product>();
                 context.AddSingleton<GetOptions>();
                 context.RegisterInstanceCreation<ProgramUnit>();
                 // context.AddSingleton<BigMachine>();
@@ -84,13 +84,13 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 }
             });
 
-            this.AddBuilder(new NetControl.Builder());
+            this.AddBuilder(new NetUnit.Builder());
         }
     }
 
-    public class Unit : NetControl.Unit
+    public class Product : NetUnit.Product
     {// Unit class for customizing behaviors.
-        public Unit(UnitContext context)
+        public Product(UnitContext context)
             : base(context)
         {
             TinyhandSerializer.ServiceProvider = context.ServiceProvider;

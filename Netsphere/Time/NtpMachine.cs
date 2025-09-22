@@ -10,11 +10,11 @@ public partial class NtpMachine : Machine
 {
     private const string TimestampFormat = "MM-dd HH:mm:ss.fff K";
 
-    public NtpMachine(ILogger<NtpMachine> logger, NetBase netBase, NetControl netControl, NtpCorrection ntpCorrection)
+    public NtpMachine(ILogger<NtpMachine> logger, NetBase netBase, NetUnit netUnit, NtpCorrection ntpCorrection)
     {
         this.logger = logger;
         this.NetBase = netBase;
-        this.NetControl = netControl;
+        this.NetUnit = netUnit;
         this.ntpCorrection = ntpCorrection;
 
         this.DefaultTimeout = TimeSpan.FromSeconds(5);
@@ -22,7 +22,7 @@ public partial class NtpMachine : Machine
 
     public NetBase NetBase { get; }
 
-    public NetControl NetControl { get; }
+    public NetUnit NetUnit { get; }
 
     [StateMethod(0)]
     protected async Task<StateResult> Initial(StateParameter parameter)

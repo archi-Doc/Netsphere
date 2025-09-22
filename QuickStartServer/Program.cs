@@ -23,8 +23,8 @@ public class Program
             ThreadCore.Root.Terminate(); // Send a termination signal to the root.
         };
 
-        // Create a NetControl builder.
-        var builder = new NetControl.Builder()
+        // Create a NetUnit builder.
+        var builder = new NetUnit.Builder()
             .Configure(context =>
             {
                 context.Services.AddTransient<TestServiceAgent>(); // Register the service implementation. If a default constructor is available, an instance will be automatically created.
@@ -56,7 +56,7 @@ public class Program
 
         // It is possible to unregister services, but frequent changes are not recommended (as the service table will be rebuilt). If frequent changes are necessary, consider using NetFilter or modifying the processing in the implementation class.
         var netTerminal = unit.Context.ServiceProvider.GetRequiredService<NetTerminal>();
-        netTerminal.Services.Unregister<ITestService2>();
+        // netTerminal.Services.Unregister<ITestService2>();
 
         await Console.Out.WriteLineAsync($"{options.NodeName}: {node.ToString()}");
         await Console.Out.WriteLineAsync("Ctrl+C to exit");

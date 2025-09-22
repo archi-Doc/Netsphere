@@ -24,9 +24,11 @@ using Netsphere.Stats;
 
 namespace Netsphere;
 
-public class NetControl : UnitBase, IUnitPreparable, IUnitExecutable
+public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 {
-    public class Builder : UnitBuilder<Unit>
+    #region Builder
+
+    public class Builder : UnitBuilder<Product>
     {
         public Builder()
             : base()
@@ -35,7 +37,7 @@ public class NetControl : UnitBase, IUnitPreparable, IUnitExecutable
             {
                 // Main services
                 context.AddSingleton<NetOptions>();
-                context.AddSingleton<NetControl>();
+                context.AddSingleton<NetUnit>();
                 context.AddSingleton<NetBase>();
                 // context.AddSingleton<EssentialAddress>();
                 context.AddSingleton<NodeControl>();
@@ -95,9 +97,13 @@ public class NetControl : UnitBase, IUnitPreparable, IUnitExecutable
         private readonly List<Action<INetsphereUnitContext>> actions = new();
     }
 
-    public class Unit : BuiltUnit
+    #endregion
+
+    #region Product
+
+    public class Product : UnitProduct
     {
-        public Unit(UnitContext context)
+        public Product(UnitContext context)
             : base(context)
         {
         }
@@ -118,7 +124,7 @@ public class NetControl : UnitBase, IUnitPreparable, IUnitExecutable
                 netBase.NewClientConnectionContext = newClientConnectionContext;
             }
 
-            var netControl = this.Context.ServiceProvider.GetRequiredService<NetControl>();
+            var unit = this.Context.ServiceProvider.GetRequiredService<NetUnit>();
             this.Context.SendPrepare(new());
             await this.Context.SendStartAsync(new(ThreadCore.Root)).ConfigureAwait(false);
         }
@@ -127,12 +133,14 @@ public class NetControl : UnitBase, IUnitPreparable, IUnitExecutable
             => this.Context.SendTerminateAsync(new());
     }
 
+    #endregion
+
     private class IntervalTask : TaskCore
     {
-        public IntervalTask(ThreadCoreBase? core, NetControl netControl)
+        public IntervalTask(ThreadCoreBase? core, NetUnit netUnit)
             : base(core, Process, false)
         {
-            this.netControl = netControl;
+            this.unit = netUnit;
         }
 
         private static async Task Process(object? parameter)
@@ -141,20 +149,20 @@ public class NetControl : UnitBase, IUnitPreparable, IUnitExecutable
 
             while (await core.Delay(1_000).ConfigureAwait(false))
             {
-                await core.netControl.NetTerminal.IntervalTask(core.CancellationToken);
-                if (core.netControl.Alternative is { } alternative)
+                await core.unit.NetTerminal.IntervalTask(core.CancellationToken);
+                if (core.unit.Alternative is { } alternative)
                 {
                     await alternative.IntervalTask(core.CancellationToken);
                 }
 
-                core.netControl.NetStats.Update(core.netControl.NetTerminal.IncomingCircuit);
+                core.unit.NetStats.Update(core.unit.NetTerminal.IncomingCircuit);
             }
         }
 
-        private readonly NetControl netControl;
+        private readonly NetUnit unit;
     }
 
-    public NetControl(UnitContext context, UnitLogger unitLogger, NetBase netBase, NetStats netStats, NetTerminal netTerminal, IRelayControl relayControl)
+    public NetUnit(UnitContext context, UnitLogger unitLogger, NetBase netBase, NetStats netStats, NetTerminal netTerminal, IRelayControl relayControl)
         : base(context)
     {
         this.unitLogger = unitLogger;

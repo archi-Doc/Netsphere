@@ -9,10 +9,10 @@ public partial class NetStatsMachine : Machine
 {
     private const int NodeThreshold = 4;
 
-    public NetStatsMachine(ILogger<NetStatsMachine> logger, NetControl netControl, NetStats statsData, NodeControl nodeControl)
+    public NetStatsMachine(ILogger<NetStatsMachine> logger, NetUnit netUnit, NetStats statsData, NodeControl nodeControl)
     {
         this.logger = logger;
-        this.netControl = netControl;
+        this.netUnit = netUnit;
         this.netStats = statsData;
         this.nodeControl = nodeControl;
 
@@ -77,7 +77,7 @@ public partial class NetStatsMachine : Machine
     }
 
     private readonly ILogger logger;
-    private readonly NetControl netControl;
+    private readonly NetUnit netUnit;
     private readonly NetStats netStats;
     private readonly NodeControl nodeControl;
 }*/

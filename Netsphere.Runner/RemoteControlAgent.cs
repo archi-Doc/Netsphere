@@ -45,7 +45,7 @@ internal class RemoteControlAgent : IRemoteControl
             return NetResult.NoNodeInformation;
         }
 
-        var netTerminal = this.netControl.NetTerminal;
+        var netTerminal = this.netUnit.NetTerminal;
         var netNode = await netTerminal.UnsafeGetNetNode(address);
         if (netNode is null)
         {

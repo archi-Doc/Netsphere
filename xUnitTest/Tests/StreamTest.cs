@@ -33,7 +33,7 @@ public class StreamTest
     [Fact]
     public async Task Test1()
     {
-        using (var connection = await this.netFixture.NetControl.NetTerminal.Connect(Alternative.NetNode))
+        using (var connection = await this.netFixture.NetUnit.NetTerminal.Connect(Alternative.NetNode))
         {
             connection.IsNotNull();
             if (connection is null)

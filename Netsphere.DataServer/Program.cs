@@ -30,7 +30,7 @@ public class Program
             ThreadCore.Root.Terminate(); // Send a termination signal to the root.
         };
 
-        var builder = new NetControl.Builder() // Create a NetControl builder.
+        var builder = new NetUnit.Builder() // Create a NetUnit builder.
             .Configure(context =>
             {
                 context.AddSingleton<RemoteDataControl>();
@@ -39,7 +39,7 @@ public class Program
                 // Command
                 context.AddCommand(typeof(DefaultCommand));
 
-                // context.AddLoggerResolver(NetControl.LowLevelLoggerResolver<EmptyLogger>);
+                // context.AddLoggerResolver(NetUnit.LowLevelLoggerResolver<EmptyLogger>);
                 context.AddLoggerResolver(context =>
                 {// Logger
                     if (context.LogLevel == LogLevel.Debug)

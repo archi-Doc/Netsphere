@@ -14,18 +14,18 @@ namespace Netsphere.Machines;
 [MachineObject(UseServiceProvider = true)]
 public partial class EssentialAddressMachine : Machine
 {
-    public EssentialAddressMachine(ILogger<EssentialAddressMachine> logger, NetBase netBase, NetControl netControl, NetStats netStats)
+    public EssentialAddressMachine(ILogger<EssentialAddressMachine> logger, NetBase netBase, NetUnit netUnit, NetStats netStats)
         : base()
     {
         this.logger = logger;
         this.netBase = netBase;
-        this.netControl = netControl;
+        this.netUnit = netUnit;
         this.netStats = netStats;
         this.DefaultTimeout = TimeSpan.FromSeconds(1);
     }
 
     private readonly ILogger logger;
-    private readonly NetControl netControl;
+    private readonly NetUnit netUnit;
     private readonly NetBase netBase;
     private readonly NetStats netStats;
 
@@ -39,8 +39,8 @@ public partial class EssentialAddressMachine : Machine
             return StateResult.Terminate;
         }
 
-        // var node = await this.netControl.NetTerminal.UnsafeGetNetNode(netAddress);
-        var r = await this.netControl.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(netAddress, new());
+        // var node = await this.netUnit.NetTerminal.UnsafeGetNetNode(netAddress);
+        var r = await this.netUnit.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(netAddress, new());
 
         if (r.Result == NetResult.Success && r.Value is { } value)
         {// Success

@@ -9,10 +9,10 @@ namespace NetsphereTest;
 [SimpleCommand("basic")]
 public class BasicTestSubcommand : ISimpleCommandAsync<BasicTestOptions>
 {
-    public BasicTestSubcommand(ILogger<BasicTestSubcommand> logger, NetControl netControl)
+    public BasicTestSubcommand(ILogger<BasicTestSubcommand> logger, NetUnit netUnit)
     {
         this.logger = logger;
-        this.NetControl = netControl;
+        this.NetUnit = netUnit;
     }
 
     public async Task RunAsync(BasicTestOptions options, string[] args)
@@ -22,7 +22,7 @@ public class BasicTestSubcommand : ISimpleCommandAsync<BasicTestOptions>
             return;
         }
 
-        var node = await this.NetControl.NetTerminal.UnsafeGetNetNode(address);
+        var node = await this.NetUnit.NetTerminal.UnsafeGetNetNode(address);
         if (node is null)
         {
             return;
@@ -32,7 +32,7 @@ public class BasicTestSubcommand : ISimpleCommandAsync<BasicTestOptions>
         this.logger.TryGet()?.Log($"{Stopwatch.Frequency}");
 
         // var nodeInformation = NodeInformation.Alternative;
-        using (var terminal = await this.NetControl.NetTerminal.Connect(node))
+        using (var terminal = await this.NetUnit.NetTerminal.Connect(node))
         {
             if (terminal is null)
             {
@@ -81,7 +81,7 @@ public class BasicTestSubcommand : ISimpleCommandAsync<BasicTestOptions>
         }
     }
 
-    public NetControl NetControl { get; set; }
+    public NetUnit NetUnit { get; set; }
 
     private ILogger<BasicTestSubcommand> logger;
 }

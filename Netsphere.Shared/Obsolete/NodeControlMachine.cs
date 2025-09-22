@@ -18,25 +18,25 @@ namespace Netsphere.Machines;
 [MachineObject(UseServiceProvider = true)]
 public partial class NodeControlMachine : Machine
 {
-    public NodeControlMachine(ILogger<NodeControlMachine> logger, NetBase netBase, NetControl netControl, NodeControl nodeControl)
+    public NodeControlMachine(ILogger<NodeControlMachine> logger, NetBase netBase, NetUnit netUnit, NodeControl nodeControl)
         : base()
     {
         this.logger = logger;
         this.netBase = netBase;
-        this.netControl = netControl;
+        this.netUnit = netUnit;
         this.nodeControl = nodeControl;
         this.DefaultTimeout = TimeSpan.FromSeconds(1);
     }
 
     private readonly ILogger logger;
-    private readonly NetControl netControl;
+    private readonly NetUnit netUnit;
     private readonly NetBase netBase;
     private readonly NodeControl nodeControl;
 
     [StateMethod(0)]
     protected async Task<StateResult> CheckLifelineNode(StateParameter parameter)
     {
-        if (!this.netControl.NetTerminal.IsActive)
+        if (!this.netUnit.NetTerminal.IsActive)
         {
             return StateResult.Continue;
         }
@@ -55,8 +55,8 @@ public partial class NodeControlMachine : Machine
                 return StateResult.Continue;
             }
 
-            // var node = await this.netControl.NetTerminal.UnsafeGetNetNode(netAddress);
-            var r = await this.netControl.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(netNode.Address, new(), 0, this.CancellationToken);
+            // var node = await this.netUnit.NetTerminal.UnsafeGetNetNode(netAddress);
+            var r = await this.netUnit.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(netNode.Address, new(), 0, this.CancellationToken);
 
             this.logger.TryGet(LogLevel.Information)?.Log($"{netNode.Address.ToString()} - {r.Result.ToString()}");
             if (r.Result == NetResult.Success && r.Value is { } value)
@@ -64,8 +64,8 @@ public partial class NodeControlMachine : Machine
                 this.nodeControl.ReportLifelineNode(netNode, ConnectionResult.Success);
                 if (value.Endpoint.EndPoint is { } endoint)
                 {
-                    this.netControl.NetStats.ReportAddress(endoint.Address);
-                    this.netControl.NetStats.PublicAccess.ReportPortNumber(value.Endpoint.EndPoint.Port);
+                    this.netUnit.NetStats.ReportAddress(endoint.Address);
+                    this.netUnit.NetStats.PublicAccess.ReportPortNumber(value.Endpoint.EndPoint.Port);
                 }
             }
             else
@@ -75,7 +75,7 @@ public partial class NodeControlMachine : Machine
             }
 
             // Integrate online nodes.
-            // using (var connection = await this.netControl.NetTerminal.Connect(netNode))
+            // using (var connection = await this.netUnit.NetTerminal.Connect(netNode))
             // {
             //    if (connection is not null)
             //    {

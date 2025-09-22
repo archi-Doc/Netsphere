@@ -16,11 +16,11 @@ internal class ServerCommand : ISimpleCommandAsync<ServerOptions>
     private const int DelayMilliseconds = 1_000; // 1 second
     private const int NtpCorrectionCount = 3600; // 3600 x 1000ms = 1 hour
 
-    public ServerCommand(ILogger<ServerCommand> logger, NetControl netControl, IRelayControl relayControl, NtpCorrection ntpCorrection)
+    public ServerCommand(ILogger<ServerCommand> logger, NetUnit netUnit, IRelayControl relayControl, NtpCorrection ntpCorrection)
     {
         staticInstance = this;
         this.logger = logger;
-        this.netControl = netControl;
+        this.netUnit = netUnit;
         this.relayControl = relayControl;
         this.ntpCorrection = ntpCorrection;
 
@@ -42,7 +42,7 @@ internal class ServerCommand : ISimpleCommandAsync<ServerOptions>
         await this.ntpCorrection.CorrectMicsAndUnitLogger(this.logger);
         // Console.WriteLine($"{Mics.ToDateTime(Mics.GetCorrected())}");
 
-        this.netControl.NetBase.SetRespondPacketFunc(RespondPacketFunc);
+        this.netUnit.NetBase.SetRespondPacketFunc(RespondPacketFunc);
         var address = await NetStatsHelper.GetOwnAddress((ushort)options.Port);
 
         this.logger.TryGet()?.Log($"{address.ToString()}");
@@ -154,7 +154,7 @@ internal class ServerCommand : ISimpleCommandAsync<ServerOptions>
     private static ServerCommand? staticInstance;
 
     private readonly ILogger logger;
-    private readonly NetControl netControl;
+    private readonly NetUnit netUnit;
     private readonly IRelayControl relayControl;
     private readonly VersionData versionData;
     private readonly NtpCorrection ntpCorrection;
