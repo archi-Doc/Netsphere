@@ -13,10 +13,10 @@ namespace NetsphereTest;
 [SimpleCommand("remotebench")]
 public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
 {
-    public RemoteBenchSubcommand(ILogger<RemoteBenchSubcommand> logger, NetControl netControl, NtpCorrection ntpCorrection)
+    public RemoteBenchSubcommand(ILogger<RemoteBenchSubcommand> logger, NetUnit netUnit, NtpCorrection ntpCorrection)
     {
         this.logger = logger;
-        this.netControl = netControl;
+        this.netUnit = netUnit;
         this.ntpCorrection = ntpCorrection;
     }
 
@@ -29,7 +29,7 @@ public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
                 return;
             }
 
-            node = await this.netControl.NetTerminal.UnsafeGetNetNode(address);
+            node = await this.netUnit.NetTerminal.UnsafeGetNetNode(address);
             if (node is null)
             {
                 return;
@@ -48,7 +48,7 @@ public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
 
         // await this.TestPingpong(node);
 
-        var connection = await this.netControl.NetTerminal.Connect(node);
+        var connection = await this.netUnit.NetTerminal.Connect(node);
         if (connection is null)
         {
             return;
@@ -107,7 +107,7 @@ public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
             }
 
             this.logger.TryGet()?.Log($"Benchmark {node.ToString()}, Total/Concurrent: {this.remoteBenchBroker.Total}/{this.remoteBenchBroker.Concurrent}");
-            await this.remoteBenchBroker.Process(netControl.NetTerminal, node);
+            await this.remoteBenchBroker.Process(netUnit.NetTerminal, node);
         }*/
     }
 
@@ -115,7 +115,7 @@ public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
     {
         const int N = 100;
 
-        using (var connection = await this.netControl.NetTerminal.Connect(node))
+        using (var connection = await this.netUnit.NetTerminal.Connect(node))
         {
             if (connection is null)
             {
@@ -135,7 +135,7 @@ public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
         }
     }
 
-    private readonly NetControl netControl;
+    private readonly NetUnit netUnit;
     private readonly NtpCorrection ntpCorrection;
     private readonly ILogger logger;
 }

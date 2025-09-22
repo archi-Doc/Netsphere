@@ -24,7 +24,7 @@ public class NetFixture : IDisposable
 
     public NetFixture()
     {
-        var builder = new NetControl.Builder()
+        var builder = new NetUnit.Builder()
             .Configure(context =>
             {
                 context.AddSingleton<IRelayControl, CertificateRelayControl>();
@@ -53,12 +53,12 @@ public class NetFixture : IDisposable
         this.unit = builder.Build();
         this.unit.Run(options, true).Wait();
 
-        this.NetControl = this.unit.Context.ServiceProvider.GetRequiredService<NetControl>();
-        this.NetControl.NetBase.DefaultTransmissionTimeout = TimeSpan.FromSeconds(1_000);
-        this.NetControl.NetBase.DefaultAgreement.MaxBlockSize = MaxBlockSize;
-        this.NetControl.NetBase.DefaultAgreement.MaxStreamLength = MaxStreamLength;
-        this.NetControl.NetBase.DefaultAgreement.StreamBufferSize = StreamBufferSize;
-        this.NetControl.NetBase.DefaultAgreement.MinimumConnectionRetentionMics = MinimumConnectionRetentionMics;
+        this.NetUnit = this.unit.Context.ServiceProvider.GetRequiredService<NetUnit>();
+        this.NetUnit.NetBase.DefaultTransmissionTimeout = TimeSpan.FromSeconds(1_000);
+        this.NetUnit.NetBase.DefaultAgreement.MaxBlockSize = MaxBlockSize;
+        this.NetUnit.NetBase.DefaultAgreement.MaxStreamLength = MaxStreamLength;
+        this.NetUnit.NetBase.DefaultAgreement.StreamBufferSize = StreamBufferSize;
+        this.NetUnit.NetBase.DefaultAgreement.MinimumConnectionRetentionMics = MinimumConnectionRetentionMics;
     }
 
     public void Dispose()
@@ -66,7 +66,7 @@ public class NetFixture : IDisposable
         this.unit.Context.SendTerminateAsync(new()).Wait();
     }
 
-    public NetControl NetControl { get; }
+    public NetUnit NetUnit { get; }
 
-    private NetControl.Unit unit;
+    private NetUnit.Unit unit;
 }

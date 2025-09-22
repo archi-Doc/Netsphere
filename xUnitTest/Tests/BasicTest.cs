@@ -19,13 +19,13 @@ public class BasicTest
     public async Task Test1()
     {
         var xo = new Xoshiro256StarStar(123);
-        this.NetControl.Responders.Register(Netsphere.Responder.MemoryResponder.Instance);
+        this.NetUnit.Responders.Register(Netsphere.Responder.MemoryResponder.Instance);
 
         var p = new PingPacket("test56789");
-        var result = await this.NetControl.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(Alternative.NetAddress, p);
+        var result = await this.NetUnit.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(Alternative.NetAddress, p);
         result.Result.Is(NetResult.Success);
 
-        using (var connection = (await this.NetControl.NetTerminal.Connect(Alternative.NetNode))!)
+        using (var connection = (await this.NetUnit.NetTerminal.Connect(Alternative.NetNode))!)
         {
             connection.IsNotNull();
             var basicService = connection.GetService<IBasicService>();
@@ -70,5 +70,5 @@ public class BasicTest
 
     public NetFixture NetFixture { get; }
 
-    public NetControl NetControl => this.NetFixture.NetControl;
+    public NetUnit NetUnit => this.NetFixture.NetUnit;
 }

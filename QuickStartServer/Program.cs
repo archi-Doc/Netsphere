@@ -23,8 +23,8 @@ public class Program
             ThreadCore.Root.Terminate(); // Send a termination signal to the root.
         };
 
-        // Create a NetControl builder.
-        var builder = new NetControl.Builder()
+        // Create a NetUnit builder.
+        var builder = new NetUnit.Builder()
             .Configure(context =>
             {
                 context.Services.AddTransient<TestServiceAgent>(); // Register the service implementation. If a default constructor is available, an instance will be automatically created.

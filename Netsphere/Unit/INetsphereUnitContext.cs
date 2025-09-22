@@ -6,7 +6,7 @@ public interface INetsphereUnitContext
 {
     /// <summary>
     /// Register the type of net service and the type of agent that implements it.<br/>
-    /// The net service is enabled throughout NetControl.<br/>
+    /// The net service is enabled throughout NetUnit.<br/>
     /// It can also be changed dynamically with <see cref="ServiceControl.Register{TService, TAgent}()"/>.<br/>
     /// It is recommended that the Agent type be registered in the ServiceProvider, but if it is not registered, it will be registered as Transient.
     /// </summary>

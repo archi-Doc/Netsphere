@@ -11,7 +11,7 @@ public class Program
 {
     public static async Task Main()
     {
-        var builder = new NetControl.Builder().Configure(context =>
+        var builder = new NetUnit.Builder().Configure(context =>
         {
             context.AddLoggerResolver(x =>
             {// Log source/level -> Resolver() -> Output/filter
@@ -25,13 +25,13 @@ public class Program
             });
         });
 
-        var unit = builder.Build(); // Create a NetControl unit that implements communication functionality.
+        var unit = builder.Build(); // Create a NetUnit unit that implements communication functionality.
         await unit.Run(new NetOptions(), true); // Execute the created unit with default options.
 
-        var netControl = unit.Context.ServiceProvider.GetRequiredService<NetControl>(); // Get a NetControl instance.
-        // using (var connection = await netControl.NetTerminal.UnsafeConnect(new(IPAddress.Loopback, 1981)))
+        var netUnit = unit.Context.ServiceProvider.GetRequiredService<NetUnit>(); // Get a NetUnit instance.
+        // using (var connection = await netUnit.NetTerminal.UnsafeConnect(new(IPAddress.Loopback, 1981)))
         NetNode.TryParse("127.0.0.1:1981(e:XWLus_KiQ3AaNVeBDBp3qaot8wQEbmzlHD3Wkg8cWmXZ5egP)", out var netNode, out _);
-        using (var connection = await netControl.NetTerminal.Connect(netNode!))
+        using (var connection = await netUnit.NetTerminal.Connect(netNode!))
         {// Connect to the server's address (loopback address).
          // All communication in Netsphere is encrypted, and connecting by specifying only the address is not recommended due to the risk of man-in-the-middle attacks.
             if (connection is null)

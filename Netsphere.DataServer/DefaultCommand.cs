@@ -14,11 +14,11 @@ namespace RemoteDataServer;
 [SimpleCommand("default", Default = true)]
 public class DefaultCommand : ISimpleCommandAsync<DefaultCommandOptions>
 {
-    public DefaultCommand(NetControl.Unit unit, ILogger<DefaultCommandOptions> logger, NetControl netControl, RemoteDataControl remoteDataBroker)
+    public DefaultCommand(NetUnit.Unit unit, ILogger<DefaultCommandOptions> logger, NetUnit netUnit, RemoteDataControl remoteDataBroker)
     {
         this.unit = unit;
         this.logger = logger;
-        this.netControl = netControl;
+        this.netUnit = netUnit;
         this.remoteData = remoteDataBroker;
     }
 
@@ -44,7 +44,7 @@ public class DefaultCommand : ISimpleCommandAsync<DefaultCommandOptions>
         await this.PunchNode(options.PunchNode);
         this.remoteData.Initialize(options.DataDirectory);
 
-        await Console.Out.WriteLineAsync($"{this.netControl.NetBase.NetOptions.NodeName}");
+        await Console.Out.WriteLineAsync($"{this.netUnit.NetBase.NetOptions.NodeName}");
         await Console.Out.WriteLineAsync($"Node: {netNode.ToString()}");
         await Console.Out.WriteLineAsync($"Remote public key: {this.remoteData.RemotePublicKey.ToString()}");
         await Console.Out.WriteLineAsync($"Data directory: {this.remoteData.DataDirectory}");
@@ -59,13 +59,13 @@ public class DefaultCommand : ISimpleCommandAsync<DefaultCommandOptions>
     {
         if (SeedKey.TryParse(options.NodeSecretKey, out var seedKey))
         {
-            this.netControl.NetBase.SetNodeSeedKey(seedKey);
-            this.netControl.NetTerminal.SetNodeSeedKey(seedKey);
+            this.netUnit.NetBase.SetNodeSeedKey(seedKey);
+            this.netUnit.NetTerminal.SetNodeSeedKey(seedKey);
         }
         else if (BaseHelper.TryParseFromEnvironmentVariable<SeedKey>(NetConstants.NodeSecretKeyName, out seedKey))
         {
-            this.netControl.NetBase.SetNodeSeedKey(seedKey);
-            this.netControl.NetTerminal.SetNodeSeedKey(seedKey);
+            this.netUnit.NetBase.SetNodeSeedKey(seedKey);
+            this.netUnit.NetTerminal.SetNodeSeedKey(seedKey);
         }
 
         this.remoteSeedKey = seedKey ?? SeedKey.NewEncryption();
@@ -93,14 +93,14 @@ public class DefaultCommand : ISimpleCommandAsync<DefaultCommandOptions>
         var sw = Stopwatch.StartNew();
 
         var p = new PingPacket("PunchMe");
-        var result = await this.netControl.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(node, p);
+        var result = await this.netUnit.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(node, p);
 
         sw.Stop();
         this.logger.TryGet()?.Log($"Punch: {result.ToString()} {sw.ElapsedMilliseconds} ms");
     }
 
-    private readonly NetControl.Unit unit;
-    private readonly NetControl netControl;
+    private readonly NetUnit.Unit unit;
+    private readonly NetUnit netUnit;
     private readonly ILogger logger;
     private readonly RemoteDataControl remoteData;
     private SeedKey? remoteSeedKey;

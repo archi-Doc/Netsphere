@@ -84,11 +84,11 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 }
             });
 
-            this.AddBuilder(new NetControl.Builder());
+            this.AddBuilder(new NetUnit.Builder());
         }
     }
 
-    public class Unit : NetControl.Unit
+    public class Unit : NetUnit.Unit
     {// Unit class for customizing behaviors.
         public Unit(UnitContext context)
             : base(context)

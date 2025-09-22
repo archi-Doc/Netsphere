@@ -236,10 +236,10 @@ public partial class TaskParent
 [SimpleCommand("task")]
 public class TaskScalingSubcommand : ISimpleCommandAsync<TaskScalingOptions>
 {
-    public TaskScalingSubcommand(ILogger<TaskScalingSubcommand> logger, NetControl netControl)
+    public TaskScalingSubcommand(ILogger<TaskScalingSubcommand> logger, NetUnit netUnit)
     {
         this.logger = logger;
-        this.NetControl = netControl;
+        this.NetUnit = netUnit;
     }
 
     public async Task RunAsync(TaskScalingOptions options, string[] args)
@@ -287,7 +287,7 @@ public class TaskScalingSubcommand : ISimpleCommandAsync<TaskScalingOptions>
         await Console.Out.WriteLineAsync();
     }
 
-    public NetControl NetControl { get; set; }
+    public NetUnit NetUnit { get; set; }
 
     private ILogger logger;
 }

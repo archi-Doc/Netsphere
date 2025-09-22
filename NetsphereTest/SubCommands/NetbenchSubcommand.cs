@@ -11,10 +11,10 @@ namespace NetsphereTest;
 [SimpleCommand("bench")]
 public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
 {
-    public NetbenchSubcommand(ILogger<NetbenchSubcommand> logger, NetControl netControl)
+    public NetbenchSubcommand(ILogger<NetbenchSubcommand> logger, NetUnit netUnit)
     {
         this.logger = logger;
-        this.NetControl = netControl;
+        this.NetUnit = netUnit;
     }
 
     public async Task RunAsync(NetbenchOptions options, string[] args)
@@ -29,7 +29,7 @@ public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
         }
 
         // node = NetNode.Alternative;
-        using (var connection = await this.NetControl.NetTerminal.Connect(node))
+        using (var connection = await this.NetUnit.NetTerminal.Connect(node))
         {
             if (connection is null)
             {
@@ -81,7 +81,7 @@ public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
         // await this.MassiveSmallData(node); // 1000 ms
     }
 
-    public NetControl NetControl { get; set; }
+    public NetUnit NetUnit { get; set; }
 
     private async Task TestStreamData(ClientConnection connection)
     {
@@ -159,7 +159,7 @@ public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
         var count = 0;
         for (var j = 0; j < N; j++)
         {
-            using (var connection = await this.NetControl.NetTerminal.Connect(node))
+            using (var connection = await this.NetUnit.NetTerminal.Connect(node))
             {
                 if (connection is null)
                 {
@@ -190,7 +190,7 @@ public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
 
         sw.Stop();
 
-        // Console.WriteLine(this.NetControl.Alternative?.MyStatus.ServerCount.ToString());
+        // Console.WriteLine(this.NetUnit.Alternative?.MyStatus.ServerCount.ToString());
         Console.WriteLine($"PingpongSmallData2 {count}/{N}, {sw.ElapsedMilliseconds.ToString()} ms");
         Console.WriteLine();
     }
@@ -210,7 +210,7 @@ public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
         {
             for (var j = 0; j < (Total / Concurrent); j++)
             {
-                using (var connection = await this.NetControl.NetTerminal.Connect(node))
+                using (var connection = await this.NetUnit.NetTerminal.Connect(node))
                 {
                     if (connection is null)
                     {
@@ -235,7 +235,7 @@ public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
 
         sw.Stop();
 
-        // Console.WriteLine(this.NetControl.Alternative?.MyStatus.ServerCount.ToString());
+        // Console.WriteLine(this.NetUnit.Alternative?.MyStatus.ServerCount.ToString());
         Console.WriteLine($"MassiveSmallData {count}/{Concurrent}, {sw.ElapsedMilliseconds.ToString()} ms");
         Console.WriteLine();
     }

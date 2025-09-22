@@ -10,10 +10,10 @@ namespace NetsphereTest;
 [SimpleCommand("stress")]
 public class StressSubcommand : ISimpleCommandAsync<StressOptions>
 {
-    public StressSubcommand(ILogger<StressSubcommand> logger, NetControl netControl)
+    public StressSubcommand(ILogger<StressSubcommand> logger, NetUnit netUnit)
     {
         this.logger = logger;
-        this.NetControl = netControl;
+        this.NetUnit = netUnit;
     }
 
     public async Task RunAsync(StressOptions options, string[] args)
@@ -32,7 +32,7 @@ public class StressSubcommand : ISimpleCommandAsync<StressOptions>
         await this.Stress1(node, options);
     }
 
-    public NetControl NetControl { get; set; }
+    public NetUnit NetUnit { get; set; }
 
     private async Task Stress1(NetNode node, StressOptions options)
     {
@@ -50,7 +50,7 @@ public class StressSubcommand : ISimpleCommandAsync<StressOptions>
             for (var j = 0; j < (options.Total / options.Concurrent); j++)
             {
                 var sw2 = new Stopwatch();
-                using (var terminal = this.NetControl.Terminal.Create(node))
+                using (var terminal = this.NetUnit.Terminal.Create(node))
                 {
                     var service = terminal.GetService<IBenchmarkService>();
                     sw2.Restart();
@@ -79,7 +79,7 @@ public class StressSubcommand : ISimpleCommandAsync<StressOptions>
                 for (var j = 0; j < (options.Total / options.Concurrent); j++)
                 {
                     var sw2 = new Stopwatch();
-                    using (var connection = await this.NetControl.NetTerminal.Connect(node, Connection.ConnectMode.NoReuse)) // Do not reuse the connection as it quickly reaches the transmission limit.
+                    using (var connection = await this.NetUnit.NetTerminal.Connect(node, Connection.ConnectMode.NoReuse)) // Do not reuse the connection as it quickly reaches the transmission limit.
                     {
                         if (connection is null)
                         {
@@ -129,7 +129,7 @@ public class StressSubcommand : ISimpleCommandAsync<StressOptions>
             AverageLatency = (int)(totalLatency / totalCount),
         };
 
-        using (var terminal = await this.NetControl.NetTerminal.Connect(node))
+        using (var terminal = await this.NetUnit.NetTerminal.Connect(node))
         {
             if (terminal is null)
             {

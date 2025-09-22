@@ -33,9 +33,9 @@ public class RelayTest
     public async Task TestOutgoing()
     {
         var xo = new Xoshiro256StarStar(123);
-        this.NetControl.Responders.Register(Netsphere.Responder.MemoryResponder.Instance);
+        this.NetUnit.Responders.Register(Netsphere.Responder.MemoryResponder.Instance);
 
-        var netTerminal = this.NetControl.NetTerminal;
+        var netTerminal = this.NetUnit.NetTerminal;
         var seedKey = SeedKey.NewSignature();
         if (netTerminal.RelayControl is CertificateRelayControl rc)
         {
@@ -75,7 +75,7 @@ public class RelayTest
             result.Is(RelayResult.Success);
         }
 
-        using (var connection = (await this.NetControl.NetTerminal.Connect(Alternative.NetNode, Connection.ConnectMode.ReuseIfAvailable, 2))!)
+        using (var connection = (await this.NetUnit.NetTerminal.Connect(Alternative.NetNode, Connection.ConnectMode.ReuseIfAvailable, 2))!)
         {
             connection.IsNotNull();
             var basicService = connection.GetService<IBasicService>();
@@ -108,7 +108,7 @@ public class RelayTest
 
         var st = await netTerminal.OutgoingCircuit.UnsafeDetailedToString();
 
-        using (var connection = (await this.NetControl.NetTerminal.Connect(Alternative.NetNode, Connection.ConnectMode.NoReuse, 2))!)
+        using (var connection = (await this.NetUnit.NetTerminal.Connect(Alternative.NetNode, Connection.ConnectMode.NoReuse, 2))!)
         {
             var service = connection.GetService<IStreamService>();
             service.IsNotNull();
@@ -129,10 +129,10 @@ public class RelayTest
 #pragma warning restore xUnit1013 // Public method should be marked as test
     {
         var xo = new Xoshiro256StarStar(123);
-        this.NetControl.Responders.Register(Netsphere.Responder.MemoryResponder.Instance);
+        this.NetUnit.Responders.Register(Netsphere.Responder.MemoryResponder.Instance);
 
-        var netTerminal = this.NetControl.NetTerminal;
-        var alternative = this.NetControl.Alternative!;
+        var netTerminal = this.NetUnit.NetTerminal;
+        var alternative = this.NetUnit.Alternative!;
         var seedKey = SeedKey.NewSignature();
         if (netTerminal.RelayControl is CertificateRelayControl rc)
         {
@@ -165,8 +165,8 @@ public class RelayTest
 
         // var rr = await netTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(peerNode.Address, new("test"));
 
-        // var r2 = await this.NetControl.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(Alternative.NetAddress, new());
-        this.NetControl.NetStats.SetOwnNetNodeForTest(Alternative.NetAddress, alternative.NodePublicKey);
+        // var r2 = await this.NetUnit.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(Alternative.NetAddress, new());
+        this.NetUnit.NetStats.SetOwnNetNodeForTest(Alternative.NetAddress, alternative.NodePublicKey);
         NetAddress.SkipValidation = true;
         using (var connection = (await netTerminal.Connect(peerNode))!)
         {
@@ -183,7 +183,7 @@ public class RelayTest
 
     public NetFixture NetFixture { get; }
 
-    public NetControl NetControl => this.NetFixture.NetControl;
+    public NetUnit NetUnit => this.NetFixture.NetUnit;
 
     private async Task TestPutAndGetHash(IStreamService service)
     {

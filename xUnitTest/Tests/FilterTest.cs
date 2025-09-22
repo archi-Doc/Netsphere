@@ -16,7 +16,7 @@ public class FilterTest
     [Fact]
     public async Task Test1()
     {
-        using (var connection = (await this.NetControl.NetTerminal.Connect(Alternative.NetNode, Connection.ConnectMode.NoReuse))!)
+        using (var connection = (await this.NetUnit.NetTerminal.Connect(Alternative.NetNode, Connection.ConnectMode.NoReuse))!)
         {
             connection.IsNotNull();
 
@@ -50,7 +50,7 @@ public class FilterTest
     [Fact]
     public async Task Test1Reuse()
     {
-        using (var connection = await this.NetControl.NetTerminal.Connect(Alternative.NetNode))
+        using (var connection = await this.NetUnit.NetTerminal.Connect(Alternative.NetNode))
         {
             if (connection is null)
             {
@@ -86,5 +86,5 @@ public class FilterTest
 
     public NetFixture NetFixture { get; }
 
-    public NetControl NetControl => this.NetFixture.NetControl;
+    public NetUnit NetUnit => this.NetFixture.NetUnit;
 }

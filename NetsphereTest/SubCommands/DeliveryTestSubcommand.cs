@@ -14,10 +14,10 @@ public class DeliveryTestSubcommand : ISimpleCommandAsync<DeliveryTestOptions>
 {
     private const int Count = 1_000;
 
-    public DeliveryTestSubcommand(ILogger<DeliveryTestSubcommand> logger, NetControl netControl)
+    public DeliveryTestSubcommand(ILogger<DeliveryTestSubcommand> logger, NetUnit netUnit)
     {
         this.logger = logger;
-        this.NetControl = netControl;
+        this.NetUnit = netUnit;
     }
 
     public async Task RunAsync(DeliveryTestOptions options, string[] args)
@@ -34,7 +34,7 @@ public class DeliveryTestSubcommand : ISimpleCommandAsync<DeliveryTestOptions>
         }
 
         var sw = Stopwatch.StartNew();
-        var netTerminal = this.NetControl.NetTerminal;
+        var netTerminal = this.NetUnit.NetTerminal;
         netTerminal.SetDeliveryFailureRatioForTest(0.3); // 1 - 0.3^3 = 0.973
         var packetTerminal = netTerminal.PacketTerminal;
 
@@ -62,7 +62,7 @@ public class DeliveryTestSubcommand : ISimpleCommandAsync<DeliveryTestOptions>
         Console.WriteLine($"The expected number of success is {expectedSuccess}");
     }
 
-    public NetControl NetControl { get; set; }
+    public NetUnit NetUnit { get; set; }
 
     private ILogger<DeliveryTestSubcommand> logger;
 }
