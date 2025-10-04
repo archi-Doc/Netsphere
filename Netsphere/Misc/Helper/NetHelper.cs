@@ -460,6 +460,7 @@ public static class NetHelper
 
     public static string To4Hex(this uint id) => $"{(ushort)id:x4}";
 
+    /* Implemented in SimpleCommandLine
     public static string TrimQuotes(this string text)
     {
         if (text.Length >= 6 && text.StartsWith(TripleQuotes) && text.EndsWith(TripleQuotes))
@@ -472,7 +473,7 @@ public static class NetHelper
         }
 
         return text;
-    }
+    }*/
 
     public static async Task<(ClientConnection? Connection, TService? Service)> TryGetStreamService<TService>(NetTerminal netTerminal, string node, string remotePrivateKey, long maxStreamLength)
         where TService : INetService, INetServiceWithUpdateAgreement
