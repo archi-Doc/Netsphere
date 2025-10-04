@@ -32,8 +32,8 @@
     <PackageReference Include="Arc.Unit" Version="0.24.0" />
     <PackageReference Include="BigMachines" Version="0.48.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.9" />
-    <PackageReference Include="SimpleCommandLine" Version="0.27.1" />
-    <PackageReference Include="Tinyhand" Version="0.129.0" />
+    <PackageReference Include="SimpleCommandLine" Version="0.28.0" />
+    <PackageReference Include="Tinyhand" Version="0.129.2" />
     <PackageReference Include="ValueLink" Version="0.103.0" />
   </ItemGroup>
 
