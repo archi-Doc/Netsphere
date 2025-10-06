@@ -4,7 +4,7 @@ using SimpleCommandLine;
 
 namespace Netsphere;
 
-[TinyhandObject(ImplicitKeyAsName = true)]
+[TinyhandObject(ImplicitMemberNameAsKey = true)]
 public partial record NetOptions
 {
     public const string NodeNamePrefix = "Ns_";

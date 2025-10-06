@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace Netsphere.Misc;
 
-[TinyhandObject(LockObject = "lockObject", ExplicitKeyOnly = true, UseServiceProvider = true)]
+[TinyhandObject(LockObject = "lockObject", ExplicitKeysOnly = true, UseServiceProvider = true)]
 public sealed partial class NtpCorrection : UnitBase, IUnitPreparable
 {
     public const string Filename = "NtpCorrection.tinyhand";

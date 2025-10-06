@@ -4,7 +4,7 @@ using Tinyhand;
 
 namespace Lp.NetServices;
 
-[TinyhandObject(ImplicitKeyAsName = true)]
+[TinyhandObject(ImplicitMemberNameAsKey = true)]
 public partial record RemoteBenchRecord
 {
     public int SuccessCount { get; init; }

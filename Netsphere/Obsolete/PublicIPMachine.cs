@@ -10,7 +10,7 @@ public partial class PublicIPMachine : Machine
     private const string IcanhazipUriIPv6 = "http://ipv6.icanhazip.com";
     private const string DynDnsUri = "http://checkip.dyndns.org";
 
-    [TinyhandObject(ImplicitKeyAsName = true)]
+    [TinyhandObject(ImplicitMemberNameAsKey = true)]
     public partial class Data
     {
         public long Mics { get; set; }
