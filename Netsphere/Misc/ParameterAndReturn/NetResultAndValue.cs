@@ -36,14 +36,19 @@ public readonly record struct NetResultAndValue<TValue>
         this.Value = value;
     }
 
-    public bool IsFailure => this.Result != NetResult.Success;
+    public bool IsFailure => this.Result.IsFailure;
+
+    public bool IsSuccess => this.Result.IsSuccess;
 
     [MemberNotNullWhen(true, nameof(Value))]
-    public bool IsSuccess => this.Result == NetResult.Success && this.Value is not null;
+    public bool IsValid => this.Value is not null;
+
+    [MemberNotNullWhen(true, nameof(Value))]
+    public bool IsSuccessAndValid => this.Result.IsSuccess && this.Value is not null;
 
     public readonly NetResult Result;
     public readonly TValue? Value;
 
     public override string ToString()
-        => $"Result: {this.Result.ToString()}, Value: {this.Value?.ToString()}";
+        => $"{{ Result = {this.Result.ToString()}, Value = {this.Value?.ToString()}}}";
 }

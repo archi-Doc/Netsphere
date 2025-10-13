@@ -86,6 +86,9 @@ public class Program
             netBase.SetNodeSeedKey(seedKey);
         }
 
+        var rv = new NetResultAndValue<int>();
+        var st = rv.ToString();
+
         await unit.Run(options, true);
 
         var parserOptions = SimpleParserOptions.Standard with

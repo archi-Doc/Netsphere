@@ -29,3 +29,18 @@ public enum NetResult : byte
     NotAuthenticated,
     NotFound,
 }
+
+#pragma warning disable SA1101 // Prefix local calls with this
+
+public static class NetResultExtensions
+{
+    extension(NetResult result)
+    {
+
+        public bool IsSuccess => (result == NetResult.Success) || (result == NetResult.Completed);
+
+        public bool IsFailure => (result != NetResult.Success) && (result != NetResult.Completed);
+    }
+}
+
+#pragma warning restore SA1101 // Prefix local calls with this
