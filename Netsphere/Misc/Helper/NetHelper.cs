@@ -46,6 +46,32 @@ public static class NetHelper
     }
 
     public static Identifier GetIdentifier<T>(this T? value, int level = TinyhandWriter.DefaultSignatureLevel)
+        where T : ITinyhandSerializable
+    {
+        var writer = TinyhandWriter.CreateFromThreadStaticBuffer();
+        writer.Level = level;
+        try
+        {
+            if (value is null)
+            {
+                writer.WriteNil();
+            }
+            else
+            {
+                value.Serialize(ref writer, TinyhandSerializerOptions.Signature);
+            }
+
+            writer.FlushAndGetReadOnlySpan(out var span, out _);
+            var identifier = new Identifier(Blake3.Get256_UInt64(span));
+            return identifier;
+        }
+        finally
+        {
+            writer.Dispose();
+        }
+    }
+
+    /*public static Identifier GetIdentifier<T>(this T? value, int level = TinyhandWriter.DefaultSignatureLevel)
         where T : ITinyhandSerializable<T>
     {
         var writer = TinyhandWriter.CreateFromThreadStaticBuffer();
@@ -61,7 +87,7 @@ public static class NetHelper
         {
             writer.Dispose();
         }
-    }
+    }*/
 
     [SupportedOSPlatform("windows")]
     public static bool TryGetStaticIpv6Address([MaybeNullWhen(false)] out IPAddress ipv6)
