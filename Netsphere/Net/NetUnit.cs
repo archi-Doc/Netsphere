@@ -258,6 +258,8 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
     async Task IUnitExecutable.TerminateAsync(UnitMessage.TerminateAsync message, CancellationToken cancellationToken)
     {
+        Console.WriteLine("Interval task ->");//
         this.intervalTask?.Terminate();
+        Console.WriteLine("-> Interval task");//
     }
 }
