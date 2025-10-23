@@ -676,7 +676,7 @@ public class ConnectionTerminal
             {
                 foreach (var x in clients)
                 {
-                    if (x.IsEmpty)
+                    //if (x.IsEmpty)
                     {
                         if (x.IsOpen)
                         {
@@ -711,7 +711,7 @@ public class ConnectionTerminal
             {
                 foreach (var x in servers)
                 {
-                    if (x.IsEmpty)
+                    //if (x.IsEmpty)
                     {
                         if (x.IsOpen)
                         {
