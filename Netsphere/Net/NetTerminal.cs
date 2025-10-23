@@ -176,12 +176,9 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         // Close all connections
         this.CurrentState = State.Shutdown;
 
-        Console.WriteLine("ConnectionTerminal ->");//
         await this.ConnectionTerminal.Terminate(cancellationToken).ConfigureAwait(false);
-        Console.WriteLine("-> ConnectionTerminal");//
 
         this.NetSender.Stop();
-        Console.WriteLine("-> NetSender");//
     }
 
     internal void Initialize(ResponderControl responders, ServiceControl services, bool isAlternative)
