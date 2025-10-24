@@ -653,25 +653,22 @@ public class ConnectionTerminal
     }
 
     internal async Task Terminate(CancellationToken cancellationToken)
-    {//
+    {
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             ClientConnection[] clients;
-            Console.WriteLine("Cx:0");//
             using (this.clientConnections.LockObject.EnterScope())
             {
                 clients = this.clientConnections.ToArray();
             }
 
-            Console.WriteLine("Cx:1");//
             foreach (var x in clients)
             {
                 x.TerminateInternal();
             }
 
-            Console.WriteLine("Cx:2");//
             using (this.clientConnections.LockObject.EnterScope())
             {
                 foreach (var x in clients)
@@ -693,20 +690,17 @@ public class ConnectionTerminal
                 }
             }
 
-            Console.WriteLine("Cx:3");//
             ServerConnection[] servers;
             using (this.serverConnections.LockObject.EnterScope())
             {
                 servers = this.serverConnections.ToArray();
             }
 
-            Console.WriteLine("Cx:4");//
             foreach (var x in servers)
             {
                 x.TerminateInternal();
             }
 
-            Console.WriteLine("Cx:5");//
             using (this.serverConnections.LockObject.EnterScope())
             {
                 foreach (var x in servers)
@@ -728,7 +722,6 @@ public class ConnectionTerminal
                 }
             }
 
-            Console.WriteLine("Cx:6");//
             if (this.clientConnections.Count == 0 &&
                 this.serverConnections.Count == 0)
             {
@@ -738,9 +731,8 @@ public class ConnectionTerminal
             {
                 try
                 {
-                    Console.WriteLine("Cx:7");//
+                    Console.WriteLine("ConnectionTerminal:Terminate delay");//
                     await Task.Delay(NetConstants.TerminateTerminalDelayMilliseconds, cancellationToken);
-                    Console.WriteLine("Cx:8");//
                 }
                 catch
                 {
