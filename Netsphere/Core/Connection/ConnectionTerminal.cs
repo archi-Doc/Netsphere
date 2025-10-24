@@ -654,7 +654,8 @@ public class ConnectionTerminal
 
     internal async Task Terminate(CancellationToken cancellationToken)
     {
-        while (true)
+        int delayInMilliseconds = 0;
+        while (delayInMilliseconds < NetConstants.ForceTerminateMilliseconds)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -673,7 +674,7 @@ public class ConnectionTerminal
             {
                 foreach (var x in clients)
                 {
-                    //if (x.IsEmpty)
+                    if (x.IsEmpty)
                     {
                         if (x.IsOpen)
                         {
@@ -705,7 +706,7 @@ public class ConnectionTerminal
             {
                 foreach (var x in servers)
                 {
-                    //if (x.IsEmpty)
+                    if (x.IsEmpty)
                     {
                         if (x.IsOpen)
                         {
@@ -733,6 +734,7 @@ public class ConnectionTerminal
                 {
                     Console.WriteLine("ConnectionTerminal:Terminate delay");//
                     await Task.Delay(NetConstants.TerminateTerminalDelayMilliseconds, cancellationToken);
+                    delayInMilliseconds += NetConstants.TerminateTerminalDelayMilliseconds;
                 }
                 catch
                 {

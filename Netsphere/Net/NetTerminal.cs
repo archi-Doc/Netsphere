@@ -12,13 +12,6 @@ namespace Netsphere;
 
 public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 {
-    public enum State
-    {
-        Initial,
-        Active,
-        Shutdown,
-    }
-
     public NetTerminal(UnitContext unitContext, UnitLogger unitLogger, NetBase netBase, NetStats netStats, IRelayControl relayControl)
         : base(unitContext)
     {
@@ -39,9 +32,9 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 
     #region FieldAndProperty
 
-    public State CurrentState { get; private set; }
+    public UnitState State { get; private set; }
 
-    public bool IsActive => !ThreadCore.Root.IsTerminated && this.CurrentState == State.Active;
+    public bool IsActive => !ThreadCore.Root.IsTerminated && this.State == UnitState.Active;
 
     public NetBase NetBase { get; }
 
@@ -162,7 +155,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 
     async Task IUnitExecutable.StartAsync(UnitMessage.StartAsync message, CancellationToken cancellationToken)
     {
-        this.CurrentState = State.Active;
+        this.State = UnitState.Active;
 
         await this.NetSender.StartAsync(message.ParentCore);
     }
@@ -174,7 +167,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
     async Task IUnitExecutable.TerminateAsync(UnitMessage.TerminateAsync message, CancellationToken cancellationToken)
     {
         // Close all connections
-        this.CurrentState = State.Shutdown;
+        this.State = UnitState.Rip;
 
         await this.ConnectionTerminal.Terminate(cancellationToken).ConfigureAwait(false);
 
