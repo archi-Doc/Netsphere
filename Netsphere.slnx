@@ -1,0 +1,13 @@
+<Solution>
+  <Project Path="Netsphere.DataServer/Netsphere.DataServer.csproj" />
+  <Project Path="Netsphere.Runner/Netsphere.Runner.csproj" />
+  <Project Path="Netsphere.Shared/Netsphere.Shared.csproj" />
+  <Project Path="Netsphere.Version/Netsphere.Version.csproj" />
+  <Project Path="Netsphere/Netsphere.csproj" />
+  <Project Path="NetsphereGenerator/NetsphereGenerator.csproj" />
+  <Project Path="NetsphereTest/NetsphereTest.csproj" />
+  <Project Path="Playground/Playground.csproj" />
+  <Project Path="QuickStartClient/QuickStartClient.csproj" />
+  <Project Path="QuickStartServer/QuickStartServer.csproj" />
+  <Project Path="xUnitTest/xUnitTest.csproj" />
+</Solution>
