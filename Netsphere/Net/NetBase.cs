@@ -45,7 +45,7 @@ public class NetBase : UnitBase, IUnitPreparable
 
     #endregion
 
-    public void Prepare(UnitMessage.Prepare message)
+    public async Task Prepare(UnitMessage.Prepare message)
     {
         // Set port number
         if (this.NetOptions.Port < NetConstants.MinPort ||

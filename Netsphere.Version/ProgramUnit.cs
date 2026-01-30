@@ -141,7 +141,7 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
         this.logger = logger;
     }
 
-    void IUnitPreparable.Prepare(UnitMessage.Prepare message)
+    async Task IUnitPreparable.Prepare(UnitMessage.Prepare message)
     {
     }
 
@@ -149,7 +149,7 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
     {
     }
 
-    void IUnitExecutable.Stop(UnitMessage.Stop message)
+    async Task IUnitExecutable.Stop(UnitMessage.Stop message)
     {
     }
 

@@ -22,7 +22,7 @@ public class BasicTest
         this.NetUnit.Responders.Register(Netsphere.Responder.MemoryResponder.Instance);
 
         var p = new PingPacket("test56789");
-        var result = await this.NetUnit.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(Alternative.NetAddress, p);
+        var result = await this.NetUnit.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(Alternative.NetAddress, p, 0, TestContext.Current.CancellationToken);
         result.Result.Is(NetResult.Success);
 
         using (var connection = (await this.NetUnit.NetTerminal.Connect(Alternative.NetNode))!)
@@ -44,7 +44,7 @@ public class BasicTest
             {
                 var array = new byte[i];
                 xo.NextBytes(array);
-                var memory = await connection.SendAndReceive<Memory<byte>, Memory<byte>>(array.AsMemory());
+                var memory = await connection.SendAndReceive<Memory<byte>, Memory<byte>>(array.AsMemory(), 0, TestContext.Current.CancellationToken);
                 memory.Value.Span.SequenceEqual(array).IsTrue();
             }
 
