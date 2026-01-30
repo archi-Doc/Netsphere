@@ -52,7 +52,7 @@ public class RelayTest
             var block = netTerminal.OutgoingCircuit.NewAssignRelayBlock();
             var token = new CertificateToken<AssignRelayBlock>(block);
             relayConnection.SignWithSalt(token, seedKey);
-            var r = await relayConnection.SendAndReceive<CertificateToken<AssignRelayBlock>, AssignRelayResponse>(token);
+            var r = await relayConnection.SendAndReceive<CertificateToken<AssignRelayBlock>, AssignRelayResponse>(token, 0, TestContext.Current.CancellationToken);
             r.IsSuccess.IsTrue();
             r.Value.IsNotNull();
 
@@ -67,7 +67,7 @@ public class RelayTest
             var block = netTerminal.OutgoingCircuit.NewAssignRelayBlock();
             var token = new CertificateToken<AssignRelayBlock>(block);
             relayConnection.SignWithSalt(token, seedKey);
-            var r = await relayConnection.SendAndReceive<CertificateToken<AssignRelayBlock>, AssignRelayResponse>(token);
+            var r = await relayConnection.SendAndReceive<CertificateToken<AssignRelayBlock>, AssignRelayResponse>(token, 0, TestContext.Current.CancellationToken);
             r.IsSuccess.IsTrue();
             r.Value.IsNotNull();
 
@@ -94,7 +94,7 @@ public class RelayTest
             {
                 var array = new byte[i];
                 xo.NextBytes(array);
-                var memory = await connection.SendAndReceive<Memory<byte>, Memory<byte>>(array.AsMemory());
+                var memory = await connection.SendAndReceive<Memory<byte>, Memory<byte>>(array.AsMemory(), 0, TestContext.Current.CancellationToken);
                 memory.Value.Span.SequenceEqual(array).IsTrue();
             }
 

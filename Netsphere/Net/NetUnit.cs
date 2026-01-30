@@ -220,7 +220,7 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
     #endregion
 
-    void IUnitPreparable.Prepare(UnitMessage.Prepare message)
+    async Task IUnitPreparable.Prepare(UnitMessage.Prepare message)
     {
     }
 
@@ -252,7 +252,7 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
         this.intervalTask.Start();
     }
 
-    void IUnitExecutable.Stop(UnitMessage.Stop message)
+    async Task IUnitExecutable.Stop(UnitMessage.Stop message)
     {
     }
 

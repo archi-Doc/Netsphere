@@ -133,7 +133,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         this.NodePublicKey = nodePrivateKey.GetEncryptionPublicKey();
     }
 
-    void IUnitPreparable.Prepare(UnitMessage.Prepare message)
+    async Task IUnitPreparable.Prepare(UnitMessage.Prepare message)
     {
         if (this.Port == 0)
         {
@@ -160,7 +160,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         await this.NetSender.StartAsync(message.ParentCore);
     }
 
-    void IUnitExecutable.Stop(UnitMessage.Stop message)
+    async Task IUnitExecutable.Stop(UnitMessage.Stop message)
     {
     }
 
