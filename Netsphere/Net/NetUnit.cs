@@ -125,12 +125,12 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
             }
 
             var unit = this.Context.ServiceProvider.GetRequiredService<NetUnit>();
-            this.Context.SendPrepare(new());
-            await this.Context.SendStartAsync(new(ThreadCore.Root)).ConfigureAwait(false);
+            await this.Context.SendPrepare();
+            await this.Context.SendStart().ConfigureAwait(false);
         }
 
         public Task Terminate()
-            => this.Context.SendTerminateAsync(new());
+            => this.Context.SendTerminate();
     }
 
     #endregion
@@ -220,7 +220,7 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
     #endregion
 
-    async Task IUnitPreparable.Prepare(UnitMessage.Prepare message)
+    async Task IUnitPreparable.Prepare(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
@@ -246,17 +246,17 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
         }
     }
 
-    async Task IUnitExecutable.StartAsync(UnitMessage.StartAsync message, CancellationToken cancellationToken)
+    async Task IUnitExecutable.Start(UnitContext unitContext, CancellationToken cancellationToken)
     {
-        this.intervalTask ??= new(message.ParentCore, this);
+        this.intervalTask ??= new(unitContext.Core, this);
         this.intervalTask.Start();
     }
 
-    async Task IUnitExecutable.Stop(UnitMessage.Stop message)
+    async Task IUnitExecutable.Stop(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
-    async Task IUnitExecutable.TerminateAsync(UnitMessage.TerminateAsync message, CancellationToken cancellationToken)
+    async Task IUnitExecutable.Terminate(UnitContext unitContext, CancellationToken cancellationToken)
     {
         this.intervalTask?.Terminate();
     }

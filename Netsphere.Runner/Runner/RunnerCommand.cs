@@ -66,6 +66,6 @@ public abstract class RunnerCommand
             }
         }
 
-        await this.unitContext.SendTerminateAsync(new());
+        await this.unitContext.SendTerminate();
     }
 }
