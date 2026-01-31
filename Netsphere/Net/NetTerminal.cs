@@ -133,7 +133,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         this.NodePublicKey = nodePrivateKey.GetEncryptionPublicKey();
     }
 
-    async Task IUnitPreparable.Prepare(UnitMessage.Prepare message)
+    async Task IUnitPreparable.Prepare(UnitContext unitContext, CancellationToken cancellationToken)
     {
         if (this.Port == 0)
         {
@@ -153,18 +153,18 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         this.NodePublicKey = this.NodeSeedKey.GetEncryptionPublicKey();
     }
 
-    async Task IUnitExecutable.StartAsync(UnitMessage.StartAsync message, CancellationToken cancellationToken)
+    async Task IUnitExecutable.Start(UnitContext unitContext, CancellationToken cancellationToken)
     {
         this.State = UnitState.Active;
 
-        await this.NetSender.StartAsync(message.ParentCore);
+        await this.NetSender.StartAsync(unitContext.Core);
     }
 
-    async Task IUnitExecutable.Stop(UnitMessage.Stop message)
+    async Task IUnitExecutable.Stop(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
-    async Task IUnitExecutable.TerminateAsync(UnitMessage.TerminateAsync message, CancellationToken cancellationToken)
+    async Task IUnitExecutable.Terminate(UnitContext unitContext, CancellationToken cancellationToken)
     {
         // Close all connections
         this.State = UnitState.Rip;

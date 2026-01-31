@@ -141,19 +141,19 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
         this.logger = logger;
     }
 
-    async Task IUnitPreparable.Prepare(UnitMessage.Prepare message)
+    async Task IUnitPreparable.Prepare(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
-    async Task IUnitExecutable.StartAsync(UnitMessage.StartAsync message, CancellationToken cancellationToken)
+    async Task IUnitExecutable.Start(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
-    async Task IUnitExecutable.Stop(UnitMessage.Stop message)
+    async Task IUnitExecutable.Stop(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
-    async Task IUnitExecutable.TerminateAsync(UnitMessage.TerminateAsync message, CancellationToken cancellationToken)
+    async Task IUnitExecutable.Terminate(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 

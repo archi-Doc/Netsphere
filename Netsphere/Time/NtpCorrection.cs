@@ -61,7 +61,7 @@ public sealed partial class NtpCorrection : UnitBase, IUnitPreparable
         this.ResetHostnames();
     }
 
-    public async Task Prepare(UnitMessage.Prepare message)
+    public async Task Prepare(UnitContext unitContext, CancellationToken cancellationToken)
     {
         Time.SetNtpCorrection(this);
     }
