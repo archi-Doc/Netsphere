@@ -10,26 +10,26 @@ public class RemoteBenchHostAgent : IRemoteBenchHost, IRemoteBenchService
     {
     }
 
-    public async NetTask<NetResult> Start(int total, int concurrent)
+    public async Task<NetResult> Start(int total, int concurrent)
     {
         return NetResult.Success;
     }
 
-    public async NetTask Report(RemoteBenchRecord record)
+    public async Task Report(RemoteBenchRecord record)
     {
     }
 
-    public async NetTask<byte[]?> Pingpong(byte[] data)
+    public async Task<byte[]?> Pingpong(byte[] data)
     {
         return data;
     }
 
-    async NetTask<ulong> IRemoteBenchService.GetHash(byte[] data)
+    async Task<ulong> IRemoteBenchService.GetHash(byte[] data)
     {
         return default;
     }
 
-    public async NetTask<SendStreamAndReceive<ulong>?> GetHash(long maxLength)
+    public async Task<SendStreamAndReceive<ulong>?> GetHash(long maxLength)
     {
         var transmissionContext = TransmissionContext.Current;
         var stream = transmissionContext.GetReceiveStream<ulong>();
@@ -63,7 +63,7 @@ public class RemoteBenchHostAgent : IRemoteBenchHost, IRemoteBenchService
         return default;
     }
 
-    public async NetTask<NetResult> ConnectBidirectionally(CertificateToken<ConnectionAgreement>? token)
+    public async Task<NetResult> ConnectBidirectionally(CertificateToken<ConnectionAgreement>? token)
     {
         var context = TransmissionContext.Current;
         if (token is null ||
@@ -82,7 +82,7 @@ public class RemoteBenchHostAgent : IRemoteBenchHost, IRemoteBenchService
         return NetResult.Success;
     }
 
-    public async NetTask<NetResult> UpdateAgreement(CertificateToken<ConnectionAgreement> token)
+    public async Task<NetResult> UpdateAgreement(CertificateToken<ConnectionAgreement> token)
     {
         if (!TransmissionContext.Current.ServerConnection.ValidateAndVerifyWithSalt(token))
         {

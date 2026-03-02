@@ -481,7 +481,14 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         var returnTypeIsNetResult = method.ReturnObject?.FullName == NetsphereBody.NetResultFullName;
         var deserializeString = method.ReturnObject == null ? "NetResult" : method.ReturnObject.FullNameWithNullable;
 
-        using (var scopeMethod = ssb.ScopeBrace($"public {(method.IsNetTask ? string.Empty : "async ")}{taskString} {method.SimpleName}({method.GetParameters()})"))
+        var asyncPrefix = "async ";
+        if (method.Kind == ServiceMethod.MethodKind.UpdateAgreement ||
+            method.Kind == ServiceMethod.MethodKind.ConnectBidirectionally)
+        {
+            asyncPrefix = string.Empty;
+        }
+
+        using (var scopeMethod = ssb.ScopeBrace($"public {(method.IsNetTask ? string.Empty : asyncPrefix)}{taskString} {method.SimpleName}({method.GetParameters()})"))
         {
             if (method.Kind == ServiceMethod.MethodKind.UpdateAgreement)
             {
@@ -983,10 +990,12 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         if (method.ReturnObject == null)
         {
             this.Generate_ReturnRentMemory(ssb);
-            ssb.AppendLine($"context.RentMemory = {ServiceMethod.RentMemoryName}.Empty;");
+            ssb.AppendLine("context.Result = NetResult.Success;");
+            //ssb.AppendLine($"context.RentMemory = {ServiceMethod.RentMemoryName}.Empty;");
         }
         else if (method.ReturnType == ServiceMethod.Type.NetResult)
         {
+            this.Generate_ReturnRentMemory(ssb);
             ssb.AppendLine("context.Result = result;");
             // ssb.AppendLine($"NetHelper.SerializeNetResult(result, out var owner2);");
             // this.Generate_ReturnRentMemory(ssb);

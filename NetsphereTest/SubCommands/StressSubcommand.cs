@@ -90,8 +90,8 @@ public class StressSubcommand : ISimpleCommandAsync<StressOptions>
                         var service = connection.GetService<IRemoteBenchHost>();
                         sw2.Restart();
 
-                        var response = await service.Pingpong(data).ResponseAsync; // response.Result.IsSuccess is EVIL
-                        if (response.IsSuccess)
+                        var response = await service.Pingpong(data); // response.Result.IsSuccess is EVIL
+                        if (response is not null)
                         {
                             Interlocked.Increment(ref successCount);
                         }

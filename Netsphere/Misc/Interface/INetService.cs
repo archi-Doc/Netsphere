@@ -7,7 +7,7 @@ namespace Netsphere;
 /// <summary>
 /// A base interface for net service.<br/>
 /// The requirements are to add the <see cref="NetServiceInterfaceAttribute" /> and to derive from the <see cref="INetService" />.<br/>
-/// The return type of the interface function must be either <see cref="NetTask"/> or <see cref="NetTask{TResponse}"/>(TResponse is Tinyhand serializable) or <see cref="Task"/> or <see cref="Task{TResult}"/>.
+/// The return type of the interface function must be either <see cref="Task"/> or <see cref="Task{TResponse}"/>(TResponse is Tinyhand serializable) or <see cref="Task"/> or <see cref="Task{TResult}"/>.
 /// </summary>
 public interface INetService
 {
@@ -24,7 +24,7 @@ public interface INetServiceWithUpdateAgreement : INetService
     /// </summary>
     /// <param name="token">A token.</param>
     /// <returns><see cref="NetResult.Success"/> to update the agreement.</returns>
-    NetTask<NetResult> UpdateAgreement(CertificateToken<ConnectionAgreement> token);
+    Task<NetResult> UpdateAgreement(CertificateToken<ConnectionAgreement> token);
 }
 
 /// <summary>
@@ -38,7 +38,7 @@ public interface INetServiceWithConnectBidirectionally : INetService
     /// </summary>
     /// <param name="token">A token.</param>
     /// <returns><see cref="NetResult.Success"/> to enable bidirectional connection.</returns>
-    NetTask<NetResult> ConnectBidirectionally(CertificateToken<ConnectionAgreement>? token);
+    Task<NetResult> ConnectBidirectionally(CertificateToken<ConnectionAgreement>? token);
 }
 
 /// <summary>
@@ -51,5 +51,5 @@ public interface INetServiceWithAuthenticate : INetService
     /// </summary>
     /// <param name="token">The authentication token.</param>
     /// <returns>The result of the authentication.</returns>
-    NetTask<NetResult> Authenticate(AuthenticationToken token);
+    Task<NetResult> Authenticate(AuthenticationToken token);
 }

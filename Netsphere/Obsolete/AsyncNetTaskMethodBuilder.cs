@@ -5,7 +5,7 @@ using System.Security;
 
 namespace Netsphere;
 
-public struct AsyncNetTaskMethodBuilder<T>
+/*public struct AsyncNetTaskMethodBuilder<T>
 {
     private AsyncTaskMethodBuilder<T> methodBuilder;
     private T result;
@@ -151,4 +151,4 @@ public struct AsyncNetTaskMethodBuilder
         this.useBuilder = true;
         this.methodBuilder.AwaitUnsafeOnCompleted(ref awaiter, ref stateMachine);
     }
-}
+}*/

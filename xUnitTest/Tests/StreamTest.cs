@@ -63,8 +63,8 @@ public class StreamTest
         {
             if (this.dataArray[i].Length <= NetFixture.MaxBlockSize)
             {
-                var r = await service.Pingpong(this.dataArray[i]).ResponseAsync;
-                r.Value!.SequenceEqual(this.dataArray[i]).IsTrue();
+                var r = await service.Pingpong(this.dataArray[i]);
+                r.SequenceEqual(this.dataArray[i]).IsTrue();
             }
         }
     }
@@ -75,8 +75,8 @@ public class StreamTest
         {
             if (this.dataArray[i].Length <= NetFixture.MaxBlockSize)
             {
-                var r = await service.GetHash(this.dataArray[i]).ResponseAsync;
-                r.Value.Is(FarmHash.Hash64(this.dataArray[i]));
+                var r = await service.GetHash(this.dataArray[i]);
+                r.Is(FarmHash.Hash64(this.dataArray[i]));
             }
         }
     }

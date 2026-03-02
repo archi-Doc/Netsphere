@@ -5,15 +5,15 @@ namespace Lp.NetServices;
 [NetServiceInterface]
 public interface IRemoteBenchHost : IRemoteBenchService, INetServiceWithConnectBidirectionally, INetServiceWithUpdateAgreement
 {
-    NetTask<byte[]?> Pingpong(byte[] data);
+    Task<byte[]?> Pingpong(byte[] data);
 
-    NetTask<SendStreamAndReceive<ulong>?> GetHash(long maxLength);
+    Task<SendStreamAndReceive<ulong>?> GetHash(long maxLength);
 
-    NetTask Report(RemoteBenchRecord record);
+    Task Report(RemoteBenchRecord record);
 }
 
 [NetServiceInterface]
 public interface IRemoteBenchService : INetService
 {
-    NetTask<ulong> GetHash(byte[] data);
+    Task<ulong> GetHash(byte[] data);
 }

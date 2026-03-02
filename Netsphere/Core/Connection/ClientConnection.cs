@@ -575,11 +575,11 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         return new(NetResult.Success, stream);
     }
 
-    async Task<ServiceResponse<NetResult>> IClientConnectionInternal.UpdateAgreement(ulong dataId, CertificateToken<ConnectionAgreement> a1)
+    async Task<NetResult> IClientConnectionInternal.UpdateAgreement(ulong dataId, CertificateToken<ConnectionAgreement> a1)
     {
         if (!NetHelper.TrySerialize(a1, out var rentMemory))
         {
-            return new(NetResult.SerializationFailed, NetResult.SerializationFailed);
+            return NetResult.SerializationFailed;
         }
 
         var response = await ((IClientConnectionInternal)this).RpcSendAndReceive(rentMemory, dataId).ConfigureAwait(false);
@@ -589,7 +589,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         {
             if (response.Result != NetResult.Success)
             {
-                return new(response.Result, response.Result);
+                return response.Result;
             }
 
             NetHelper.DeserializeNetResult(response.DataId, response.Value.Memory.Span, out var result);
@@ -599,7 +599,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
                 // this.ApplyAgreement();
             }
 
-            return new(result, result);
+            return result;
         }
         finally
         {
@@ -607,11 +607,11 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         }
     }
 
-    async Task<ServiceResponse<NetResult>> IClientConnectionInternal.ConnectBidirectionally(ulong dataId, CertificateToken<ConnectionAgreement>? a1)
+    async Task<NetResult> IClientConnectionInternal.ConnectBidirectionally(ulong dataId, CertificateToken<ConnectionAgreement>? a1)
     {
         if (!NetHelper.TrySerialize(a1, out var rentMemory))
         {
-            return new(NetResult.SerializationFailed, NetResult.SerializationFailed);
+            return NetResult.SerializationFailed;
         }
 
         this.PrepareBidirectionalConnection(); // Create the ServerConnection in advance, as packets may not arrive in order.
@@ -622,7 +622,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         {
             if (response.Result != NetResult.Success)
             {
-                return new(response.Result, response.Result);
+                return response.Result;
             }
 
             NetHelper.DeserializeNetResult(response.DataId, response.Value.Memory.Span, out var result);
@@ -636,7 +636,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
                 }
             }
 
-            return new(result, result);
+            return result;
         }
         finally
         {

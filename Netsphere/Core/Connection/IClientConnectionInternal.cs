@@ -10,7 +10,7 @@ public interface IClientConnectionInternal
 
     Task<(NetResult Result, ReceiveStream? Stream)> RpcSendAndReceiveStream(BytePool.RentMemory data, ulong dataId);
 
-    Task<ServiceResponse<NetResult>> UpdateAgreement(ulong dataId, CertificateToken<ConnectionAgreement> a1);
+    Task<NetResult> UpdateAgreement(ulong dataId, CertificateToken<ConnectionAgreement> a1);
 
-    Task<ServiceResponse<NetResult>> ConnectBidirectionally(ulong dataId, CertificateToken<ConnectionAgreement>? a1);
+    Task<NetResult> ConnectBidirectionally(ulong dataId, CertificateToken<ConnectionAgreement>? a1);
 }

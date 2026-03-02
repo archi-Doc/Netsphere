@@ -41,7 +41,7 @@ public class RemoteDataControl
         this.Initialized = true;
     }
 
-    public async NetTask<NetResult> UpdateAgreement(CertificateToken<ConnectionAgreement> token)
+    public async Task<NetResult> UpdateAgreement(CertificateToken<ConnectionAgreement> token)
     {
         this.ThrowIfNotInitialized();
 
@@ -63,7 +63,7 @@ public class RemoteDataControl
         return NetResult.Success;
     }
 
-    public async NetTask<ReceiveStream?> Get(string identifier)
+    public async Task<ReceiveStream?> Get(string identifier)
     {
         this.ThrowIfNotInitialized();
 
@@ -98,7 +98,7 @@ public class RemoteDataControl
         return default;
     }
 
-    public async NetTask<SendStreamAndReceive<NetResult>?> Put(string identifier, long maxLength)
+    public async Task<SendStreamAndReceive<NetResult>?> Put(string identifier, long maxLength)
     {
         this.ThrowIfNotInitialized();
 

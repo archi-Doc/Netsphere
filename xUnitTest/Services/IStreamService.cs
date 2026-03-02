@@ -9,17 +9,17 @@ namespace xUnitTest.NetsphereTest;
 [NetServiceInterface]
 public interface IStreamService : INetService, INetServiceWithUpdateAgreement
 {
-    NetTask<byte[]?> Pingpong(byte[] data);
+    Task<byte[]?> Pingpong(byte[] data);
 
-    NetTask<ulong> GetHash(byte[] data);
+    Task<ulong> GetHash(byte[] data);
 
-    NetTask<ReceiveStream?> Get(string name, long length);
+    Task<ReceiveStream?> Get(string name, long length);
 
-    NetTask<SendStreamAndReceive<NetResult>?> Put(long maxLength);
+    Task<SendStreamAndReceive<NetResult>?> Put(long maxLength);
 
-    NetTask<SendStreamAndReceive<ulong>?> PutAndGetHash(long maxLength);
+    Task<SendStreamAndReceive<ulong>?> PutAndGetHash(long maxLength);
 
-    NetTask<SendStreamAndReceive<NetResult>?> Put2(ulong hash, long maxLength);
+    Task<SendStreamAndReceive<NetResult>?> Put2(ulong hash, long maxLength);
 }
 
 [NetServiceObject]
@@ -27,13 +27,13 @@ public class StreamServiceImpl : IStreamService
 {
     public const long MaxStreamLength = 100_000_000;
 
-    public async NetTask<byte[]?> Pingpong(byte[] data)
+    public async Task<byte[]?> Pingpong(byte[] data)
         => data;
 
-    public async NetTask<ulong> GetHash(byte[] data)
+    public async Task<ulong> GetHash(byte[] data)
         => Arc.Crypto.FarmHash.Hash64(data);
 
-    public async NetTask<ReceiveStream?> Get(string name, long length)
+    public async Task<ReceiveStream?> Get(string name, long length)
     {
         length = Math.Min(length, MaxStreamLength);
         var r = new Xoshiro256StarStar((ulong)length);
@@ -51,12 +51,12 @@ public class StreamServiceImpl : IStreamService
         return default;
     }
 
-    public async NetTask<SendStreamAndReceive<NetResult>?> Put(long maxLength)
+    public async Task<SendStreamAndReceive<NetResult>?> Put(long maxLength)
     {
         return default;
     }
 
-    public async NetTask<SendStreamAndReceive<ulong>?> PutAndGetHash(long maxLength)
+    public async Task<SendStreamAndReceive<ulong>?> PutAndGetHash(long maxLength)
     {
         var transmissionContext = TransmissionContext.Current;
         var stream = transmissionContext.GetReceiveStream<ulong>();
@@ -91,10 +91,10 @@ public class StreamServiceImpl : IStreamService
         return default;
     }
 
-    public async NetTask<NetResult> UpdateAgreement(CertificateToken<ConnectionAgreement> token)
+    public async Task<NetResult> UpdateAgreement(CertificateToken<ConnectionAgreement> token)
         => NetResult.Success;
 
-    async NetTask<SendStreamAndReceive<NetResult>?> IStreamService.Put2(ulong hash, long maxLength)
+    async Task<SendStreamAndReceive<NetResult>?> IStreamService.Put2(ulong hash, long maxLength)
     {
         var transmissionContext = TransmissionContext.Current;
         var stream = transmissionContext.GetReceiveStream();
