@@ -48,8 +48,8 @@ First, define an interface shared between the client and server.
 [NetServiceInterface] // Annotate NetServiceInterface attribute.
 public interface ITestService : INetService // An interface for NetService must inherit from INetService.
 {
-    NetTask<string?> DoubleString(string input); // Declare the service method.
-    // Ensure that both arguments and return values are serializable by Tinyhand serializer, and the return type must be NetTask or NetTask<T> or Task or Task<TResult>.
+    Task<string?> DoubleString(string input); // Declare the service method.
+    // Ensure that both arguments and return values are serializable by Tinyhand serializer, and the return type must be Task or Task<TResult>.
 }
 ```
 
@@ -93,7 +93,7 @@ Define a class that implements the interface and annotate it with `NetServiceObj
 [NetServiceObject] // Annotate NetServiceObject attribute.
 internal class TestServiceImpl : ITestService
 {
-    async NetTask<string?> ITestService.DoubleString(string input)
+    async Task<string?> ITestService.DoubleString(string input)
         => input + input; // Simply repeat a string twice and return it.
 }
 ```
@@ -163,7 +163,7 @@ await unit.Terminate(); // Perform the termination process for the unit.
    [NetServiceObject]
    internal class TestServiceAgent : ITestService
    {
-       async NetTask<string?> ITestService.DoubleString(string input)
+       async Task<string?> ITestService.DoubleString(string input)
            => input + input;
    }
    ```

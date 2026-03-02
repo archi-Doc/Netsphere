@@ -21,7 +21,7 @@ internal class RemoteControlAgent : IRemoteControl
         this.remoteControlBase = remoteControlBase;
     }
 
-    /*public async NetTask<NetResult> Authenticate(AuthenticationToken token)
+    /*public async Task<NetResult> Authenticate(AuthenticationToken token)
         => TransmissionContext.Current.ServerConnection.GetContext().Authenticate(token, this.runOptions.RemotePublicKey);*/
 
     public async Task<NetResult> Restart()
