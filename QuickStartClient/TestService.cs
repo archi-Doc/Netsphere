@@ -8,14 +8,14 @@ namespace QuickStart;
 [NetServiceInterface] // Annotate NetServiceInterface attribute.
 public interface ITestService : INetService // An interface for NetService must inherit from INetService.
 {
-    NetTask<string?> DoubleString(string input); // Declare the service method.
-    // Ensure that both arguments and return values are serializable by Tinyhand serializer, and the return type must be NetTask or NetTask<T> or Task or Task<TResult>.
+    Task<string?> DoubleString(string input); // Declare the service method.
+    // Ensure that both arguments and return values are serializable by Tinyhand serializer, and the return type must be Task or Task<T> or Task or Task<TResult>.
 
-    NetTask<int> Sum(int x, int y);
+    Task<int> Sum(int x, int y);
 }
 
 [NetServiceInterface]
 public interface ITestService2 : INetService
 {
-    NetTask<int> Random();
+    Task<int> Random();
 }

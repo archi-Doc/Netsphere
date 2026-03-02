@@ -30,7 +30,7 @@ public class RemoteBenchRunnerAgent : IRemoteBenchRunner, INetServiceHandler
 
     #endregion
 
-    public async NetTask<NetResult> Start(int total, int concurrent, string? remoteNode, string? remotePrivateKey)
+    public async Task<NetResult> Start(int total, int concurrent, string? remoteNode, string? remotePrivateKey)
     {
         if (total == 0)
         {
@@ -95,8 +95,8 @@ public class RemoteBenchRunnerAgent : IRemoteBenchRunner, INetServiceHandler
 
                         var service = t.GetService<IRemoteBenchHost>();
 
-                        var response = await service.Pingpong(data).ResponseAsync; // response.Result.IsSuccess is EVIL
-                        if (response.IsSuccess)
+                        var response = await service.Pingpong(data); // response.Result.IsSuccess is EVIL
+                        if (response is not null)
                         {
                             Interlocked.Increment(ref successCount);
                         }

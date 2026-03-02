@@ -5,13 +5,13 @@ using Netsphere;
 [NetServiceInterface]
 public interface IGlobalNamespaceService : INetService
 {
-    public NetTask<int> Sum(int x, int y);
+    public Task<int> Sum(int x, int y);
 }
 
 [NetServiceObject]
 public class GlobalNamespaceServiceAgent : IGlobalNamespaceService
 {
-    async NetTask<int> IGlobalNamespaceService.Sum(int x, int y)
+    async Task<int> IGlobalNamespaceService.Sum(int x, int y)
     {
         return x + y;
     }

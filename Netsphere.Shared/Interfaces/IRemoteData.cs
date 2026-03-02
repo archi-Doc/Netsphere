@@ -5,7 +5,7 @@ namespace Netsphere.Interfaces;
 [NetServiceInterface]
 public interface IRemoteData : INetService, INetServiceWithUpdateAgreement
 {
-    NetTask<ReceiveStream?> Get(string identifier);
+    Task<ReceiveStream?> Get(string identifier);
 
-    NetTask<SendStreamAndReceive<NetResult>?> Put(string identifier, long maxLength);
+    Task<SendStreamAndReceive<NetResult>?> Put(string identifier, long maxLength);
 }

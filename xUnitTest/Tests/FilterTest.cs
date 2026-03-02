@@ -21,29 +21,23 @@ public class FilterTest
             connection.IsNotNull();
 
             var service = connection.GetService<IFilterTestService>();
-            var task = await service.NoFilter(1).ResponseAsync;
-            task.Result.Is(NetResult.Success);
-            task.Value.Is(1);
+            var r = await service.NoFilter(1);
+            r.Is(1);
 
-            task = await service.Increment(2).ResponseAsync;
-            task.Result.Is(NetResult.Success);
-            task.Value.Is(3);
+            r = await service.Increment(2);
+            r.Is(3);
 
-            task = await service.Multiply2(3).ResponseAsync;
-            task.Result.Is(NetResult.Success);
-            task.Value.Is(6);
+            r = await service.Multiply2(3);
+            r.Is(6);
 
-            task = await service.Multiply3(3).ResponseAsync;
-            task.Result.Is(NetResult.Success);
-            task.Value.Is(9);
+            r = await service.Multiply3(3);
+            r.Is(9);
 
-            task = await service.IncrementAndMultiply2(4).ResponseAsync;
-            task.Result.Is(NetResult.Success);
-            task.Value.Is(10);
+            r = await service.IncrementAndMultiply2(4);
+            r.Is(10);
 
-            task = await service.Multiply2AndIncrement(5).ResponseAsync;
-            task.Result.Is(NetResult.Success);
-            task.Value.Is(11);
+            r = await service.Multiply2AndIncrement(5);
+            r.Is(11);
         }
     }
 
@@ -58,29 +52,23 @@ public class FilterTest
             }
 
             var service = connection.GetService<IFilterTestService>();
-            var task = await service.NoFilter(1).ResponseAsync;
-            task.Result.Is(NetResult.Success);
-            task.Value.Is(1);
+            var r = await service.NoFilter(1);
+            r.Is(1);
 
-            task = await service.Increment(2).ResponseAsync;
-            task.Result.Is(NetResult.Success);
-            task.Value.Is(3);
+            r = await service.Increment(2);
+            r.Is(3);
 
-            task = await service.Multiply2(3).ResponseAsync;
-            task.Result.Is(NetResult.Success);
-            task.Value.Is(6);
+            r = await service.Multiply2(3);
+            r.Is(6);
 
-            task = await service.Multiply3(3).ResponseAsync;
-            task.Result.Is(NetResult.Success);
-            task.Value.Is(9);
+            r = await service.Multiply3(3);
+            r.Is(9);
 
-            task = await service.IncrementAndMultiply2(4).ResponseAsync;
-            task.Result.Is(NetResult.Success);
-            task.Value.Is(10);
+            r = await service.IncrementAndMultiply2(4);
+            r.Is(10);
 
-            task = await service.Multiply2AndIncrement(5).ResponseAsync;
-            task.Result.Is(NetResult.Success);
-            task.Value.Is(11);
+            r = await service.Multiply2AndIncrement(5);
+            r.Is(11);
         }
     }
 

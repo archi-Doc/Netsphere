@@ -113,11 +113,11 @@ public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
         RandomVault.Xoshiro.NextBytes(data);
 
         var sw = Stopwatch.StartNew();
-        var response = await ((IRemoteBenchService)service).GetHash(data).ResponseAsync;
+        var response = await ((IRemoteBenchService)service).GetHash(data);
         sw.Stop();
 
         Console.WriteLine(response);
-        Console.WriteLine(FarmHash.Hash64(data) == response.Value);
+        Console.WriteLine(FarmHash.Hash64(data) == response);
         Console.WriteLine(sw.ElapsedMilliseconds.ToString());
     }
 
@@ -128,7 +128,7 @@ public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
         var data = new byte[100];
 
         var sw = Stopwatch.StartNew();
-        ServiceResponse<byte[]?> response = default;
+        byte[]? response = default;
         var count = 0;
         for (var i = 0; i < N; i++)
         {
@@ -137,8 +137,8 @@ public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
                 break;
             }
 
-            response = await service.Pingpong(data).ResponseAsync;
-            if (response.IsSuccess)
+            response = await service.Pingpong(data);
+            if (response is not null)
             {
                 count++;
             }
@@ -166,14 +166,14 @@ public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
                     return;
                 }
                 var service = connection.GetService<IRemoteBenchHost>();
-                var response = await service.Pingpong(data).ResponseAsync;
-                if (response.IsSuccess)
+                var response = await service.Pingpong(data);
+                if (response is not null)
                 {
                     count++;
                 }
                 else
                 {
-                    Console.WriteLine(response.Result.ToString());
+                    // Console.WriteLine(response.Result.ToString());
                 }
 
                 /*var response = service.Pingpong(data).ResponseAsync;
@@ -218,14 +218,14 @@ public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
                     }
 
                     var service = connection.GetService<IRemoteBenchHost>();
-                    var response = service.Pingpong(data).ResponseAsync;
-                    if (response.Result.IsSuccess)
+                    var response = await service.Pingpong(data);
+                    if (response is not null)
                     {
                         Interlocked.Increment(ref count);
                     }
                     else
                     {
-                        Console.WriteLine(response.Result.Result.ToString());
+                        // Console.WriteLine(response.Result.Result.ToString());
                     }
                 }
             }

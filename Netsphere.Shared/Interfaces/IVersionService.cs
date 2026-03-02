@@ -7,7 +7,7 @@ namespace Netsphere.Version;
 /*[NetServiceInterface]
 public interface IVersionService : INetService
 {
-    NetTask<NetResultValue<CertificateToken<VersionInfo>?>> Get();
+    Task<NetResultValue<CertificateToken<VersionInfo>?>> Get();
 
-    NetTask<NetResult> Update(CertificateToken<VersionInfo> versionToken);
+    Task<NetResult> Update(CertificateToken<VersionInfo> versionToken);
 }*/

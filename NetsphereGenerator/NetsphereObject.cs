@@ -477,47 +477,32 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
     internal void GenerateFrontend_Method(ScopingStringBuilder ssb, GeneratorInformation info, ServiceMethod method)
     {
         var genericString = method.ReturnObject == null ? string.Empty : $"<{method.ReturnObject.FullNameWithNullable}>";
-        var taskString = method.IsNetTask ? $"NetTask{genericString}" : $"Task{genericString}";
+        var taskString = $"Task{genericString}";
         var returnTypeIsNetResult = method.ReturnObject?.FullName == NetsphereBody.NetResultFullName;
         var deserializeString = method.ReturnObject == null ? "NetResult" : method.ReturnObject.FullNameWithNullable;
 
-        using (var scopeMethod = ssb.ScopeBrace($"public {(method.IsNetTask ? string.Empty : "async ")}{taskString} {method.SimpleName}({method.GetParameters()})"))
+        var asyncPrefix = "async ";
+        if (method.Kind == ServiceMethod.MethodKind.UpdateAgreement ||
+            method.Kind == ServiceMethod.MethodKind.ConnectBidirectionally)
+        {
+            asyncPrefix = string.Empty;
+        }
+
+        using (var scopeMethod = ssb.ScopeBrace($"public {asyncPrefix}{taskString} {method.SimpleName}({method.GetParameters()})"))
         {
             if (method.Kind == ServiceMethod.MethodKind.UpdateAgreement)
             {
-                if (method.IsNetTask)
-                {
-                    ssb.AppendLine($"return new {taskString}((({NetsphereBody.IClientConnectionInternalName})this.ClientConnection).UpdateAgreement({method.IdString}, a1));");
-                }
-                else
-                {
-                    ssb.AppendLine($"return (({NetsphereBody.IClientConnectionInternalName})this.ClientConnection).UpdateAgreement({method.IdString}, a1);");
-                }
+                ssb.AppendLine($"return (({NetsphereBody.IClientConnectionInternalName})this.ClientConnection).UpdateAgreement({method.IdString}, a1);");
 
                 return;
             }
             else if (method.Kind == ServiceMethod.MethodKind.ConnectBidirectionally)
             {
-                if (method.IsNetTask)
-                {
-                    ssb.AppendLine($"return new {taskString}((({NetsphereBody.IClientConnectionInternalName})this.ClientConnection).ConnectBidirectionally({method.IdString}, a1));");
-                }
-                else
-                {
-                    ssb.AppendLine($"return (({NetsphereBody.IClientConnectionInternalName})this.ClientConnection).ConnectBidirectionally({method.IdString}, a1);");
-                }
-
+                ssb.AppendLine($"return (({NetsphereBody.IClientConnectionInternalName})this.ClientConnection).ConnectBidirectionally({method.IdString}, a1);");
                 return;
             }
 
             ScopingStringBuilder.IScope? scopeCore = default;
-            if (method.IsNetTask)
-            {
-                ssb.AppendLine($"return new {taskString}(Core());");
-                ssb.AppendLine();
-                scopeCore = ssb.ScopeBrace($"async Task<ServiceResponse{genericString}> Core()");
-            }
-
             if (method.ReturnType == ServiceMethod.Type.SendStream)
             {
                 if (method.ParameterLength <= 1)
@@ -647,23 +632,9 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                     ssb.AppendLine("response.Value.Return();");
                 }
 
-                if (method.IsNetTask)
+                if (method.ReturnObject is not null)
                 {
-                    if (method.ReturnObject == null)
-                    {
-                        ssb.AppendLine($"return default;");
-                    }
-                    else
-                    {
-                        ssb.AppendLine($"return new(result);");
-                    }
-                }
-                else
-                {
-                    if (method.ReturnObject is not null)
-                    {
-                        ssb.AppendLine($"return result;");
-                    }
+                    ssb.AppendLine($"return result;");
                 }
             }
 
@@ -672,52 +643,24 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
         void AppendReturn2(string result, string netResult)
         {
-            if (method.IsNetTask)
-            {
-                ssb.AppendLine($"return new({result}, {netResult});");
-            }
-            else
-            {
-                ssb.AppendLine($"return {result};");
-            }
+            ssb.AppendLine($"return {result};");
         }
 
         void AppendReturn(string netResult)
         {
-            if (method.IsNetTask)
+            if (method.ReturnObject is null)
             {
-                if (method.ReturnObject is null)
-                {
-                    ssb.AppendLine($"return new({netResult});");
-                }
-                else
-                {
-                    if (returnTypeIsNetResult)
-                    {
-                        ssb.AppendLine($"return new({netResult}, {netResult});");
-                    }
-                    else
-                    {
-                        ssb.AppendLine($"return new(default!, {netResult});");
-                    }
-                }
+                ssb.AppendLine($"return;");
             }
             else
             {
-                if (method.ReturnObject is null)
+                if (returnTypeIsNetResult)
                 {
-                    ssb.AppendLine($"return;");
+                    ssb.AppendLine($"return {netResult};");
                 }
                 else
                 {
-                    if (returnTypeIsNetResult)
-                    {
-                        ssb.AppendLine($"return {netResult};");
-                    }
-                    else
-                    {
-                        ssb.AppendLine($"return default!;");
-                    }
+                    ssb.AppendLine($"return default!;");
                 }
             }
         }
@@ -945,16 +888,16 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                     ssb.AppendLine("return;");
                 }
 
-                ssb.AppendLine($"{prefix}await agent.{method.SimpleName}({method.GetTupleNames("rr.Value!", 1)}, context.GetReceiveStream().MaxStreamLength){method.ValueAsyncString}.ConfigureAwait(false);");
+                ssb.AppendLine($"{prefix}await agent.{method.SimpleName}({method.GetTupleNames("rr.Value!", 1)}, context.GetReceiveStream().MaxStreamLength).ConfigureAwait(false);");
             }
             else
             {
-                ssb.AppendLine($"{prefix}await agent.{method.SimpleName}(context.GetReceiveStream().MaxStreamLength){method.ValueAsyncString}.ConfigureAwait(false);");
+                ssb.AppendLine($"{prefix}await agent.{method.SimpleName}(context.GetReceiveStream().MaxStreamLength).ConfigureAwait(false);");
             }
         }
         else
         {
-            ssb.AppendLine($"{prefix}await agent.{method.SimpleName}({method.GetTupleNames("value", 0)}){method.ValueAsyncString}.ConfigureAwait(false);");
+            ssb.AppendLine($"{prefix}await agent.{method.SimpleName}({method.GetTupleNames("value", 0)}).ConfigureAwait(false);");
         }
 
         // ssb.AppendLine("context.Return();"); -> try-finally
@@ -983,10 +926,11 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         if (method.ReturnObject == null)
         {
             this.Generate_ReturnRentMemory(ssb);
-            ssb.AppendLine($"context.RentMemory = {ServiceMethod.RentMemoryName}.Empty;");
+            ssb.AppendLine("context.Result = NetResult.Success;");
         }
         else if (method.ReturnType == ServiceMethod.Type.NetResult)
         {
+            this.Generate_ReturnRentMemory(ssb);
             ssb.AppendLine("context.Result = result;");
             // ssb.AppendLine($"NetHelper.SerializeNetResult(result, out var owner2);");
             // this.Generate_ReturnRentMemory(ssb);

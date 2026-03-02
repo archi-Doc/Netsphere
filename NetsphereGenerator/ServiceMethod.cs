@@ -51,22 +51,13 @@ public class ServiceMethod
             return null;
         }
 
-        var isNetTask = false;
-        if (returnObject.FullName == NetsphereBody.NetTaskFullName)
-        {// NetTask
-            isNetTask = true;
-        }
-        else if (returnObject.FullName == NetsphereBody.TaskFullName)
+        if (returnObject.FullName == NetsphereBody.TaskFullName)
         {// Task
         }
         else
         {
             var fullName = returnObject.OriginalDefinition?.FullName;
-            if (fullName == NetsphereBody.NetTaskFullName2)
-            {// NetTask<TResponse>
-                isNetTask = true;
-            }
-            else if (fullName == NetsphereBody.TaskFullName2)
+            if (fullName == NetsphereBody.TaskFullName2)
             {// Task<TResult>
             }
             else
@@ -81,7 +72,6 @@ public class ServiceMethod
         }
 
         var serviceMethod = new ServiceMethod(method);
-        serviceMethod.IsNetTask = isNetTask;
         serviceMethod.MethodId = (uint)Arc.Crypto.FarmHash.Hash64(method.FullName);
         if (obj.NetServiceInterfaceAttribute == null)
         {
@@ -163,8 +153,6 @@ public class ServiceMethod
 
     public int ParameterLength => this.method.Method_Parameters.Length;
 
-    public bool IsNetTask { get; private set; }
-
     public uint MethodId { get; private set; }
 
     public ulong Id { get; private set; }
@@ -172,8 +160,6 @@ public class ServiceMethod
     public string IdString => $"0x{this.Id:x}ul";
 
     public string MethodString => $"Method_{this.Id:x}";
-
-    public string ValueAsyncString => this.IsNetTask ? ".ValueAsync" : string.Empty;
 
     public WithNullable<NetsphereObject>? ReturnObject { get; internal set; }
 

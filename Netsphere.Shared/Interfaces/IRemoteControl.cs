@@ -5,5 +5,5 @@ namespace Netsphere.Interfaces;
 [NetServiceInterface]
 public interface IRemoteControl : INetService
 {
-    public NetTask<NetResult> Restart();
+    public Task<NetResult> Restart();
 }

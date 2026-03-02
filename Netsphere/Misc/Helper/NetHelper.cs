@@ -543,7 +543,7 @@ public static class NetHelper
         var token = new CertificateToken<ConnectionAgreement>(agreement);
         connection.SignWithSalt(token, signaturePrivateKey);
 
-        var result = await service.UpdateAgreement(token).ValueAsync.ConfigureAwait(false);
+        var result = await service.UpdateAgreement(token).ConfigureAwait(false);
         if (result != NetResult.Success)
         {
             connection.Dispose();

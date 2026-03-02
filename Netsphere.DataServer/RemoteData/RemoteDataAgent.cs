@@ -15,12 +15,12 @@ public class RemoteDataAgent : IRemoteData
 
     private readonly RemoteDataControl control;
 
-    NetTask<NetResult> INetServiceWithUpdateAgreement.UpdateAgreement(CertificateToken<ConnectionAgreement> token)
+    Task<NetResult> INetServiceWithUpdateAgreement.UpdateAgreement(CertificateToken<ConnectionAgreement> token)
         => this.control.UpdateAgreement(token);
 
-    NetTask<ReceiveStream?> IRemoteData.Get(string identifier)
+    Task<ReceiveStream?> IRemoteData.Get(string identifier)
         => this.control.Get(identifier);
 
-    NetTask<SendStreamAndReceive<NetResult>?> IRemoteData.Put(string identifier, long maxLength)
+    Task<SendStreamAndReceive<NetResult>?> IRemoteData.Put(string identifier, long maxLength)
         => this.control.Put(identifier, maxLength);
 }

@@ -5,25 +5,25 @@ namespace NetsphereTest;
 [NetServiceInterface]
 public interface ITestService : INetService
 {
-    public NetTask Send(int x);
+    public Task Send(int x);
 }
 
 [NetServiceInterface]
 public interface ITestService2 : INetService
 {
-    public NetTask Send2(int x);
+    public Task Send2(int x);
 }
 
 [NetServiceInterface]
 public interface ITestService3 : INetService
 {
-    public NetTask Send3(string x, int y);
+    public Task Send3(string x, int y);
 
-    public NetTask<int> Increment3(int x);
+    public Task<int> Increment3(int x);
 
-    public NetTask<BytePool.RentMemory> SendMemoryOwner(BytePool.RentMemory rentMemory);
+    public Task<BytePool.RentMemory> SendMemoryOwner(BytePool.RentMemory rentMemory);
 
-    public NetTask<BytePool.RentReadOnlyMemory> SendReadOnlyMemoryOwner(BytePool.RentReadOnlyMemory rentMemory);
+    public Task<BytePool.RentReadOnlyMemory> SendReadOnlyMemoryOwner(BytePool.RentReadOnlyMemory rentMemory);
 }
 
 [NetServiceObject]
@@ -33,7 +33,7 @@ public class TestServiceImpl0 : ITestService2
     {
     }
 
-    public async NetTask Send2(int x)
+    public async Task Send2(int x)
     {
     }
 }
@@ -41,7 +41,7 @@ public class TestServiceImpl0 : ITestService2
 // [NetServiceObject]
 public class TestServiceImpl : ITestService
 {
-    public async NetTask Send(int x)
+    public async Task Send(int x)
     {
         return;
     }
@@ -50,7 +50,7 @@ public class TestServiceImpl : ITestService
 [NetServiceObject]
 public class TestServiceImpl2 : TestServiceImpl
 {
-    public async NetTask Send2(int x)
+    public async Task Send2(int x)
     {
         return;
     }
@@ -61,22 +61,22 @@ public class ParentClass
     [NetServiceObject]
     internal class NestedServiceImpl3 : ITestService3
     {
-        public async NetTask<int> Increment3(int x)
+        public async Task<int> Increment3(int x)
         {
             Console.WriteLine("Increment3");
             return x + 1;
         }
 
-        public async NetTask Send3(string x, int y)
+        public async Task Send3(string x, int y)
         {
         }
 
-        public async NetTask<BytePool.RentMemory> SendMemoryOwner(BytePool.RentMemory rentMemory)
+        public async Task<BytePool.RentMemory> SendMemoryOwner(BytePool.RentMemory rentMemory)
         {
             return rentMemory;
         }
 
-        public async NetTask<BytePool.RentReadOnlyMemory> SendReadOnlyMemoryOwner(BytePool.RentReadOnlyMemory rentMemory)
+        public async Task<BytePool.RentReadOnlyMemory> SendReadOnlyMemoryOwner(BytePool.RentReadOnlyMemory rentMemory)
         {
             return rentMemory;
         }
@@ -85,6 +85,6 @@ public class ParentClass
     [NetServiceInterface]
     public interface INestedService : INetService
     {
-        public NetTask<int> Increment3(int x);
+        public Task<int> Increment3(int x);
     }
 }

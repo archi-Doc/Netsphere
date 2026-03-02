@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace Netsphere;
 
-/// <summary>
+/*/// <summary>
 /// Represents the result of a net service call as Task-like.
 /// </summary>
 /// <typeparam name="TResponse">The type of the result.</typeparam>
@@ -236,4 +236,4 @@ public readonly struct NetTask
     /// </summary>
     /// <returns>An awaiter instance.</returns>
     public TaskAwaiter GetAwaiter() => this.ValueAsync.GetAwaiter();
-}
+}*/

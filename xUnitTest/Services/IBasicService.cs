@@ -7,42 +7,45 @@ namespace xUnitTest.NetsphereTest;
 [NetServiceInterface]
 public interface IBasicService : INetService
 {
-    public NetTask SendInt(int x);
+    public Task<NetResult> SendInt(int x);
 
-    public NetTask<int> IncrementInt(int x);
+    public Task<int> IncrementInt(int x);
 
-    public NetTask<int> SumInt(int x, int y);
+    public Task<int> SumInt(int x, int y);
 
-    public NetTask TestResult();
+    public Task<NetResult> TestResult();
 
-    public NetTask<NetResult> TestResult2();
+    public Task<NetResult> TestResult2();
 
-    public NetTask<NetResultAndValue<int>> TestResult3(int x);
+    public Task<NetResultAndValue<int>> TestResult3(int x);
 }
 
 [NetServiceObject]
 public class BasicServiceImpl : IBasicService
 {
-    public async NetTask SendInt(int x)
+    public async Task<NetResult> SendInt(int x)
     {
+        return NetResult.Success;
     }
 
-    public async NetTask<int> IncrementInt(int x) => x + 1;
+    public async Task<int> IncrementInt(int x) => x + 1;
 
-    public async NetTask<int> SumInt(int x, int y) => x + y;
+    public async Task<int> SumInt(int x, int y) => x + y;
 
-    async NetTask IBasicService.TestResult()
+    async Task<NetResult> IBasicService.TestResult()
     {
-        TransmissionContext.Current.Result = NetResult.InvalidOperation;
+        var result = NetResult.InvalidOperation;
+        TransmissionContext.Current.Result = result;
+        return result;
     }
 
-    async NetTask<NetResult> IBasicService.TestResult2()
+    async Task<NetResult> IBasicService.TestResult2()
     {
         TransmissionContext.Current.Result = NetResult.BlockSizeLimit;
         return NetResult.StreamLengthLimit;
     }
 
-    async NetTask<NetResultAndValue<int>> IBasicService.TestResult3(int x)
+    async Task<NetResultAndValue<int>> IBasicService.TestResult3(int x)
     {
         return new(NetResult.Completed, x);
     }

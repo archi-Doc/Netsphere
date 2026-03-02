@@ -79,16 +79,14 @@ public class RelayTest
         {
             connection.IsNotNull();
             var basicService = connection.GetService<IBasicService>();
-            var task = await basicService.SendInt(1).ResponseAsync;
-            task.Result.Is(NetResult.Success);
+            var task = await basicService.SendInt(1);
+            task.Is(NetResult.Success);
 
-            var task2 = await basicService.IncrementInt(2).ResponseAsync;
-            task2.Result.Is(NetResult.Success);
-            task2.Value.Is(3);
+            var task2 = await basicService.IncrementInt(2);
+            task2.Is(3);
 
-            task2 = await basicService.SumInt(3, 4).ResponseAsync;
-            task2.Result.Is(NetResult.Success);
-            task2.Value.Is(7);
+            task2 = await basicService.SumInt(3, 4);
+            task2.Is(7);
 
             for (var i = 0; i < 10_000; i += 1_000)
             {
@@ -98,12 +96,11 @@ public class RelayTest
                 memory.Value.Span.SequenceEqual(array).IsTrue();
             }
 
-            var r = await basicService.TestResult().ResponseAsync;
-            r.Result.Is(NetResult.InvalidOperation);
+            var r = await basicService.TestResult();
+            r.Is(NetResult.InvalidOperation);
 
-            var r2 = await basicService.TestResult2().ResponseAsync;
-            r2.Result.Is(NetResult.StreamLengthLimit);
-            r2.Value.Is(NetResult.StreamLengthLimit);
+            var r2 = await basicService.TestResult2();
+            r2.Is(NetResult.StreamLengthLimit);
         }
 
         var st = await netTerminal.OutgoingCircuit.UnsafeDetailedToString();
@@ -174,8 +171,8 @@ public class RelayTest
             connection.IsNotNull();
 
             var basicService = connection.GetService<IBasicService>();
-            var task = await basicService.SendInt(1).ResponseAsync;
-            task.Result.Is(NetResult.Success);
+            var task = await basicService.SendInt(1);
+            task.Is(NetResult.Success);
         }
 
         await alternative.IncomingCircuit.Close();
