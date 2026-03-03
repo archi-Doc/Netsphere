@@ -377,7 +377,7 @@ SendNoNetService:
     {
         foreach (var x in this.agentInstances)
         {
-            if (x is INetObject netObject)
+            if (x is INetServiceObject netObject)
             {
                 netObject.OnConnectionClosed();
             }
