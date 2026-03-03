@@ -52,7 +52,7 @@ public class ServerConnectionContext
         // this.serviceScope = serverConnection.ConnectionTerminal.ServiceProvider.CreateScope();
         this.NetTerminal = serverConnection.ConnectionTerminal.NetTerminal;
         this.ServerConnection = serverConnection;
-
+        //
         this.serviceTable = this.NetTerminal.Services.GetTable();
         this.agentInstances = new object[this.serviceTable.Count];
     }

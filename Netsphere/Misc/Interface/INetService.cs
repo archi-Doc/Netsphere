@@ -19,11 +19,12 @@ public interface INetService
 public interface INetServiceWithUpdateAgreement : INetService
 {
     /// <summary>
-    /// Determines whether to allow updates to the agreement.<br/>
-    /// Returning <see cref="NetResult.Success"/> will update the agreement on both the Server and Client sides.
+    /// Updates the connection agreement using the provided certificate token.
     /// </summary>
-    /// <param name="token">A token.</param>
-    /// <returns><see cref="NetResult.Success"/> to update the agreement.</returns>
+    /// <param name="token">A certificate token containing the connection agreement to be updated.</param>
+    /// <returns>
+    /// A <see cref="Task{NetResult}"/> representing the asynchronous operation result of the agreement update.
+    /// </returns>
     Task<NetResult> UpdateAgreement(CertificateToken<ConnectionAgreement> token);
 }
 
@@ -33,11 +34,11 @@ public interface INetServiceWithUpdateAgreement : INetService
 public interface INetServiceWithConnectBidirectionally : INetService
 {
     /// <summary>
-    /// Determines whether to enable bidirectional connection.<br/>
-    /// Returning <see cref="NetResult.Success"/> prepares the connection on both the Server and Client sides.
+    /// Establishes a bidirectional connection using the provided agreement token.<br/>
+    /// Returning <see cref="NetResult.Success"/> will enable bidirectional communication between client and server.
     /// </summary>
-    /// <param name="token">A token.</param>
-    /// <returns><see cref="NetResult.Success"/> to enable bidirectional connection.</returns>
+    /// <param name="token">A certificate token containing the connection agreement, or <c>null</c> if not required.</param>
+    /// <returns>A <see cref="Task{NetResult}"/> representing the result of the connection attempt.</returns>
     Task<NetResult> ConnectBidirectionally(CertificateToken<ConnectionAgreement>? token);
 }
 
