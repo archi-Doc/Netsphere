@@ -372,4 +372,17 @@ SendNoNetService:
 
         return (serviceMethod, this.agentInstances[agent.Index]);
     }
+
+    internal void DisposeActual()
+    {
+        foreach (var x in this.agentInstances)
+        {
+            if (x is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
+
+        Array.Clear(this.agentInstances);
+    }
 }
