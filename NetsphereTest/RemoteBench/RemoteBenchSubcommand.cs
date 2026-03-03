@@ -66,6 +66,7 @@ public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
         // var r = await connection.ConnectBidirectionally(token);
         // await Console.Out.WriteLineAsync($"{r}: {connection.Agreement}");
 
+        connection.PrepareBidirectionalConnection();
         var service = connection.GetService<IRemoteBenchHost>();
 
         // var r = await service.UpdateAgreement(token);
