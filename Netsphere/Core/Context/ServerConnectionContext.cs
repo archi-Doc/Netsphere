@@ -372,4 +372,17 @@ SendNoNetService:
 
         return (serviceMethod, this.agentInstances[agent.Index]);
     }
+
+    internal void DisposeActual()
+    {
+        foreach (var x in this.agentInstances)
+        {
+            if (x is INetObject netObject)
+            {
+                netObject.OnConnectionClosed();
+            }
+        }
+
+        Array.Clear(this.agentInstances);
+    }
 }

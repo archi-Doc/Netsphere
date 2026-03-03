@@ -1,6 +1,7 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
 
 namespace Netsphere.Crypto;
 
@@ -413,6 +414,10 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
         }
     }
 
+    /// <summary>
+    /// Clears the sensitive information held by the SeedKey.<br/>
+    /// Since SeedKey does not hold any resources, this is not intended for releasing resources.
+    /// </summary>
     public void Dispose()
     {
         this.Clear();

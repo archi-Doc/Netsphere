@@ -91,4 +91,12 @@ public sealed partial class ServerConnection : Connection, IEquatable<ServerConn
 
     public void Close()
         => this.Dispose();
+
+    internal override void OnStateChanged()
+    {
+        if (this.CurrentState == State.Disposed)
+        {// Disposed
+            this.context.DisposeActual();
+        }
+    }
 }

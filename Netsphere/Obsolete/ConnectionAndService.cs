@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Netsphere;
 
-/// <summary>
+/*/// <summary>
 /// Represents a combination of a network connection and a service, providing functionality to manage their lifecycle.
 /// </summary>
 /// <remarks>This structure encapsulates a <see cref="Connection"/> and a <typeparamref name="TService"/>
@@ -49,4 +49,4 @@ public readonly record struct ConnectionAndService<TService>(NetResult Result, C
     {
         this.Connection?.Dispose();
     }
-}
+}*/

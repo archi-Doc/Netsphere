@@ -1288,9 +1288,6 @@ Wait:
 
     internal virtual void OnStateChanged()
     {
-        if (this.CurrentState == State.Disposed)
-        {
-        }
     }
 
     internal void TerminateInternal()
