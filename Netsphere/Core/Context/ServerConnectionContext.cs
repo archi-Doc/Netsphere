@@ -377,9 +377,9 @@ SendNoNetService:
     {
         foreach (var x in this.agentInstances)
         {
-            if (x is IDisposable disposable)
+            if (x is INetObject netObject)
             {
-                disposable.Dispose();
+                netObject.OnConnectionClosed();
             }
         }
 

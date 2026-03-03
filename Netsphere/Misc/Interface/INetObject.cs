@@ -3,7 +3,7 @@
 namespace Netsphere;
 
 /// <summary>
-/// Represents a network object that can respond to connection closure events.
+/// An attribute added to a NetObject class that provides a NetService, allowing connection-related callback methods to be added.
 /// </summary>
 public interface INetObject
 {
