@@ -7,7 +7,7 @@ namespace Netsphere;
 
 public sealed class ServiceControl
 {
-    public sealed class Table
+    internal sealed class Table
     {
         public readonly record struct Agent(NetServiceObject AgentInformation, int Index);
 
@@ -46,18 +46,6 @@ public sealed class ServiceControl
     private readonly Dictionary<uint, NetServiceObject> serviceIdToAgentInformation = new();
     private Table? table;
 
-    public Table GetTable()
-    {
-        if (this.table is { } table)
-        {
-            return table;
-        }
-
-        var newTable = new Table(this.serviceIdToAgentInformation);
-        Interlocked.CompareExchange(ref this.table, newTable, null);
-        return newTable;
-    }
-
     #endregion
 
     public void Register<TService, TAgent>()
@@ -89,7 +77,7 @@ public sealed class ServiceControl
     {
         using (this.lockObject.EnterScope())
         {
-            var serviceId = ServiceTypeToId<TService>();
+            var serviceId = StaticNetService.GetServiceId<TService>();
             this.serviceIdToAgentInformation.Remove(serviceId);
 
             this.ResetTable();
@@ -100,26 +88,29 @@ public sealed class ServiceControl
     {
         using (this.lockObject.EnterScope())
         {
-            var serviceId = ServiceTypeToId(serviceType);
+            var serviceId = StaticNetService.GetServiceId(serviceType);
             this.serviceIdToAgentInformation.Remove(serviceId);
 
             this.ResetTable();
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint ServiceTypeToId<TService>()
-        where TService : INetService
-        => StaticNetService.GetServiceId<TService>();
+    internal Table GetTable()
+    {
+        if (this.table is { } table)
+        {
+            return table;
+        }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint ServiceTypeToId(Type serviceType)
-        => StaticNetService.GetServiceId(serviceType);
+        var newTable = new Table(this.serviceIdToAgentInformation);
+        Interlocked.CompareExchange(ref this.table, newTable, null);
+        return newTable;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Register(uint serviceId, Type agentType)
     {
-        if (!StaticNetService.TryGetAgentInfo(agentType, out var info))
+        if (!StaticNetService.TryGetNetServiceObject(agentType, out var info))
         {
             throw new InvalidOperationException("Failed to register the class with the corresponding ServiceId.");
         }

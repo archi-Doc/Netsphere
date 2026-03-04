@@ -1003,7 +1003,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         using (var scopeMethod = ssb.ScopeBrace($"public static void Agent_{serviceIdString}()"))
         {
             var createAgent = this.ObjectFlag.HasFlag(NetsphereObjectFlag.HasDefaultConstructor) ? $"static () => new {this.FullName}()" : "null";
-            ssb.AppendLine($"var info = StaticNetService.GetOrAddAgentInformation(typeof({this.FullName}), {createAgent});"); // 0x{serviceIdString}u
+            ssb.AppendLine($"var info = StaticNetService.GetOrAddNetServiceObject(typeof({this.FullName}), {createAgent});"); // 0x{serviceIdString}u
             if (serviceInterface.ServiceMethods != null)
             {
                 foreach (var x in serviceInterface.ServiceMethods.Values)

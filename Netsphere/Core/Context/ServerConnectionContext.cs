@@ -96,7 +96,7 @@ public class ServerConnectionContext
 
     public bool EnableNetService<TService>()
     {
-        if (!StaticNetService.TryGetAgentInfo(typeof(TService), out var info))
+        if (!StaticNetService.TryGetNetServiceObject(typeof(TService), out var info))
         {// Not found
             return false;
         }
