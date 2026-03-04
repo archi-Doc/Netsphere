@@ -1,11 +1,16 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Netsphere;
 
 public static class StaticNetService
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint GetServiceId<TService>()
+        => TinyhandTypeIdentifier.GetTypeIdentifier<TService>();
+
     public static void SetFrontendDelegate<TService>(ServerConnectionContext.CreateFrontendDelegate @delegate)
         where TService : INetService
     {

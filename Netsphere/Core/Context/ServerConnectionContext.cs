@@ -2,10 +2,12 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Netsphere.Core;
 using Netsphere.Crypto;
 using Netsphere.Relay;
+using Netsphere.Service;
 
 #pragma warning disable SA1202
 
@@ -42,6 +44,9 @@ internal class ExampleConnectionContext : ServerConnectionContext
 
 public class ServerConnectionContext
 {
+    private const int InitialServiceCapacity = 4;
+    private const int ResizeServiceCapacity = 4;
+
     #region Service
 
     public delegate INetService CreateFrontendDelegate(ClientConnection clientConnection);
@@ -72,6 +77,46 @@ public class ServerConnectionContext
     // private readonly IServiceScope serviceScope;
     private readonly ServiceControl.Table serviceTable;
     private readonly object[] agentInstances;
+
+    private ServiceIdAndAgent[] services;
+
+    #endregion
+
+    #region NetService
+
+    public bool IsNetServiceEnabled<TService>()
+    {
+        var serviceId = StaticNetService.GetServiceId<TService>();
+        var array = Volatile.Read(ref this.services);
+        foreach (var x in array)
+        {
+            if (x.ServiceId == serviceId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public bool EnableNetService<TService>()
+    {
+        Array.Resize();
+    }
+
+    public bool DisableNetService<TService>()
+    {
+        var serviceId = StaticNetService.GetServiceId<TService>();
+        var array = Volatile.Read(ref this.services);
+        for (var i = 0; i < array.Length; i++)
+        {
+            if (array[i].ServiceId == serviceId)
+            {
+                Array.
+                return true;
+            }
+        }
+    }
 
     #endregion
 
