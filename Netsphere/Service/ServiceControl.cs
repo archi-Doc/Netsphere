@@ -9,17 +9,17 @@ public sealed class ServiceControl
 {
     public sealed class Table
     {
-        public readonly record struct Agent(AgentInformation AgentInformation, int Index);
+        public readonly record struct Agent(NetServiceObject AgentInformation, int Index);
 
-        public Table(Dictionary<uint, AgentInformation> serviceIdToAgentInformation)
+        public Table(Dictionary<uint, NetServiceObject> serviceIdToAgentInformation)
         {
             var typeToIndex = new Dictionary<Type, int>();
             foreach (var (serviceId, agentInformation) in serviceIdToAgentInformation)
             {
-                if (!typeToIndex.TryGetValue(agentInformation.AgentType, out var index))
+                if (!typeToIndex.TryGetValue(agentInformation.Type, out var index))
                 {
                     index = typeToIndex.Count;
-                    typeToIndex.TryAdd(agentInformation.AgentType, index);
+                    typeToIndex.TryAdd(agentInformation.Type, index);
                 }
 
                 this.serviceIdToAgentInformation.TryAdd(serviceId, new Agent(agentInformation, index));
@@ -43,7 +43,7 @@ public sealed class ServiceControl
     #region FieldAndProperty
 
     private readonly Lock lockObject = new();
-    private readonly Dictionary<uint, AgentInformation> serviceIdToAgentInformation = new();
+    private readonly Dictionary<uint, NetServiceObject> serviceIdToAgentInformation = new();
     private Table? table;
 
     public Table GetTable()
@@ -106,17 +106,6 @@ public sealed class ServiceControl
             this.ResetTable();
         }
     }
-
-    /*public bool TryGet<TService>([MaybeNullWhen(false)] out AgentInformation info)
-        where TService : INetService
-    {
-        var serviceId = ServiceTypeToId<TService>();
-        return this.TryGet(serviceId, out info);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGet(uint serviceId, [MaybeNullWhen(false)] out AgentInformation info)
-        => this.serviceIdToAgentInfo.TryGetValue(serviceId, out info);*/
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint ServiceTypeToId<TService>()

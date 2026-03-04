@@ -2,9 +2,9 @@
 
 namespace Netsphere.Service;
 
-internal readonly record struct ServiceIdAndAgent
+internal readonly record struct ServiceIdAndObject
 {
-    public ServiceIdAndAgent(uint serviceId, AgentInformation agentInformation)
+    public ServiceIdAndObject(uint serviceId, NetServiceObject agentInformation)
     {
         this.ServiceId = serviceId;
         this.AgentInformation = agentInformation;
@@ -12,5 +12,5 @@ internal readonly record struct ServiceIdAndAgent
 
     public readonly uint ServiceId;
 
-    public readonly AgentInformation AgentInformation;
+    public readonly NetServiceObject AgentInformation;
 }

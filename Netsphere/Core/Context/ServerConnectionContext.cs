@@ -1,4 +1,4 @@
-﻿// Copyright (c) All contqributors. All rights reserved. Licensed under the MIT license.
+﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -73,7 +73,7 @@ public class ServerConnectionContext
     private readonly ServiceControl.Table serviceTable;
     private readonly object[] agentInstances;
 
-    private ServiceIdAndAgent[] immutableServices;
+    private ServiceIdAndObject[] immutableServices;
 
     #endregion
 
@@ -111,7 +111,7 @@ public class ServerConnectionContext
             }
         }
 
-        var newArray = new ServiceIdAndAgent[array.Length + 1];
+        var newArray = new ServiceIdAndObject[array.Length + 1];
         Array.Copy(array, newArray, array.Length);
         newArray[array.Length] = new(serviceId, info);
         Volatile.Write(ref this.immutableServices, newArray);
@@ -126,7 +126,7 @@ public class ServerConnectionContext
         {
             if (array[i].ServiceId == serviceId)
             {
-                var newArray = new ServiceIdAndAgent[array.Length - 1];
+                var newArray = new ServiceIdAndObject[array.Length - 1];
                 if (i > 0)
                 {
                     Array.Copy(array, newArray, i);
@@ -433,8 +433,8 @@ SendNoNetService:
 
         if (this.agentInstances[agent.Index] is null)
         {
-            var instance = this.ServiceProvider?.GetService(agent.AgentInformation.AgentType);
-            instance ??= agent.AgentInformation.CreateAgent?.Invoke();
+            var instance = this.ServiceProvider?.GetService(agent.AgentInformation.Type);
+            instance ??= agent.AgentInformation.Factory?.Invoke();
             if (instance is null)
             {// No instance
                 return default;

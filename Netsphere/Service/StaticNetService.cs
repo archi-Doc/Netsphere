@@ -36,7 +36,7 @@ public static class StaticNetService
         throw new InvalidOperationException($"Could not create a frontend instance of NetService '{typeof(TService).ToString()}'.");
     }
 
-    public static AgentInformation GetOrAddAgentInformation(Type agentType, Func<object>? createAgent)
+    public static NetServiceObject GetOrAddAgentInformation(Type agentType, Func<object>? createAgent)
     {
         return typeToAgentInfo.GetOrAdd(agentType, x =>
         {
@@ -44,14 +44,14 @@ public static class StaticNetService
         });
     }
 
-    public static void TryAddAgentInfo(AgentInformation info)
-        => typeToAgentInfo.TryAdd(info.AgentType, info);
+    public static void TryAddAgentInfo(NetServiceObject info)
+        => typeToAgentInfo.TryAdd(info.Type, info);
 
-    public static bool TryGetAgentInfo(Type agentType, [MaybeNullWhen(false)] out AgentInformation info)
+    public static bool TryGetAgentInfo(Type agentType, [MaybeNullWhen(false)] out NetServiceObject info)
         => typeToAgentInfo.TryGetValue(agentType, out info);
 
-    private static ThreadsafeTypeKeyHashtable<AgentInformation> typeToAgentInfo = new();
-    private static UInt32Hashtable<AgentInformation> serviceIdToAgentInfo = new();
+    private static ThreadsafeTypeKeyHashtable<NetServiceObject> typeToAgentInfo = new();
+    private static UInt32Hashtable<NetServiceObject> serviceIdToAgentInfo = new();
 
     private static class DelegateCache<T>
     {
