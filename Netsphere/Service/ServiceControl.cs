@@ -66,7 +66,7 @@ public sealed class ServiceControl
     {
         using (this.lockObject.EnterScope())
         {
-            var serviceId = ServiceTypeToId<TService>();
+            var serviceId = StaticNetService.GetServiceId<TService>();
             this.Register(serviceId, typeof(TAgent));
 
             this.ResetTable();
@@ -77,7 +77,7 @@ public sealed class ServiceControl
     {
         using (this.lockObject.EnterScope())
         {
-            var serviceId = ServiceTypeToId(serviceType);
+            var serviceId = StaticNetService.GetServiceId(serviceType);
             this.Register(serviceId, agentType);
 
             this.ResetTable();
@@ -121,11 +121,11 @@ public sealed class ServiceControl
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint ServiceTypeToId<TService>()
         where TService : INetService
-        => (uint)FarmHash.Hash64(typeof(TService).FullName ?? string.Empty);
+        => StaticNetService.GetServiceId<TService>();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint ServiceTypeToId(Type serviceType)
-        => (uint)FarmHash.Hash64(serviceType.FullName ?? string.Empty);
+        => StaticNetService.GetServiceId(serviceType);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Register(uint serviceId, Type agentType)

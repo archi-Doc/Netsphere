@@ -7,14 +7,33 @@ namespace Netsphere;
 
 public static class StaticNetService
 {
+    public delegate INetService FrontendFactoryDelegate(ClientConnection clientConnection);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetServiceId<TService>()
         => TinyhandTypeIdentifier.GetTypeIdentifier<TService>();
 
-    public static void SetFrontendDelegate<TService>(ServerConnectionContext.CreateFrontendDelegate @delegate)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint GetServiceId(Type serviceType)
+        => TinyhandTypeIdentifier.GetTypeIdentifier(serviceType);
+
+    public static void SetFrontendFactory<TService>(FrontendFactoryDelegate factoryDelegate)
         where TService : INetService
     {
-        DelegateCache<TService>.Create = @delegate;
+        DelegateCache<TService>.FactoryDelegate = factoryDelegate;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TService CreateFrontend<TService>(ClientConnection clientConnection)
+        where TService : INetService
+    {
+        var factoryDelegate = DelegateCache<TService>.FactoryDelegate;
+        if (factoryDelegate is not null && factoryDelegate(clientConnection) is TService service)
+        {
+            return service;
+        }
+
+        throw new InvalidOperationException($"Could not create a frontend instance of NetService '{typeof(TService).ToString()}'.");
     }
 
     public static AgentInformation GetOrAddAgentInformation(Type agentType, Func<object>? createAgent)
@@ -31,25 +50,13 @@ public static class StaticNetService
     public static bool TryGetAgentInfo(Type agentType, [MaybeNullWhen(false)] out AgentInformation info)
         => typeToAgentInfo.TryGetValue(agentType, out info);
 
-    public static TService CreateClient<TService>(ClientConnection clientConnection)
-        where TService : INetService
-    {
-        var create = DelegateCache<TService>.Create;
-        if (create != null && create(clientConnection) is TService service)
-        {
-            return service;
-        }
-
-        throw new InvalidOperationException($"Could not create an instance of the net service {typeof(TService).ToString()}.");
-    }
-
     private static ThreadsafeTypeKeyHashtable<AgentInformation> typeToAgentInfo = new();
     private static UInt32Hashtable<AgentInformation> serviceIdToAgentInfo = new();
 
     private static class DelegateCache<T>
     {
 #pragma warning disable SA1401 // Fields should be private
-        internal static ServerConnectionContext.CreateFrontendDelegate? Create;
+        internal static FrontendFactoryDelegate? FactoryDelegate;
 #pragma warning restore SA1401 // Fields should be private
 
         static DelegateCache()

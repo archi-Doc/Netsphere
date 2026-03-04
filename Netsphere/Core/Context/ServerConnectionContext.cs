@@ -1,4 +1,4 @@
-﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
+﻿// Copyright (c) All contqributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -44,12 +44,7 @@ internal class ExampleConnectionContext : ServerConnectionContext
 
 public class ServerConnectionContext
 {
-    private const int InitialServiceCapacity = 4;
-    private const int ResizeServiceCapacity = 4;
-
     #region Service
-
-    public delegate INetService CreateFrontendDelegate(ClientConnection clientConnection);
 
     public ServerConnectionContext(ServerConnection serverConnection)
     {
@@ -78,7 +73,7 @@ public class ServerConnectionContext
     private readonly ServiceControl.Table serviceTable;
     private readonly object[] agentInstances;
 
-    private ServiceIdAndAgent[] services;
+    private ServiceIdAndAgent[] immutableServices;
 
     #endregion
 
@@ -87,7 +82,7 @@ public class ServerConnectionContext
     public bool IsNetServiceEnabled<TService>()
     {
         var serviceId = StaticNetService.GetServiceId<TService>();
-        var array = Volatile.Read(ref this.services);
+        var array = Volatile.Read(ref this.immutableServices);
         foreach (var x in array)
         {
             if (x.ServiceId == serviceId)
@@ -101,21 +96,54 @@ public class ServerConnectionContext
 
     public bool EnableNetService<TService>()
     {
-        Array.Resize();
+        if (!StaticNetService.TryGetAgentInfo(typeof(TService), out var info))
+        {// Not found
+            return false;
+        }
+
+        var serviceId = StaticNetService.GetServiceId<TService>();
+        var array = Volatile.Read(ref this.immutableServices);
+        foreach (var x in array)
+        {
+            if (x.ServiceId == serviceId)
+            {// Found
+                return true;
+            }
+        }
+
+        var newArray = new ServiceIdAndAgent[array.Length + 1];
+        Array.Copy(array, newArray, array.Length);
+        newArray[array.Length] = new(serviceId, info);
+        Volatile.Write(ref this.immutableServices, newArray);
+        return true;
     }
 
     public bool DisableNetService<TService>()
     {
         var serviceId = StaticNetService.GetServiceId<TService>();
-        var array = Volatile.Read(ref this.services);
+        var array = Volatile.Read(ref this.immutableServices);
         for (var i = 0; i < array.Length; i++)
         {
             if (array[i].ServiceId == serviceId)
             {
-                Array.
+                var newArray = new ServiceIdAndAgent[array.Length - 1];
+                if (i > 0)
+                {
+                    Array.Copy(array, newArray, i);
+                }
+
+                if (i < array.Length - 1)
+                {
+                    Array.Copy(array, i + 1, newArray, i, array.Length - i - 1);
+                }
+
+                Volatile.Write(ref this.immutableServices, newArray);
                 return true;
             }
         }
+
+        // Not found
+        return false;
     }
 
     #endregion
