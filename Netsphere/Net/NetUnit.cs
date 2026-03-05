@@ -172,11 +172,12 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
         this.Responders = new();
         this.Services = new();
 
-        var netsphereContext = context.ServiceProvider.GetRequiredService<NetsphereUnitContext>();
+        //
+        /*var netsphereContext = context.ServiceProvider.GetRequiredService<NetsphereUnitContext>();
         foreach (var x in netsphereContext.ServiceToAgent)
         {
             this.Services.Register(x.Key, x.Value);
-        }
+        }*/
 
         this.NetTerminal = netTerminal;
         this.NetTerminal.Initialize(this.Responders, this.Services, false);

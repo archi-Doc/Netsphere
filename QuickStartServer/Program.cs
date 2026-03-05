@@ -31,8 +31,8 @@ public class Program
             })
             .ConfigureNetsphere(context =>
             {// Register the services provided by the server.
-                context.AddNetService<ITestService, TestServiceAgent>();
-                context.AddNetService<ITestService2, TestServiceAgent>();
+                // context.AddNetService<ITestService, TestServiceAgent>();
+                // context.AddNetService<ITestService2, TestServiceAgent>();
             })
             .PostConfigure(context =>
             {

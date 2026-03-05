@@ -1,25 +1,34 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Netsphere;
 
 internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
 {
+    internal readonly record struct Item(Type ServiceType, Type ObjectType, ServiceLifetime ServiceLifetime);
+
+    private readonly List<Item> items = new();
+
     void IUnitCustomContext.ProcessContext(IUnitConfigurationContext context)
     {
         context.SetOptions(this);
 
-        foreach (var x in this.ServiceToAgent.Values)
+        foreach (var x in StaticNetService.ServiceToObject)
         {
-            context.Services.TryAddTransient(x);
+            context.Services.TryAddScoped(x.Key, x.Value.Type);
+        }
+
+        foreach (var x in this.items)
+        {
+            var serviceDescriptor = ServiceDescriptor.Describe(x.ServiceType, x.ObjectType, x.ServiceLifetime);
+            context.Services.Add(serviceDescriptor);
         }
     }
 
-    void INetsphereUnitContext.AddNetService<TService, TAgent>()
+    void INetsphereUnitContext.AddNetService<TNetService, TNetObject>(ServiceLifetime lifetime)
     {
-        this.ServiceToAgent.TryAdd(typeof(TService), typeof(TAgent));
+        this.items.Add(new(typeof(TNetService), typeof(TNetObject), lifetime));
     }
-
-    internal Dictionary<Type, Type> ServiceToAgent { get; } = new();
 }

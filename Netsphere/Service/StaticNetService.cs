@@ -5,9 +5,14 @@ using System.Runtime.CompilerServices;
 
 namespace Netsphere;
 
+#pragma warning disable SA1401 // Fields should be private
+
 public static class StaticNetService
 {
     public delegate INetService FrontendFactoryDelegate(ClientConnection clientConnection);
+
+    internal static Dictionary<Type, NetServiceObject> ServiceToObject = new();
+    private static ThreadsafeTypeKeyHashtable<NetServiceObject> typeToObject = new();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetServiceId<TService>()
@@ -24,16 +29,16 @@ public static class StaticNetService
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TService CreateFrontend<TService>(ClientConnection clientConnection)
-        where TService : INetService
+    public static TNetService CreateFrontend<TNetService>(ClientConnection clientConnection)
+        where TNetService : INetService
     {
-        var factoryDelegate = DelegateCache<TService>.FactoryDelegate;
-        if (factoryDelegate is not null && factoryDelegate(clientConnection) is TService service)
+        var factoryDelegate = DelegateCache<TNetService>.FactoryDelegate;
+        if (factoryDelegate is not null && factoryDelegate(clientConnection) is TNetService service)
         {
             return service;
         }
 
-        throw new InvalidOperationException($"Could not create a frontend instance of NetService '{typeof(TService).ToString()}'.");
+        throw new InvalidOperationException($"Could not create a frontend instance of NetService '{typeof(TNetService).ToString()}'.");
     }
 
     public static NetServiceObject GetOrAddNetServiceObject(Type objectType, Func<object>? factory)
@@ -42,32 +47,23 @@ public static class StaticNetService
             return new(objectType, factory);
         });
 
-    public static bool TryGetNetServiceObject(Type agentType, [MaybeNullWhen(false)] out NetServiceObject info)
-        => typeToObject.TryGetValue(agentType, out info);
+    public static bool TryGetNetServiceObject(Type objectType, [MaybeNullWhen(false)] out NetServiceObject netServiceObject)
+        => typeToObject.TryGetValue(objectType, out netServiceObject);
 
-    public static bool AddNetService<TService, TAgent>(bool enableByDefault)
-        where TService : INetService
-        where TAgent : class, TService
+    public static bool AddNetService<TNetService, TNetObject>()
+        where TNetService : INetService
+        where TNetObject : class, TNetService
     {
-        if (!typeToObject.TryGetValue(typeof(TAgent), out var netServiceObject))
+        if (!typeToObject.TryGetValue(typeof(TNetObject), out var netServiceObject))
         {
             return false;
         }
 
-        if (enableByDefault)
-        {
-        }
-
-        return serviceToObject.TryAdd(typeof(TService), netServiceObject);
+        return ServiceToObject.TryAdd(typeof(TNetService), netServiceObject);
     }
-
-    private static ThreadsafeTypeKeyHashtable<NetServiceObject> typeToObject = new();
-    private static ThreadsafeTypeKeyHashtable<NetServiceObject> serviceToObject = new();
-    // private static UInt32Hashtable<NetServiceObject> serviceIdToAgentInfo = new();
 
     private static class DelegateCache<T>
     {
-#pragma warning disable SA1401 // Fields should be private
         internal static FrontendFactoryDelegate? FactoryDelegate;
 #pragma warning restore SA1401 // Fields should be private
 
