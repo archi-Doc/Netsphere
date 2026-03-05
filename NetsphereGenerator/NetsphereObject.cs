@@ -1000,8 +1000,9 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
     internal void GenerateBackend_AgentInfo(ScopingStringBuilder ssb, GeneratorInformation info, NetsphereObject serviceInterface)
     {
         var serviceIdString = serviceInterface.NetServiceInterfaceAttribute!.ServiceId.ToString("x");
-        using (var scopeMethod = ssb.ScopeBrace($"public static void Agent_{serviceIdString}()"))
+        using (var scopeMethod = ssb.ScopeBrace($"public static void Object_{serviceIdString}()"))
         {
+            ssb.AppendLine($"StaticNetService.AddNetService<{serviceInterface.FullName}, {this.FullName}>();");
             var createAgent = this.ObjectFlag.HasFlag(NetsphereObjectFlag.HasDefaultConstructor) ? $"static () => new {this.FullName}()" : "null";
             ssb.AppendLine($"var info = StaticNetService.GetOrAddNetServiceObject(typeof({this.FullName}), {createAgent});"); // 0x{serviceIdString}u
             if (serviceInterface.ServiceMethods != null)
@@ -1011,8 +1012,6 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                     ssb.AppendLine($"info.AddMethod(new ServiceMethod({x.IdString}, {x.MethodString}));");
                 }
             }
-
-            // ssb.AppendLine("return info;");
         }
     }
 

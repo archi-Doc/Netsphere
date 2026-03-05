@@ -229,7 +229,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                     {
                         foreach (var z in y.ServiceInterfaces)
                         {
-                            ssb.AppendLine($"{y.ClassName}.Agent_{z.NetServiceInterfaceAttribute!.ServiceId.ToString("x")}();");
+                            ssb.AppendLine($"{y.ClassName}.Object_{z.NetServiceInterfaceAttribute!.ServiceId.ToString("x")}();");
                         }
                     }
                 }
