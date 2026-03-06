@@ -11,7 +11,7 @@ public static class StaticNetService
 {
     public delegate INetService FrontendFactoryDelegate(ClientConnection clientConnection);
 
-    internal static Dictionary<Type, NetServiceObject> ServiceToObject = new();
+    internal static ThreadsafeTypeKeyHashtable<NetServiceObject> ServiceToObject = new();
     private static ThreadsafeTypeKeyHashtable<NetServiceObject> typeToObject = new();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -1,7 +1,6 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Netsphere;
 
@@ -15,7 +14,7 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
     {
         context.SetOptions(this);
 
-        foreach (var x in StaticNetService.ServiceToObject)
+        foreach (var x in StaticNetService.ServiceToObject.ToArray())
         {
             if (!this.NetServices.ContainsKey(x.Key))
             {

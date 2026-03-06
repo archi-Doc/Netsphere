@@ -1,8 +1,5 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Netsphere.Core;
 using Netsphere.Crypto;
@@ -44,19 +41,6 @@ internal class ExampleConnectionContext : ServerConnectionContext
 
 public class ServerConnectionContext
 {
-    #region Service
-
-    public ServerConnectionContext(ServerConnection serverConnection)
-    {
-        this.ServiceProvider = serverConnection.ConnectionTerminal.ServiceProvider;
-        // this.serviceScope = serverConnection.ConnectionTerminal.ServiceProvider.CreateScope();
-        this.NetTerminal = serverConnection.ConnectionTerminal.NetTerminal;
-        this.ServerConnection = serverConnection;
-        this.immutableServices = this.NetTerminal.Services.GetServiceArray();
-    }
-
-    #endregion
-
     #region FieldAndProperty
 
     public IServiceProvider ServiceProvider { get; }
@@ -68,12 +52,19 @@ public class ServerConnectionContext
     public AuthenticationToken? AuthenticationToken { get; private set; }
 
     // private readonly IServiceScope serviceScope;
-    private readonly ServiceControl.Table serviceTable;
-    private readonly object[] agentInstances;
-
     private ServiceIdAndObject[] immutableServices;
 
     #endregion
+
+    public ServerConnectionContext(ServerConnection serverConnection)
+    {
+        this.ServiceProvider = serverConnection.ConnectionTerminal.ServiceProvider;
+        // this.serviceScope = serverConnection.ConnectionTerminal.ServiceProvider.CreateScope();
+        this.NetTerminal = serverConnection.ConnectionTerminal.NetTerminal;
+        this.ServerConnection = serverConnection;
+        this.immutableServices = this.NetTerminal.Services.GetServiceArray();
+    }
+
 
     #region NetService
 
