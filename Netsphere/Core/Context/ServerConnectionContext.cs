@@ -53,8 +53,6 @@ public class ServerConnectionContext
         this.NetTerminal = serverConnection.ConnectionTerminal.NetTerminal;
         this.ServerConnection = serverConnection;
         this.immutableServices = this.NetTerminal.Services.GetServiceArray();
-        this.serviceTable = this.NetTerminal.Services.GetTable();
-        this.agentInstances = new object[this.serviceTable.Count];
     }
 
     #endregion
