@@ -7,12 +7,9 @@ namespace Netsphere;
 
 internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
 {
-    internal readonly record struct Item(Type ServiceType, Type ObjectType, ServiceLifetime ServiceLifetime);
-
     internal readonly record struct NetObjectAndLifetime(Type ObjectType, ServiceLifetime ServiceLifetime);
 
-    private readonly List<Item> items = new();
-    private readonly Dictionary<Type, NetObjectAndLifetime> Services = new();
+    internal Dictionary<Type, NetObjectAndLifetime> NetServices { get; } = new();
 
     void IUnitCustomContext.ProcessContext(IUnitConfigurationContext context)
     {
@@ -20,24 +17,21 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
 
         foreach (var x in StaticNetService.ServiceToObject)
         {
-            if (!this.Services.ContainsKey(x.Key))
+            if (!this.NetServices.ContainsKey(x.Key))
             {
-                this.Services.TryAdd(x.Key, new(x.Value.Type, ))
+                this.NetServices.TryAdd(x.Key, new(x.Value.Type, ServiceLifetime.Scoped));
             }
-
-            context.Services.TryAddScoped(x.Key, x.Value.Type);
         }
 
-        foreach (var x in this.items)
+        foreach (var x in this.NetServices)
         {
-            var serviceDescriptor = ServiceDescriptor.Describe(x.ServiceType, x.ObjectType, x.ServiceLifetime);
+            var serviceDescriptor = ServiceDescriptor.Describe(x.Key, x.Value.ObjectType, x.Value.ServiceLifetime);
             context.Services.Add(serviceDescriptor);
         }
     }
 
     void INetsphereUnitContext.AddNetService<TNetService, TNetObject>(ServiceLifetime lifetime)
     {
-        this.Services.Add(typeof(TNetService), new(typeof(TNetObject), lifetime));
-        // this.items.Add(new(typeof(TNetService), typeof(TNetObject), lifetime));
+        this.NetServices.Add(typeof(TNetService), new(typeof(TNetObject), lifetime));
     }
 }

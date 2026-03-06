@@ -52,7 +52,7 @@ public class ServerConnectionContext
         // this.serviceScope = serverConnection.ConnectionTerminal.ServiceProvider.CreateScope();
         this.NetTerminal = serverConnection.ConnectionTerminal.NetTerminal;
         this.ServerConnection = serverConnection;
-        //
+        this.immutableServices = this.NetTerminal.Services.GetServiceArray();
         this.serviceTable = this.NetTerminal.Services.GetTable();
         this.agentInstances = new object[this.serviceTable.Count];
     }
@@ -419,14 +419,19 @@ SendNoNetService:
 
     private (ServiceMethod? ServiceMethod, object AgentInstance) TryGetServiceMethod(ulong dataId)
     {
+        NetServiceObject? agentInformation = default;
         var serviceId = unchecked((uint)(dataId >> 32));
-        if (!this.serviceTable.TryGetAgent(serviceId, out var agent))
-        {// No agent (implementation)
-            return default;
+        var array = Volatile.Read(ref this.immutableServices);
+        foreach (var x in array)
+        {
+            if (x.ServiceId == serviceId)
+            {// Found
+                agentInformation = x.AgentInformation;
+                break;
+            }
         }
 
-        var agentInformation = agent.AgentInformation;
-        if (!agentInformation.TryGetMethod(dataId, out var serviceMethod))
+        if (agentInformation is null)
         {// No method
             return default;
         }
@@ -434,7 +439,7 @@ SendNoNetService:
         if (this.agentInstances[agent.Index] is null)
         {
             var instance = this.ServiceProvider?.GetService(agent.AgentInformation.Type);
-            instance ??= agent.AgentInformation.Factory?.Invoke();
+            instance ??= agentInformation.Factory?.Invoke();
             if (instance is null)
             {// No instance
                 return default;

@@ -6,6 +6,7 @@ using Netsphere.Crypto;
 using Netsphere.Packet;
 using Netsphere.Relay;
 using Netsphere.Responder;
+using Netsphere.Service;
 using Netsphere.Stats;
 
 namespace Netsphere;
