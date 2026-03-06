@@ -175,9 +175,10 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         this.NetSender.Stop();
     }
 
-    internal void Initialize(ResponderControl responders, bool isAlternative)
+    internal void Initialize(ResponderControl responders, ServiceControl services, bool isAlternative)
     {
         this.Responders = responders;
+        this.Services = services;
         this.IsAlternative = isAlternative;
 
         this.RelayControl.RegisterResponder(this.Responders);

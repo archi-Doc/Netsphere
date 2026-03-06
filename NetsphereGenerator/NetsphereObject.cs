@@ -1002,7 +1002,6 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         var serviceIdString = serviceInterface.NetServiceInterfaceAttribute!.ServiceId.ToString("x");
         using (var scopeMethod = ssb.ScopeBrace($"public static void Object_{serviceIdString}()"))
         {
-            ssb.AppendLine($"StaticNetService.AddNetService<{serviceInterface.FullName}, {this.FullName}>();");
             var createAgent = this.ObjectFlag.HasFlag(NetsphereObjectFlag.HasDefaultConstructor) ? $"static () => new {this.FullName}()" : "null";
             ssb.AppendLine($"var info = StaticNetService.GetOrAddNetServiceObject(typeof({this.FullName}), {createAgent});"); // 0x{serviceIdString}u
             if (serviceInterface.ServiceMethods != null)
@@ -1012,6 +1011,8 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                     ssb.AppendLine($"info.AddMethod(new ServiceMethod({x.IdString}, {x.MethodString}));");
                 }
             }
+
+            ssb.AppendLine($"StaticNetService.AddNetService<{serviceInterface.FullName}, {this.FullName}>();");
         }
     }
 

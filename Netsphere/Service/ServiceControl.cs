@@ -2,6 +2,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using static Netsphere.NetsphereUnitContext;
 
 namespace Netsphere.Service;
 
@@ -9,11 +10,19 @@ public sealed class ServiceControl
 {
     internal ServiceControl(NetsphereUnitContext context)
     {
+        this.netServices = new();
+        foreach (var x in context.NetServices)
+        {
+            if (StaticNetService.TryGetNetServiceObject(x.Value.ObjectType, out var netServiceObject))
+            {
+                this.netServices.TryAdd(x.Key, netServiceObject);
+            }
+        }
     }
 
     #region FieldAndProperty
 
-    private readonly Dictionary<Type, NetServiceObject> serviceToObject = new();
+    private readonly Dictionary<Type, NetServiceObject> netServices;
     private readonly Dictionary<Type, NetServiceObject> enabledServices = new();
     private NetServiceItem[]? serviceArray;
 
@@ -22,7 +31,7 @@ public sealed class ServiceControl
     public void EnableNetService<TNetService>()
         where TNetService : INetService
     {
-        if (!this.serviceToObject.TryGetValue(typeof(TNetService), out var netServiceObject))
+        if (!this.netServices.TryGetValue(typeof(TNetService), out var netServiceObject))
         {
             throw new InvalidOperationException();
         }

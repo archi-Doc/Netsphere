@@ -175,11 +175,11 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
         this.Services = new(netsphereContext);
 
         this.NetTerminal = netTerminal;
-        this.NetTerminal.Initialize(this.Responders, false);
+        this.NetTerminal.Initialize(this.Responders, this.Services, false);
         if (this.NetBase.NetOptions.EnableAlternative)
         {// For debugging
             this.Alternative = new(context, unitLogger, netBase, netStats, CertificateRelayControl.Instance);
-            this.Alternative.Initialize(this.Responders, true);
+            this.Alternative.Initialize(this.Responders, this.Services, true);
         }
     }
 
