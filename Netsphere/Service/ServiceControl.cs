@@ -37,7 +37,7 @@ public sealed class ServiceControl
             => this.serviceIdToAgentInformation.TryGetValue(serviceId, out agent);
     }
 
-    public ServiceControl()
+    internal ServiceControl(NetsphereUnitContext context)
     {
     }
 
@@ -56,7 +56,7 @@ public sealed class ServiceControl
     private void ResetServiceArray()
         => this.serviceArray = default;
 
-    private ServiceIdAndObject[] GetServiceArray()
+    internal ServiceIdAndObject[] GetServiceArray()
     {
         var array = this.serviceArray;
         if (array is null)

@@ -20,6 +20,7 @@ using Netsphere.Misc;
 using Netsphere.Packet;
 using Netsphere.Relay;
 using Netsphere.Responder;
+using Netsphere.Service;
 using Netsphere.Stats;
 
 namespace Netsphere;
@@ -170,21 +171,15 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
         this.NetBase = netBase;
         this.NetStats = netStats;
         this.Responders = new();
-        this.Services = new();
-
-        //
-        /*var netsphereContext = context.ServiceProvider.GetRequiredService<NetsphereUnitContext>();
-        foreach (var x in netsphereContext.ServiceToAgent)
-        {
-            this.Services.Register(x.Key, x.Value);
-        }*/
+        var netsphereContext = context.ServiceProvider.GetRequiredService<NetsphereUnitContext>();
+        this.Services = new(netsphereContext);
 
         this.NetTerminal = netTerminal;
-        this.NetTerminal.Initialize(this.Responders, this.Services, false);
+        this.NetTerminal.Initialize(this.Responders, false);
         if (this.NetBase.NetOptions.EnableAlternative)
         {// For debugging
             this.Alternative = new(context, unitLogger, netBase, netStats, CertificateRelayControl.Instance);
-            this.Alternative.Initialize(this.Responders, this.Services, true);
+            this.Alternative.Initialize(this.Responders, true);
         }
     }
 

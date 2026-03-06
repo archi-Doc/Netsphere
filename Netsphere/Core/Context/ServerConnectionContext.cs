@@ -96,7 +96,7 @@ public class ServerConnectionContext
 
     public bool EnableNetService<TService>()
     {
-        if (!StaticNetService.TryGetNetServiceObject(typeof(TService), out var info))
+        if (!StaticNetService.TryGetNetServiceObject(typeof(TService), out var netServiceObject))
         {// Not found
             return false;
         }
@@ -113,7 +113,7 @@ public class ServerConnectionContext
 
         var newArray = new ServiceIdAndObject[array.Length + 1];
         Array.Copy(array, newArray, array.Length);
-        newArray[array.Length] = new(serviceId, info);
+        newArray[array.Length] = new(serviceId, netServiceObject);
         Volatile.Write(ref this.immutableServices, newArray);
         return true;
     }
