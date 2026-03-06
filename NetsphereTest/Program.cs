@@ -195,8 +195,6 @@ public class Program
         var netUnit = unit.Context.ServiceProvider.GetRequiredService<NetUnit>();
         netUnit.Services.EnableNetService<IRemoteBenchHost>();
         netUnit.Services.EnableNetService<IRemoteBenchRunner>();
-        netUnit.Services.Register<IRemoteBenchHost, RemoteBenchHostAgent>();
-        netUnit.Services.Register<IRemoteBenchRunner, RemoteBenchRunnerAgent>();
 
         var parserOptions = SimpleParserOptions.Standard with
         {

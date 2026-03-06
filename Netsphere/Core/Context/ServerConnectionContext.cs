@@ -52,7 +52,9 @@ public class ServerConnectionContext
     public AuthenticationToken? AuthenticationToken { get; private set; }
 
     // private readonly IServiceScope serviceScope;
-    private ServiceIdAndObject[] immutableServices;
+    private object netServiceSync => this; // ...
+
+    private NetServiceItem[] netServiceItems;
 
     #endregion
 
@@ -62,21 +64,22 @@ public class ServerConnectionContext
         // this.serviceScope = serverConnection.ConnectionTerminal.ServiceProvider.CreateScope();
         this.NetTerminal = serverConnection.ConnectionTerminal.NetTerminal;
         this.ServerConnection = serverConnection;
-        this.immutableServices = this.NetTerminal.Services.GetServiceArray();
+        this.netServiceItems = this.NetTerminal.Services.GetServiceArray();
     }
-
 
     #region NetService
 
     public bool IsNetServiceEnabled<TService>()
     {
         var serviceId = StaticNetService.GetServiceId<TService>();
-        var array = Volatile.Read(ref this.immutableServices);
-        foreach (var x in array)
+        lock (this.netServiceSync)
         {
-            if (x.ServiceId == serviceId)
+            foreach (var x in this.netServiceItems)
             {
-                return true;
+                if (x.ServiceId == serviceId)
+                {
+                    return true;
+                }
             }
         }
 
@@ -91,43 +94,48 @@ public class ServerConnectionContext
         }
 
         var serviceId = StaticNetService.GetServiceId<TService>();
-        var array = Volatile.Read(ref this.immutableServices);
-        foreach (var x in array)
+        lock (this.netServiceSync)
         {
-            if (x.ServiceId == serviceId)
-            {// Found
-                return true;
+            foreach (var x in this.netServiceItems)
+            {
+                if (x.ServiceId == serviceId)
+                {// Already enabled
+                    return true;
+                }
             }
+
+            var newArray = new NetServiceItem[this.netServiceItems.Length + 1];
+            Array.Copy(this.netServiceItems, newArray, this.netServiceItems.Length);
+            newArray[this.netServiceItems.Length] = new(serviceId, netServiceObject);
+            this.netServiceItems = newArray;
         }
 
-        var newArray = new ServiceIdAndObject[array.Length + 1];
-        Array.Copy(array, newArray, array.Length);
-        newArray[array.Length] = new(serviceId, netServiceObject);
-        Volatile.Write(ref this.immutableServices, newArray);
         return true;
     }
 
     public bool DisableNetService<TService>()
     {
         var serviceId = StaticNetService.GetServiceId<TService>();
-        var array = Volatile.Read(ref this.immutableServices);
-        for (var i = 0; i < array.Length; i++)
+        lock (this.netServiceSync)
         {
-            if (array[i].ServiceId == serviceId)
+            for (var i = 0; i < this.netServiceItems.Length; i++)
             {
-                var newArray = new ServiceIdAndObject[array.Length - 1];
-                if (i > 0)
+                if (this.netServiceItems[i].ServiceId == serviceId)
                 {
-                    Array.Copy(array, newArray, i);
-                }
+                    var newArray = new NetServiceItem[this.netServiceItems.Length - 1];
+                    if (i > 0)
+                    {
+                        Array.Copy(this.netServiceItems, newArray, i);
+                    }
 
-                if (i < array.Length - 1)
-                {
-                    Array.Copy(array, i + 1, newArray, i, array.Length - i - 1);
-                }
+                    if (i < this.netServiceItems.Length - 1)
+                    {
+                        Array.Copy(this.netServiceItems, i + 1, newArray, i, this.netServiceItems.Length - i - 1);
+                    }
 
-                Volatile.Write(ref this.immutableServices, newArray);
-                return true;
+                    this.netServiceItems = newArray;
+                    return true;
+                }
             }
         }
 
@@ -408,48 +416,50 @@ SendNoNetService:
 
     private (ServiceMethod? ServiceMethod, object AgentInstance) TryGetServiceMethod(ulong dataId)
     {
-        NetServiceObject? agentInformation = default;
         var serviceId = unchecked((uint)(dataId >> 32));
-        var array = Volatile.Read(ref this.immutableServices);
-        foreach (var x in array)
+        lock (this.netServiceSync)
         {
-            if (x.ServiceId == serviceId)
-            {// Found
-                agentInformation = x.AgentInformation;
-                break;
+            for (var i = 0; i < this.netServiceItems.Length; i++)
+            {
+                if (this.netServiceItems[i].ServiceId == serviceId)
+                {// Found
+                    ref var item = ref this.netServiceItems[i];
+                    if (!item.NetServiceObject.TryGetMethod(dataId, out var serviceMethod))
+                    {// No method
+                        return default;
+                    }
+
+                    if (item.Instance is null)
+                    {//
+                        var instance = this.ServiceProvider?.GetService(item.NetServiceObject.Type);
+                        instance ??= item.NetServiceObject.Factory?.Invoke();
+                        if (instance is null)
+                        {// No instance
+                            return default;
+                        }
+
+                        item.Instance = instance;
+                    }
+
+                    return (serviceMethod, item.Instance);
+                }
             }
         }
 
-        if (agentInformation is null)
-        {// No method
-            return default;
-        }
-
-        if (this.agentInstances[agent.Index] is null)
-        {
-            var instance = this.ServiceProvider?.GetService(agent.AgentInformation.Type);
-            instance ??= agentInformation.Factory?.Invoke();
-            if (instance is null)
-            {// No instance
-                return default;
-            }
-
-            Interlocked.CompareExchange(ref this.agentInstances[agent.Index], instance, null);
-        }
-
-        return (serviceMethod, this.agentInstances[agent.Index]);
+        // Not found
+        return default;
     }
 
     internal void DisposeActual()
     {
-        foreach (var x in this.agentInstances)
+        foreach (var x in this.netServiceItems)
         {
-            if (x is INetServiceObject netObject)
+            if (x.Instance is INetServiceObject netObject)
             {
                 netObject.OnConnectionClosed();
             }
         }
 
-        Array.Clear(this.agentInstances);
+        Array.Clear(this.netServiceItems);
     }
 }

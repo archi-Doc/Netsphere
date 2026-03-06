@@ -15,7 +15,7 @@ public sealed class ServiceControl
 
     private readonly Dictionary<Type, NetServiceObject> serviceToObject = new();
     private readonly Dictionary<Type, NetServiceObject> enabledServices = new();
-    private ServiceIdAndObject[]? serviceArray;
+    private NetServiceItem[]? serviceArray;
 
     #endregion
 
@@ -30,13 +30,13 @@ public sealed class ServiceControl
         this.enabledServices.TryAdd(typeof(TNetService), netServiceObject);
     }
 
-    internal ServiceIdAndObject[] GetServiceArray()
+    internal NetServiceItem[] GetServiceArray()
     {
         var array = this.serviceArray;
         if (array is null)
         {
             var enabledArray = this.enabledServices.ToArray();
-            array = new ServiceIdAndObject[enabledArray.Length];
+            array = new NetServiceItem[enabledArray.Length];
             for (var i = 0; i < array.Length; i++)
             {
                 array[i] = new(StaticNetService.GetServiceId(enabledArray[i].Key), enabledArray[i].Value);
@@ -45,7 +45,7 @@ public sealed class ServiceControl
             this.serviceArray = array;
         }
 
-        var newArray = new ServiceIdAndObject[array.Length];
+        var newArray = new NetServiceItem[array.Length];
         Array.Copy(array, newArray, array.Length);
         return newArray;
     }
