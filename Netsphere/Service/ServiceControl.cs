@@ -1,9 +1,10 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace Netsphere;
+namespace Netsphere.Service;
 
 public sealed class ServiceControl
 {
@@ -42,11 +43,49 @@ public sealed class ServiceControl
 
     #region FieldAndProperty
 
+    private readonly Dictionary<Type, NetServiceObject> serviceToObject = new();
+    private readonly Dictionary<Type, NetServiceObject> enabledServices = new();
+    private ServiceIdAndObject[]? serviceArray;
+
     private readonly Lock lockObject = new();
     private readonly Dictionary<uint, NetServiceObject> serviceIdToAgentInformation = new();
     private Table? table;
 
     #endregion
+
+    private void ResetServiceArray()
+        => this.serviceArray = default;
+
+    private ServiceIdAndObject[] GetServiceArray()
+    {
+        var array = this.serviceArray;
+        if (array is null)
+        {
+            var enabledArray = this.enabledServices.ToArray();
+            array = new ServiceIdAndObject[enabledArray.Length];
+            for (var i = 0; i < array.Length; i++)
+            {
+                array[i] = new(StaticNetService.GetServiceId(enabledArray[i].Key), enabledArray[i].Value);
+            }
+
+            this.serviceArray = array;
+        }
+
+        var newArray = new ServiceIdAndObject[array.Length];
+        Array.Copy(array, newArray, array.Length);
+        return newArray;
+    }
+
+    public void EnableNetService<TNetService>()
+        where TNetService : INetService
+    {
+        if (!this.serviceToObject.TryGetValue(typeof(TNetService), out var netServiceObject))
+        {
+            throw new InvalidOperationException();
+        }
+
+        this.enabledServices.TryAdd(typeof(TNetService), netServiceObject);
+    }
 
     public void Register<TService, TAgent>()
         where TService : INetService

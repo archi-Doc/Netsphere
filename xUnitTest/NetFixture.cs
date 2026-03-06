@@ -59,6 +59,12 @@ public class NetFixture : IDisposable
         this.NetUnit.NetBase.DefaultAgreement.MaxStreamLength = MaxStreamLength;
         this.NetUnit.NetBase.DefaultAgreement.StreamBufferSize = StreamBufferSize;
         this.NetUnit.NetBase.DefaultAgreement.MinimumConnectionRetentionMics = MinimumConnectionRetentionMics;
+
+        var services = this.NetUnit.NetTerminal.Services;
+        services.EnableNetService<IBasicService>();
+        services.EnableNetService<IBasicTaskService>();
+        services.EnableNetService<IFilterTestService>();
+        services.EnableNetService<IStreamService>();
     }
 
     public void Dispose()
