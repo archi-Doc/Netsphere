@@ -8,46 +8,68 @@ public sealed class ServiceControl
     {
         this.netServices = new();
         foreach (var x in context.NetServices)
-        {
-            if (StaticNetService.TryGetNetServiceObjectInfo(x.Value.ObjectType, out var netServiceObject))
+        {// x.Key = NetService, x.Value.ImplementationType = NetObject
+
+            if (x.Value.ImplementationType is { } objectType &&
+                StaticNetService.TryGetNetServiceObjectInfo(objectType, out var netServiceObject))
             {
-                this.netServices.TryAdd(x.Key, netServiceObject);
+                this.netServices.TryAdd(x.Key, new(x.Key, netServiceObject));
             }
         }
     }
 
     #region FieldAndProperty
 
-    private readonly Dictionary<Type, NetServiceInfo> netServices;
-    private readonly Dictionary<Type, NetServiceInfo> enabledServices = new();
-    private NetServiceItem[]? serviceArray;
+    private readonly Lock lockObject = new();
+    private readonly Dictionary<Type, NetServiceInfo> netServices; // NetService -> NetServiceInfo
+    private readonly Dictionary<Type, NetServiceInfo> enabledServices = new(); // NetService -> NetServiceInfo
+    private NetServiceItem[]? cachedArray;
 
     #endregion
 
     public void EnableNetService<TNetService>()
-        where TNetService : INetService
+        where TNetService : class, INetService
     {
-        if (!this.netServices.TryGetValue(typeof(TNetService), out var netServiceObject))
+        using (this.lockObject.EnterScope())
         {
-            throw new InvalidOperationException();
+            if (!this.netServices.TryGetValue(typeof(TNetService), out var netServiceObject))
+            {
+                throw new InvalidOperationException();
+            }
+
+            this.enabledServices.TryAdd(typeof(TNetService), netServiceObject);
+            this.ResetServiceArray();
+        }
+    }
+
+    public bool DisableService<TNetService>()
+        where TNetService : class, INetService
+    {
+        using (this.lockObject.EnterScope())
+        {
+            var result = this.enabledServices.Remove(typeof(TNetService));
+            this.ResetServiceArray();
         }
 
-        this.enabledServices.TryAdd(typeof(TNetService), netServiceObject);
+        return result;
     }
 
     internal NetServiceItem[] GetServiceArray()
     {
-        var array = this.serviceArray;
+        var array = this.cachedArray;
         if (array is null)
         {
-            var enabledArray = this.enabledServices.ToArray();
-            array = new NetServiceItem[enabledArray.Length];
-            for (var i = 0; i < array.Length; i++)
+            using (this.lockObject.EnterScope())
             {
-                array[i] = new(StaticNetService.GetServiceId(enabledArray[i].Key), enabledArray[i].Value);
-            }
+                array = new NetServiceItem[this.enabledServices.Count];
+                var i = 0;
+                foreach (var x in this.enabledServices.Values)
+                {
+                    array[i++] = new(x);
+                }
 
-            this.serviceArray = array;
+                this.cachedArray = array;
+            }
         }
 
         var newArray = new NetServiceItem[array.Length];
@@ -56,5 +78,5 @@ public sealed class ServiceControl
     }
 
     private void ResetServiceArray()
-        => this.serviceArray = default;
+        => this.cachedArray = default;
 }
