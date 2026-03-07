@@ -47,8 +47,8 @@ public static class StaticNetService
             return new(objectType, factory);
         });
 
-    public static bool TryGetNetServiceObjectInfo(Type objectType, [MaybeNullWhen(false)] out NetServiceObjectInfo netServiceObject)
-        => objectInfoTable.TryGetValue(objectType, out netServiceObject);
+    // public static bool TryGetNetServiceObjectInfo(Type objectType, [MaybeNullWhen(false)] out NetServiceObjectInfo netServiceObject)
+    //     => objectInfoTable.TryGetValue(objectType, out netServiceObject);
 
     public static bool AddNetService<TNetService, TNetObject>()
         where TNetService : INetService

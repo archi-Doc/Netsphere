@@ -30,7 +30,7 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
     }
 
     void INetsphereUnitContext.AddNetService<TNetService, TNetObject>(ServiceLifetime lifetime)
-    {
+    {//
         this.NetServices.Add(typeof(TNetService), new(typeof(TNetObject), lifetime));
     }
 }

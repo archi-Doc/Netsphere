@@ -18,8 +18,8 @@ public sealed class ServiceControl
 
     #region FieldAndProperty
 
-    private readonly Dictionary<Type, NetServiceObjectInfo> netServices;
-    private readonly Dictionary<Type, NetServiceObjectInfo> enabledServices = new();
+    private readonly Dictionary<Type, NetServiceInfo> netServices;
+    private readonly Dictionary<Type, NetServiceInfo> enabledServices = new();
     private NetServiceItem[]? serviceArray;
 
     #endregion
