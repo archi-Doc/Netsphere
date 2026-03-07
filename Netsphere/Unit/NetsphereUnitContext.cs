@@ -6,9 +6,9 @@ namespace Netsphere;
 
 internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
 {
-    internal readonly record struct NetObjectAndLifetime(Type ObjectType, ServiceLifetime ServiceLifetime);
+    // internal readonly record struct NetObjectAndLifetime(Type ObjectType, ServiceLifetime ServiceLifetime);
 
-    internal Dictionary<Type, NetObjectAndLifetime> NetServices { get; } = new();
+    internal Dictionary<Type, ServiceDescriptor> NetServices { get; } = new();
 
     void IUnitCustomContext.ProcessContext(IUnitConfigurationContext context)
     {
@@ -17,20 +17,36 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
         foreach (var x in StaticNetService.ServiceInfoTable.ToArray())
         {// x: (INetService, NetServiceInfo)
             if (!this.NetServices.ContainsKey(x.Key))
-            {// INetService, (NetServiceObjectType, Lifetime)
-                this.NetServices.TryAdd(x.Key, new(x.Value.NetServiceObjectInfo.ObjectType, ServiceLifetime.Transient));
+            {
+                this.AddNetService(ServiceDescriptor.Transient(x.Key, x.Value.ServiceType));
             }
         }
 
         foreach (var x in this.NetServices)
         {// INetService, NetServiceObjectType, Lifetime
-            var serviceDescriptor = ServiceDescriptor.Describe(x.Key, x.Value.ObjectType, x.Value.ServiceLifetime);
-            context.Services.Add(serviceDescriptor); // INetService -> NetServiceObject
+            context.Services.Add(x.Value); // INetService -> NetServiceObject
         }
     }
 
-    void INetsphereUnitContext.AddNetService<TNetService, TNetObject>(ServiceLifetime lifetime)
-    {//
-        this.NetServices.Add(typeof(TNetService), new(typeof(TNetObject), lifetime));
+    void INetsphereUnitContext.AddNetService<TNetService, TNetObject>()
+    {
+        this.AddNetService(ServiceDescriptor.Transient<TNetService, TNetObject>());
+    }
+
+    void INetsphereUnitContext.AddNetService<TNetService, TNetObject>(Func<IServiceProvider, TNetObject> factory)
+    {
+        this.AddNetService(ServiceDescriptor.Transient<TNetService, TNetObject>(factory));
+    }
+
+    private void AddNetService(ServiceDescriptor serviceDescriptor)
+    {
+
+        if (serviceDescriptor.ImplementationType is null ||
+            StaticNetService.TryGetNetServiceObjectInfo(serviceDescriptor.ImplementationType, out var netServiceObjectInfo))
+        {
+            throw new InvalidOperationException();
+        }
+
+        this.NetServices[serviceDescriptor.ServiceType] = serviceDescriptor;
     }
 }

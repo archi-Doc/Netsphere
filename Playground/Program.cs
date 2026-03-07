@@ -13,12 +13,12 @@ using SimpleCommandLine;
 namespace Playground;
 
 [NetServiceInterface]
-public interface ITestInterface : INetService
+public interface ITestService : INetService
 {
 }
 
 [NetServiceObject(EnableAutoRegistration = false)]
-public class TestAgent : ITestInterface
+public class TestServiceImpl : ITestService
 {
 }
 
