@@ -88,7 +88,7 @@ public class ServerConnectionContext
 
     public bool EnableNetService<TService>()
     {
-        if (!StaticNetService.TryGetNetServiceObjectInfo(typeof(TService), out var netServiceObject))
+        if (!this.NetTerminal.Services.TryGetNetServiceInfo(typeof(TService), out var netServiceInfo))
         {// Not found
             return false;
         }
@@ -106,7 +106,7 @@ public class ServerConnectionContext
 
             var newArray = new NetServiceItem[this.netServiceItems.Length + 1];
             Array.Copy(this.netServiceItems, newArray, this.netServiceItems.Length);
-            newArray[this.netServiceItems.Length] = new(serviceId, netServiceObject);
+            newArray[this.netServiceItems.Length] = new(netServiceInfo);
             this.netServiceItems = newArray;
         }
 
@@ -421,18 +421,18 @@ SendNoNetService:
         {
             for (var i = 0; i < this.netServiceItems.Length; i++)
             {
-                if (this.netServiceItems[i].ServiceId == serviceId)
+                if (this.netServiceItems[i].NetServiceInfo.ServiceId == serviceId)
                 {// Found
                     ref var item = ref this.netServiceItems[i];
-                    if (!item.NetServiceObject.TryGetMethod(dataId, out var serviceMethod))
+                    if (!item.NetServiceInfo.NetServiceObjectInfo.TryGetMethod(dataId, out var serviceMethod))
                     {// No method
                         return default;
                     }
 
                     if (item.Instance is null)
-                    {//
-                        var instance = this.ServiceProvider?.GetService(item.ServiceType);
-                        instance ??= item.NetServiceObject.Factory?.Invoke();
+                    {
+                        var instance = this.ServiceProvider?.GetService(item.NetServiceInfo.ServiceType);
+                        instance ??= item.NetServiceInfo.NetServiceObjectInfo.ObjectFactory?.Invoke();
                         if (instance is null)
                         {// No instance
                             return default;

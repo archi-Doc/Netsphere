@@ -1,5 +1,7 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Netsphere.Service;
 
 public sealed class ServiceControl
@@ -9,7 +11,6 @@ public sealed class ServiceControl
         this.netServices = new();
         foreach (var x in context.NetServices)
         {// x.Key = NetService, x.Value.ImplementationType = NetObject
-
             if (x.Value.ImplementationType is { } objectType &&
                 StaticNetService.TryGetNetServiceObjectInfo(objectType, out var netServiceObject))
             {
@@ -45,13 +46,19 @@ public sealed class ServiceControl
     public bool DisableService<TNetService>()
         where TNetService : class, INetService
     {
+        bool result;
         using (this.lockObject.EnterScope())
         {
-            var result = this.enabledServices.Remove(typeof(TNetService));
+            result = this.enabledServices.Remove(typeof(TNetService));
             this.ResetServiceArray();
         }
 
         return result;
+    }
+
+    internal bool TryGetNetServiceInfo(Type serviceType, [MaybeNullWhen(false)] out NetServiceInfo netServiceInfo)
+    {
+        return this.netServices.TryGetValue(serviceType, out netServiceInfo);
     }
 
     internal NetServiceItem[] GetServiceArray()
