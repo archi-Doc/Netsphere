@@ -431,7 +431,7 @@ SendNoNetService:
 
                     if (item.Instance is null)
                     {//
-                        var instance = this.ServiceProvider?.GetService(item.NetServiceObject.Type);
+                        var instance = this.ServiceProvider?.GetService(item.ServiceType);
                         instance ??= item.NetServiceObject.Factory?.Invoke();
                         if (instance is null)
                         {// No instance

@@ -15,17 +15,17 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
         context.SetOptions(this);
 
         foreach (var x in StaticNetService.ServiceToObject.ToArray())
-        {
+        {// x: (INetService, NetServiceObject)
             if (!this.NetServices.ContainsKey(x.Key))
-            {
+            {// INetService, (NetServiceObjectType, Lifetime)
                 this.NetServices.TryAdd(x.Key, new(x.Value.Type, ServiceLifetime.Scoped));
             }
         }
 
         foreach (var x in this.NetServices)
-        {
+        {// INetService, NetServiceObjectType, Lifetime
             var serviceDescriptor = ServiceDescriptor.Describe(x.Key, x.Value.ObjectType, x.Value.ServiceLifetime);
-            context.Services.Add(serviceDescriptor);
+            context.Services.Add(serviceDescriptor); // INetService -> NetServiceObject
         }
     }
 

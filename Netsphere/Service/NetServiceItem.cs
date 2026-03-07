@@ -4,15 +4,15 @@ namespace Netsphere.Service;
 
 internal record struct NetServiceItem
 {
-    public NetServiceItem(uint serviceId, NetServiceObject netServiceObject)
+    public NetServiceItem(uint serviceId, Type serviceType)
     {
         this.ServiceId = serviceId;
-        this.NetServiceObject = netServiceObject;
+        this.ServiceType = serviceType;
     }
 
     public readonly uint ServiceId;
 
-    public readonly NetServiceObject NetServiceObject;
+    public readonly Type ServiceType;
 
     public object? Instance;
 }
