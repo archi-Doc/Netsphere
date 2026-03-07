@@ -76,7 +76,7 @@ public class ServerConnectionContext
         {
             foreach (var x in this.netServiceItems)
             {
-                if (x.ServiceId == serviceId)
+                if (x.NetServiceInfo.ServiceId == serviceId)
                 {
                     return true;
                 }
@@ -88,7 +88,7 @@ public class ServerConnectionContext
 
     public bool EnableNetService<TService>()
     {
-        if (!StaticNetService.TryGetNetServiceObject(typeof(TService), out var netServiceObject))
+        if (!StaticNetService.TryGetNetServiceObjectInfo(typeof(TService), out var netServiceObject))
         {// Not found
             return false;
         }
@@ -98,7 +98,7 @@ public class ServerConnectionContext
         {
             foreach (var x in this.netServiceItems)
             {
-                if (x.ServiceId == serviceId)
+                if (x.NetServiceInfo.ServiceId == serviceId)
                 {// Already enabled
                     return true;
                 }
@@ -120,7 +120,7 @@ public class ServerConnectionContext
         {
             for (var i = 0; i < this.netServiceItems.Length; i++)
             {
-                if (this.netServiceItems[i].ServiceId == serviceId)
+                if (this.netServiceItems[i].NetServiceInfo.ServiceId == serviceId)
                 {
                     var newArray = new NetServiceItem[this.netServiceItems.Length - 1];
                     if (i > 0)

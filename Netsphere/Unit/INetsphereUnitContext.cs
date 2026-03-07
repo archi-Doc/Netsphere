@@ -12,7 +12,7 @@ public interface INetsphereUnitContext
     /// <typeparam name="TNetService">The type of the net service to add.</typeparam>
     /// <typeparam name="TNetObject">The type of the agent associated with the net service.</typeparam>
     /// <param name="lifetime">The lifetime of the service.</param>
-    void AddNetService<TNetService, TNetObject>(ServiceLifetime lifetime = ServiceLifetime.Scoped)
+    void AddNetService<TNetService, TNetObject>(ServiceLifetime lifetime = ServiceLifetime.Transient)
         where TNetService : INetService
         where TNetObject : class, TNetService;
 }

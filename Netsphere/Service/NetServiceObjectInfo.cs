@@ -4,12 +4,12 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Netsphere;
 
-public class NetServiceObject
+public class NetServiceObjectInfo
 {
-    public NetServiceObject(Type objectType, Func<object>? objectFactory)
+    public NetServiceObjectInfo(Type objectType, Func<object>? objectFactory)
     {
-        this.Type = objectType;
-        this.Factory = objectFactory;
+        this.ObjectType = objectType;
+        this.ObjectFactory = objectFactory;
     }
 
     public void AddMethod(ServiceMethod serviceMethod)
@@ -18,9 +18,9 @@ public class NetServiceObject
     public bool TryGetMethod(ulong id, [MaybeNullWhen(false)] out ServiceMethod serviceMethod)
         => this.serviceMethods.TryGetValue(id, out serviceMethod);
 
-    public Type Type { get; }
+    public Type ObjectType { get; }
 
-    public Func<object>? Factory { get; }
+    public Func<object>? ObjectFactory { get; }
 
     private UInt64Hashtable<ServiceMethod> serviceMethods = new();
 }

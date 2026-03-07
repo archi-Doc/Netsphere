@@ -14,11 +14,11 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
     {
         context.SetOptions(this);
 
-        foreach (var x in StaticNetService.ServiceToObject.ToArray())
-        {// x: (INetService, NetServiceObject)
+        foreach (var x in StaticNetService.ServiceInfoTable.ToArray())
+        {// x: (INetService, NetServiceInfo)
             if (!this.NetServices.ContainsKey(x.Key))
             {// INetService, (NetServiceObjectType, Lifetime)
-                this.NetServices.TryAdd(x.Key, new(x.Value.Type, ServiceLifetime.Scoped));
+                this.NetServices.TryAdd(x.Key, new(x.Value.NetServiceObjectInfo.ObjectType, ServiceLifetime.Transient));
             }
         }
 

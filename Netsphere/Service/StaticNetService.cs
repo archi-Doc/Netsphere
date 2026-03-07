@@ -11,8 +11,8 @@ public static class StaticNetService
 {
     public delegate INetService FrontendFactoryDelegate(ClientConnection clientConnection);
 
-    internal static ThreadsafeTypeKeyHashtable<NetServiceObject> ServiceToObject = new();
-    private static ThreadsafeTypeKeyHashtable<NetServiceObject> typeToObject = new();
+    internal static ThreadsafeTypeKeyHashtable<NetServiceInfo> ServiceInfoTable = new();
+    private static ThreadsafeTypeKeyHashtable<NetServiceObjectInfo> objectInfoTable = new();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetServiceId<TService>()
@@ -41,25 +41,25 @@ public static class StaticNetService
         throw new InvalidOperationException($"Could not create a frontend instance of NetService '{typeof(TNetService).ToString()}'.");
     }
 
-    public static NetServiceObject GetOrAddNetServiceObject(Type objectType, Func<object>? factory)
-        => typeToObject.GetOrAdd(objectType, x =>
+    public static NetServiceObjectInfo GetOrAddNetServiceObjectInfo(Type objectType, Func<object>? factory)
+        => objectInfoTable.GetOrAdd(objectType, x =>
         {
             return new(objectType, factory);
         });
 
-    public static bool TryGetNetServiceObject(Type objectType, [MaybeNullWhen(false)] out NetServiceObject netServiceObject)
-        => typeToObject.TryGetValue(objectType, out netServiceObject);
+    public static bool TryGetNetServiceObjectInfo(Type objectType, [MaybeNullWhen(false)] out NetServiceObjectInfo netServiceObject)
+        => objectInfoTable.TryGetValue(objectType, out netServiceObject);
 
     public static bool AddNetService<TNetService, TNetObject>()
         where TNetService : INetService
         where TNetObject : class, TNetService
     {
-        if (!typeToObject.TryGetValue(typeof(TNetObject), out var netServiceObject))
+        if (!objectInfoTable.TryGetValue(typeof(TNetObject), out var netServiceObjectInfo))
         {
             return false;
         }
 
-        return ServiceToObject.TryAdd(typeof(TNetService), netServiceObject);
+        return ServiceInfoTable.TryAdd(typeof(TNetService), serviceType => new(serviceType, netServiceObjectInfo));
     }
 
     private static class DelegateCache<T>

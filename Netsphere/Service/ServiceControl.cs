@@ -9,7 +9,7 @@ public sealed class ServiceControl
         this.netServices = new();
         foreach (var x in context.NetServices)
         {
-            if (StaticNetService.TryGetNetServiceObject(x.Value.ObjectType, out var netServiceObject))
+            if (StaticNetService.TryGetNetServiceObjectInfo(x.Value.ObjectType, out var netServiceObject))
             {
                 this.netServices.TryAdd(x.Key, netServiceObject);
             }
@@ -18,8 +18,8 @@ public sealed class ServiceControl
 
     #region FieldAndProperty
 
-    private readonly Dictionary<Type, NetServiceObject> netServices;
-    private readonly Dictionary<Type, NetServiceObject> enabledServices = new();
+    private readonly Dictionary<Type, NetServiceObjectInfo> netServices;
+    private readonly Dictionary<Type, NetServiceObjectInfo> enabledServices = new();
     private NetServiceItem[]? serviceArray;
 
     #endregion
