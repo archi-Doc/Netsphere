@@ -22,5 +22,5 @@ public class NetServiceObject
 
     public Func<object>? Factory { get; }
 
-    private Dictionary<ulong, ServiceMethod> serviceMethods = new();
+    private UInt64Hashtable<ServiceMethod> serviceMethods = new();
 }
