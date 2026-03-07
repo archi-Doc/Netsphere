@@ -11,6 +11,8 @@ public sealed class NetServiceObjectAttributeMock : Attribute
     public static readonly string StandardName = SimpleName + "Attribute";
     public static readonly string FullName = "Netsphere." + StandardName;
 
+    public bool EnableAutoRegistration { get; set; } = true;
+
     public NetServiceObjectAttributeMock()
     {
     }
@@ -21,12 +23,12 @@ public sealed class NetServiceObjectAttributeMock : Attribute
     {
         var attribute = new NetServiceObjectAttributeMock();
 
-        /*object? val;
-        val = AttributeHelper.GetValue(-1, nameof(ServiceId), constructorArguments, namedArguments);
+        object? val;
+        val = AttributeHelper.GetValue(-1, nameof(EnableAutoRegistration), constructorArguments, namedArguments);
         if (val != null)
         {
-            attribute.ServiceId = (uint)val;
-        }*/
+            attribute.EnableAutoRegistration = (bool)val;
+        }
 
         return attribute;
     }

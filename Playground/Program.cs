@@ -12,6 +12,16 @@ using SimpleCommandLine;
 
 namespace Playground;
 
+[NetServiceInterface]
+public interface ITestInterface : INetService
+{
+}
+
+[NetServiceObject(EnableAutoRegistration = false)]
+public class TestAgent : ITestInterface
+{
+}
+
 public class Program
 {
     public static async Task Main()
@@ -49,7 +59,7 @@ public class Program
             })
              .ConfigureNetsphere(context =>
              {// Register the services provided by the server.
-                 // context.AddNetService<ITestService, TestServiceImpl>();
+                 context.AddNetService<ITestService, TestServiceImpl>();
              })
              .PostConfigure(context =>
              {
