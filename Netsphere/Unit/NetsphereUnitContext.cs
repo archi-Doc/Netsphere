@@ -44,7 +44,7 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
     {
         if (!StaticNetService.TryGetNetObjectInfo(netService.ObjectType, out var netObjectInfo))
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("The specified NetService type is not registered.");
         }
 
         this.NetServices[netService.ServiceDescriptor.ServiceType] = netService;

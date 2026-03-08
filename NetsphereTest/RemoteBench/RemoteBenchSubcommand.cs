@@ -66,7 +66,8 @@ public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
         // var r = await connection.ConnectBidirectionally(token);
         // await Console.Out.WriteLineAsync($"{r}: {connection.Agreement}");
 
-        connection.PrepareBidirectionalConnection();
+        var serverConnection = connection.PrepareBidirectionalConnection();
+        // serverConnection.GetContext().EnableNetService<>();
         var service = connection.GetService<IRemoteBenchHost>();
 
         // var r = await service.UpdateAgreement(token);
@@ -79,12 +80,6 @@ public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
         else
         {
             this.logger.TryGet()?.Log($"Register: Failure");
-            return;
-        }
-
-        var serverConnection = connection.BidirectionalConnection;
-        if (serverConnection is null)
-        {
             return;
         }
 

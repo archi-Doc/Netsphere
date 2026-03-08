@@ -34,7 +34,7 @@ public sealed class ServiceControl
         {
             if (!this.netServices.TryGetValue(typeof(TNetService), out var netObject))
             {
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("The specified NetService type is not registered.");
             }
 
             this.enabledServices.TryAdd(typeof(TNetService), netObject);
