@@ -4,4 +4,4 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Netsphere.Service;
 
-internal readonly record struct ObjectTypeAndServiceDescriptor(Type ObjectType, ServiceDescriptor ServiceDescriptor);
+internal readonly record struct ObjectTypeAndServiceDescriptor(Type ObjectType, ServiceDescriptor ServiceDescriptor, bool EnableByDefault);

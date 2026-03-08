@@ -20,7 +20,8 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
             if (!this.NetServices.ContainsKey(x.Key))
             {
                 var objectType = x.Value.NetObjectInfo.ObjectType;
-                this.AddNetService(new(objectType, ServiceDescriptor.Transient(x.Key, objectType)));
+                // this.AddNetService(new(objectType, ServiceDescriptor.Transient(x.Key, objectType), x.Value.EnableByDefault));
+                this.AddNetService(new(objectType, ServiceDescriptor.Transient(x.Key, objectType), x.Value.EnableByDefault));
             }
         }
 
@@ -30,14 +31,14 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
         }
     }
 
-    void INetsphereUnitContext.AddNetService<TNetService, TNetObject>()
+    void INetsphereUnitContext.AddNetService<TNetService, TNetObject>(bool enableByDefault)
     {
-        this.AddNetService(new(typeof(TNetObject), ServiceDescriptor.Transient<TNetService, TNetObject>()));
+        this.AddNetService(new(typeof(TNetObject), ServiceDescriptor.Transient<TNetService, TNetObject>(), enableByDefault));
     }
 
-    void INetsphereUnitContext.AddNetService<TNetService, TNetObject>(Func<IServiceProvider, TNetObject> factory)
+    void INetsphereUnitContext.AddNetService<TNetService, TNetObject>(Func<IServiceProvider, TNetObject> factory, bool enableByDefault)
     {
-        this.AddNetService(new(typeof(TNetObject), ServiceDescriptor.Transient<TNetService, TNetObject>(factory)));
+        this.AddNetService(new(typeof(TNetObject), ServiceDescriptor.Transient<TNetService, TNetObject>(factory), enableByDefault));
     }
 
     private void AddNetService(ObjectTypeAndServiceDescriptor netService)

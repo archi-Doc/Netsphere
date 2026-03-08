@@ -20,7 +20,7 @@ public interface IBasicService : INetService
     public Task<NetResultAndValue<int>> TestResult3(int x);
 }
 
-[NetObject]
+[NetObject(EnableByDefault = false)]
 public class BasicServiceImpl : IBasicService
 {
     public async Task<NetResult> SendInt(int x)

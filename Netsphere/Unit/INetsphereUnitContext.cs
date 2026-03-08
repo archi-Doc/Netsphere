@@ -11,7 +11,8 @@ public interface INetsphereUnitContext
     /// </summary>
     /// <typeparam name="TNetService">The type of the net service to add.</typeparam>
     /// <typeparam name="TNetObject">The type of the agent associated with the net service.</typeparam>
-    void AddNetService<TNetService, TNetObject>()
+    /// <param name="enableByDefault">A value indicating whether the net service is enabled by default.</param>
+    void AddNetService<TNetService, TNetObject>(bool enableByDefault = true)
         where TNetService : class, INetService
         where TNetObject : class, TNetService;
 
@@ -21,9 +22,10 @@ public interface INetsphereUnitContext
     /// <typeparam name="TNetService">The type of the net service to add.</typeparam>
     /// <typeparam name="TNetObject">The type of the agent associated with the net service.</typeparam>
     /// <param name="factory">
-    /// A factory function that takes an <see cref="IServiceProvider"/> and returns an instance of <typeparamref name="TNetObject"/>.
+    /// A factory function that takes an <see crdef="IServiceProvider"/> and returns an instance of <typeparamref name="TNetObject"/>.
     /// </param>
-    void AddNetService<TNetService, TNetObject>(Func<IServiceProvider, TNetObject> factory)
+    /// <param name="enableByDefault">A value indicating whether the net service is enabled by default.</param>
+    void AddNetService<TNetService, TNetObject>(Func<IServiceProvider, TNetObject> factory, bool enableByDefault = true)
         where TNetService : class, INetService
         where TNetObject : class, TNetService;
 }
