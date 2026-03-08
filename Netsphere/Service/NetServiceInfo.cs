@@ -4,11 +4,12 @@ namespace Netsphere;
 
 public record class NetServiceInfo
 {
-    public NetServiceInfo(Type serviceType, NetObjectInfo netObjectInfo)
+    public NetServiceInfo(Type serviceType, NetObjectInfo netObjectInfo, bool enableByDefault)
     {
         this.ServiceId = StaticNetService.GetServiceId(serviceType);
         this.ServiceType = serviceType;
         this.NetObjectInfo = netObjectInfo;
+        this.EnableByDefault = enableByDefault;
     }
 
     public uint ServiceId { get; }
@@ -16,4 +17,6 @@ public record class NetServiceInfo
     public Type ServiceType { get; }
 
     public NetObjectInfo NetObjectInfo { get; }
+
+    public bool EnableByDefault { get; }
 }

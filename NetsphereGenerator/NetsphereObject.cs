@@ -1015,10 +1015,8 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 }
             }
 
-            // if (this.NetObjectAttribute?.EnableAutoRegistration == true)
-            {
-                ssb.AppendLine($"StaticNetService.AddNetService<{serviceInterface.FullName}, {this.FullName}>();");
-            }
+            var enableByDefault = this.NetObjectAttribute?.EnableByDefault == true ? "true" : "false";
+            ssb.AppendLine($"StaticNetService.AddNetService<{serviceInterface.FullName}, {this.FullName}>({enableByDefault});");
         }
     }
 
