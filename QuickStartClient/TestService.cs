@@ -5,7 +5,7 @@ using Netsphere;
 namespace QuickStart;
 
 // Define an interface shared between the client and server.
-[NetService] // Annotate NetServiceInterface attribute.
+[NetService] // Annotate NetService attribute.
 public interface ITestService : INetService // An interface for NetService must inherit from INetService.
 {
     Task<string?> DoubleString(string input); // Declare the service method.

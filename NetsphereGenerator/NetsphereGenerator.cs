@@ -133,7 +133,7 @@ public class NetsphereGeneratorV2 : IIncrementalGenerator, IGeneratorInformation
             {
                 processed.Add(s);
 
-                /*if (s.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(netServiceInterfaceSymbol, x)))
+                /*if (s.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(netServiceSymbol, x)))
                 {
                     body.Add(s);
                     break;

@@ -179,7 +179,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
             foreach (var y in array)
             {
                 if (y.ObjectFlag.HasFlag(NetsphereObjectFlag.NetService))
-                {// NetServiceInterface (Frontend)
+                {// NetService (Frontend)
                     ssb.AppendLine();
                     y.GenerateFrontend(ssb, info);
                 }
@@ -229,7 +229,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                     {
                         foreach (var z in y.ServiceInterfaces)
                         {
-                            ssb.AppendLine($"{y.ClassName}.Object_{z.NetServiceInterfaceAttribute!.ServiceId.ToString("x")}();");
+                            ssb.AppendLine($"{y.ClassName}.Object_{z.NetServiceAttribute!.ServiceId.ToString("x")}();");
                         }
                     }
                 }
@@ -294,7 +294,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                     ssb.AppendLine("Initialized = true;");
                     ssb.AppendLine();
 
-                    foreach (var y in x.Value.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetServiceInterface)))
+                    foreach (var y in x.Value.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetService)))
                     {
                         ssb.AppendLine($"StaticNetService.SetFrontendFactory<{y.FullName}>(static x => new {y.ClassName}(x));");
                     }

@@ -43,7 +43,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
     public NetObjectAttributeMock? NetObjectAttribute { get; private set; }
 
-    public NetServiceAttributeMock? NetServiceInterfaceAttribute { get; private set; }
+    public NetServiceAttributeMock? NetServiceAttribute { get; private set; }
 
     public int LoaderNumber { get; private set; } = -1;
 
@@ -57,7 +57,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
     public string GenericsNumberString => this.GenericsNumber > 1 ? this.GenericsNumber.ToString() : string.Empty;
 
-    public NetsphereObject? Implementation { get; private set; } // For NetServiceInterface; NetsphereObject that implements this net service interface.
+    public NetsphereObject? Implementation { get; private set; } // For NetService; NetsphereObject that implements this net service interface.
 
     public List<NetsphereObject>? ServiceInterfaces { get; private set; } // For NetObjectAttribute; Net service interfaces implemented by this net service object.
 
@@ -128,7 +128,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 this.Body.AddDiagnostic(NetsphereBody.Error_AttributePropertyError, objectAttribute.Location);
             }
         }
-        else if (TryGetNetServiceInterfaceAttribute(this))
+        else if (TryGetNetServiceAttribute(this))
         {// NetServiceAttribute
         }
         else
@@ -157,16 +157,16 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             this.Identifier.Add(x.SimpleName);
         }
 
-        if (this.NetServiceInterfaceAttribute != null)
+        if (this.NetServiceAttribute != null)
         {// NetService
-            if (this.Body.IdToNetInterface.TryGetValue(this.NetServiceInterfaceAttribute.ServiceId, out var obj))
+            if (this.Body.IdToNetInterface.TryGetValue(this.NetServiceAttribute.ServiceId, out var obj))
             {
-                this.Body.AddDiagnostic(NetsphereBody.Error_DuplicateServiceId, this.NetServiceInterfaceAttribute.Location, this.NetServiceInterfaceAttribute.ServiceId);
-                this.Body.AddDiagnostic(NetsphereBody.Error_DuplicateServiceId, obj.NetServiceInterfaceAttribute!.Location, obj.NetServiceInterfaceAttribute!.ServiceId);
+                this.Body.AddDiagnostic(NetsphereBody.Error_DuplicateServiceId, this.NetServiceAttribute.Location, this.NetServiceAttribute.ServiceId);
+                this.Body.AddDiagnostic(NetsphereBody.Error_DuplicateServiceId, obj.NetServiceAttribute!.Location, obj.NetServiceAttribute!.ServiceId);
             }
             else
             {
-                this.Body.IdToNetInterface.Add(this.NetServiceInterfaceAttribute.ServiceId, this);
+                this.Body.IdToNetInterface.Add(this.NetServiceAttribute.ServiceId, this);
             }
         }
         else if (this.NetObjectAttribute != null)
@@ -183,9 +183,9 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             {
                 if (x.AllInterfaces.Any(x => x == INetService.FullName))
                 {
-                    if (x.NetServiceInterfaceAttribute == null)
+                    if (x.NetServiceAttribute == null)
                     {
-                        if (!TryGetNetServiceInterfaceAttribute(x))
+                        if (!TryGetNetServiceAttribute(x))
                         {
                             continue;
                         }
@@ -208,20 +208,20 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             this.Body.NetObjects.Add(this);
         }
 
-        static bool TryGetNetServiceInterfaceAttribute(NetsphereObject obj)
+        static bool TryGetNetServiceAttribute(NetsphereObject obj)
         {
             if (obj.AllAttributes.FirstOrDefault(x => x.FullName == NetServiceAttributeMock.FullName) is { } interfaceAttribute)
-            {// NetServiceInterfaceAttribute
+            {// NetServiceAttribute
                 try
                 {
-                    obj.NetServiceInterfaceAttribute = NetServiceAttributeMock.FromArray(interfaceAttribute.ConstructorArguments, interfaceAttribute.NamedArguments);
-                    obj.NetServiceInterfaceAttribute.Location = interfaceAttribute.Location;
+                    obj.NetServiceAttribute = NetServiceAttributeMock.FromArray(interfaceAttribute.ConstructorArguments, interfaceAttribute.NamedArguments);
+                    obj.NetServiceAttribute.Location = interfaceAttribute.Location;
                     obj.ObjectFlag |= NetsphereObjectFlag.NetService;
 
                     // Service ID
-                    if (obj.NetServiceInterfaceAttribute.ServiceId == 0)
+                    if (obj.NetServiceAttribute.ServiceId == 0)
                     {
-                        obj.NetServiceInterfaceAttribute.ServiceId = (uint)Arc.Crypto.FarmHash.Hash64(obj.FullName);
+                        obj.NetServiceAttribute.ServiceId = (uint)Arc.Crypto.FarmHash.Hash64(obj.FullName);
                     }
 
                     return true;
@@ -377,9 +377,9 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             {
                 foreach (var x in this.ServiceInterfaces)
                 {
-                    if (x.NetServiceInterfaceAttribute != null)
+                    if (x.NetServiceAttribute != null)
                     {
-                        if (this.Body.IdToNetObject.TryGetValue(x.NetServiceInterfaceAttribute.ServiceId, out var obj))
+                        if (this.Body.IdToNetObject.TryGetValue(x.NetServiceAttribute.ServiceId, out var obj))
                         {
                             var serviceInterface = x.ToString();
                             this.Body.AddDiagnostic(NetsphereBody.Error_DuplicateServiceObject, obj.Location, serviceInterface);
@@ -387,7 +387,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                         }
                         else
                         {
-                            this.Body.IdToNetObject.Add(x.NetServiceInterfaceAttribute.ServiceId, this);
+                            this.Body.IdToNetObject.Add(x.NetServiceAttribute.ServiceId, this);
                         }
                     }
                 }
@@ -405,9 +405,9 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 }
             }
         }
-        else if (this.NetServiceInterfaceAttribute != null)
-        {// NetServiceInterface
-            this.ClassName = NetsphereBody.FrontendClassName + this.NetServiceInterfaceAttribute.ServiceId.ToString("x");
+        else if (this.NetServiceAttribute != null)
+        {// NetService
+            this.ClassName = NetsphereBody.FrontendClassName + this.NetServiceAttribute.ServiceId.ToString("x");
 
             foreach (var x in this.GetMembers(VisceralTarget.Method))
             {
@@ -999,7 +999,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
     internal void GenerateBackend_AgentInfo(ScopingStringBuilder ssb, GeneratorInformation info, NetsphereObject serviceInterface)
     {
-        var serviceIdString = serviceInterface.NetServiceInterfaceAttribute!.ServiceId.ToString("x");
+        var serviceIdString = serviceInterface.NetServiceAttribute!.ServiceId.ToString("x");
         using (var scopeMethod = ssb.ScopeBrace($"public static void Object_{serviceIdString}()"))
         {
             var createAgent = this.ObjectFlag.HasFlag(NetsphereObjectFlag.HasDefaultConstructor) ? $"static () => new {this.FullName}()" : "null";
