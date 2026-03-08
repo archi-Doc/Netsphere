@@ -4,16 +4,16 @@ namespace Netsphere;
 
 public record class NetServiceInfo
 {
-    public NetServiceInfo(Type serviceType, NetObjectInfo netServiceObjectInfo)
+    public NetServiceInfo(Type serviceType, NetObjectInfo netObjectInfo)
     {
         this.ServiceId = StaticNetService.GetServiceId(serviceType);
         this.ServiceType = serviceType;
-        this.NetServiceObjectInfo = netServiceObjectInfo;
+        this.NetObjectInfo = netObjectInfo;
     }
 
     public uint ServiceId { get; }
 
     public Type ServiceType { get; }
 
-    public NetObjectInfo NetServiceObjectInfo { get; }
+    public NetObjectInfo NetObjectInfo { get; }
 }

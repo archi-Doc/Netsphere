@@ -18,7 +18,7 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
         {// x: (INetService, NetServiceInfo)
             if (!this.NetServices.ContainsKey(x.Key))
             {
-                this.AddNetService(ServiceDescriptor.Transient(x.Key, x.Value.NetServiceObjectInfo.ObjectType));
+                this.AddNetService(ServiceDescriptor.Transient(x.Key, x.Value.NetObjectInfo.ObjectType));
             }
         }
 

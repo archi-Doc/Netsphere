@@ -26,8 +26,8 @@ public enum NetsphereObjectFlag
     RelationConfigured = 1 << 1,
     Checked = 1 << 2,
 
-    NetServiceInterface = 1 << 10, // NetServiceInterface
-    NetServiceObject = 1 << 11, // NetServiceObject
+    NetService = 1 << 10, // NetServiceInterface
+    NetObject = 1 << 11, // NetServiceObject
     HasDefaultConstructor = 1 << 12, // Has default constructor
 }
 
@@ -41,9 +41,9 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
     public NetsphereObjectFlag ObjectFlag { get; private set; }
 
-    public NetServiceObjectAttributeMock? NetServiceObjectAttribute { get; private set; }
+    public NetObjectAttributeMock? NetObjectAttribute { get; private set; }
 
-    public NetServiceInterfaceAttributeMock? NetServiceInterfaceAttribute { get; private set; }
+    public NetServiceAttributeMock? NetServiceInterfaceAttribute { get; private set; }
 
     public int LoaderNumber { get; private set; } = -1;
 
@@ -63,11 +63,11 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
     // public NetsphereObject? NetServiceBase { get; private set; } // For NetServiceObjectAttribute; Net service base implemented by this net service object.
 
-    public ServiceFilterGroup? ClassFilters { get; private set; } // For NetServiceObjectAttribute; Service filters.
+    public ServiceFilterGroup? ClassFilters { get; private set; } // For NetObjectAttribute; Service filters.
 
-    public Dictionary<string, ServiceFilterGroup>? MethodToFilter { get; private set; } // For NetServiceObjectAttribute; Method full name to Service filters.
+    public Dictionary<string, ServiceFilterGroup>? MethodToFilter { get; private set; } // For NetObjectAttribute; Method full name to Service filters.
 
-    public Dictionary<uint, ServiceMethod>? ServiceMethods { get; private set; } // For NetServiceInterface; Methods included in this net service interface.
+    public Dictionary<uint, ServiceMethod>? ServiceMethods { get; private set; } // For NetService; Methods included in this net service interface.
 
     public string ClassName { get; set; } = string.Empty;
 
@@ -115,13 +115,13 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
         this.ObjectFlag |= NetsphereObjectFlag.Configured;
 
-        if (this.AllAttributes.FirstOrDefault(x => x.FullName == NetServiceObjectAttributeMock.FullName) is { } objectAttribute)
+        if (this.AllAttributes.FirstOrDefault(x => x.FullName == NetObjectAttributeMock.FullName) is { } objectAttribute)
         {// NetServiceObjectAttribute
             try
             {
-                this.NetServiceObjectAttribute = NetServiceObjectAttributeMock.FromArray(objectAttribute.ConstructorArguments, objectAttribute.NamedArguments);
-                this.NetServiceObjectAttribute.Location = objectAttribute.Location;
-                this.ObjectFlag |= NetsphereObjectFlag.NetServiceObject;
+                this.NetObjectAttribute = NetObjectAttributeMock.FromArray(objectAttribute.ConstructorArguments, objectAttribute.NamedArguments);
+                this.NetObjectAttribute.Location = objectAttribute.Location;
+                this.ObjectFlag |= NetsphereObjectFlag.NetObject;
             }
             catch (InvalidCastException)
             {
@@ -158,7 +158,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         }
 
         if (this.NetServiceInterfaceAttribute != null)
-        {// NetServiceInterface
+        {// NetService
             if (this.Body.IdToNetInterface.TryGetValue(this.NetServiceInterfaceAttribute.ServiceId, out var obj))
             {
                 this.Body.AddDiagnostic(NetsphereBody.Error_DuplicateServiceId, this.NetServiceInterfaceAttribute.Location, this.NetServiceInterfaceAttribute.ServiceId);
@@ -169,8 +169,8 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 this.Body.IdToNetInterface.Add(this.NetServiceInterfaceAttribute.ServiceId, this);
             }
         }
-        else if (this.NetServiceObjectAttribute != null)
-        {// NetServiceObject
+        else if (this.NetObjectAttribute != null)
+        {// NetObject
             var accessibility = this.AccessibilityName;
             if (accessibility != "public" && accessibility != "internal")
             {
@@ -210,13 +210,13 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
         static bool TryGetNetServiceInterfaceAttribute(NetsphereObject obj)
         {
-            if (obj.AllAttributes.FirstOrDefault(x => x.FullName == NetServiceInterfaceAttributeMock.FullName) is { } interfaceAttribute)
+            if (obj.AllAttributes.FirstOrDefault(x => x.FullName == NetServiceAttributeMock.FullName) is { } interfaceAttribute)
             {// NetServiceInterfaceAttribute
                 try
                 {
-                    obj.NetServiceInterfaceAttribute = NetServiceInterfaceAttributeMock.FromArray(interfaceAttribute.ConstructorArguments, interfaceAttribute.NamedArguments);
+                    obj.NetServiceInterfaceAttribute = NetServiceAttributeMock.FromArray(interfaceAttribute.ConstructorArguments, interfaceAttribute.NamedArguments);
                     obj.NetServiceInterfaceAttribute.Location = interfaceAttribute.Location;
-                    obj.ObjectFlag |= NetsphereObjectFlag.NetServiceInterface;
+                    obj.ObjectFlag |= NetsphereObjectFlag.NetService;
 
                     // Service ID
                     if (obj.NetServiceInterfaceAttribute.ServiceId == 0)
@@ -369,7 +369,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
         this.ObjectFlag |= NetsphereObjectFlag.Checked;
 
-        if (this.NetServiceObjectAttribute != null)
+        if (this.NetObjectAttribute != null)
         {// NetServiceObject
             this.ClassName = NetsphereBody.BackendClassName + Arc.Crypto.FarmHash.Hash32(this.FullName).ToString("x");
 
@@ -1003,7 +1003,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         using (var scopeMethod = ssb.ScopeBrace($"public static void Object_{serviceIdString}()"))
         {
             var createAgent = this.ObjectFlag.HasFlag(NetsphereObjectFlag.HasDefaultConstructor) ? $"static () => new {this.FullName}()" : "null";
-            ssb.AppendLine($"var info = StaticNetService.GetOrAddNetServiceObjectInfo(typeof({this.FullName}), {createAgent});"); // 0x{serviceIdString}u
+            ssb.AppendLine($"var info = StaticNetService.GetOrAddNetObjectInfo(typeof({this.FullName}), {createAgent});"); // 0x{serviceIdString}u
             if (serviceInterface.ServiceMethods != null)
             {
                 foreach (var x in serviceInterface.ServiceMethods.Values)
@@ -1012,7 +1012,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 }
             }
 
-            if (this.NetServiceObjectAttribute?.EnableAutoRegistration == true)
+            // if (this.NetServiceObjectAttribute?.EnableAutoRegistration == true)
             {
                 ssb.AppendLine($"StaticNetService.AddNetService<{serviceInterface.FullName}, {this.FullName}>();");
             }

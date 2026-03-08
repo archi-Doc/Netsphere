@@ -17,7 +17,7 @@ public interface ITestService : INetService
 {
 }
 
-[NetObject(EnableAutoRegistration = false)]
+[NetObject]
 public class TestServiceImpl : ITestService
 {
 }

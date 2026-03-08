@@ -429,7 +429,7 @@ SendNoNetService:
                 if (this.netServiceItems[i].NetServiceInfo.ServiceId == serviceId)
                 {// Found
                     ref var item = ref this.netServiceItems[i];
-                    if (!item.NetServiceInfo.NetServiceObjectInfo.TryGetMethod(dataId, out var serviceMethod))
+                    if (!item.NetServiceInfo.NetObjectInfo.TryGetMethod(dataId, out var serviceMethod))
                     {// No method
                         return default;
                     }
@@ -437,7 +437,7 @@ SendNoNetService:
                     if (item.Instance is null)
                     {
                         var instance = this.ServiceProvider?.GetService(item.NetServiceInfo.ServiceType);
-                        instance ??= item.NetServiceInfo.NetServiceObjectInfo.ObjectFactory?.Invoke();
+                        instance ??= item.NetServiceInfo.NetObjectInfo.ObjectFactory?.Invoke();
                         if (instance is null)
                         {// No instance
                             return default;

@@ -9,10 +9,10 @@ namespace Netsphere;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
 public sealed class NetObjectAttribute : Attribute
 {
-    /// <summary>
+    /*/// <summary>
     /// Gets or sets a value indicating whether this class should be registered automatically to the dependency injection container (default is <see langword="true"/>).
     /// </summary>
-    public bool EnableAutoRegistration { get; set; } = true;
+    public bool EnableAutoRegistration { get; set; } = true;*/
 
     public NetObjectAttribute()
     {

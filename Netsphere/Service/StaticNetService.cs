@@ -54,12 +54,12 @@ public static class StaticNetService
         where TNetService : class, INetService
         where TNetObject : class, TNetService
     {
-        if (!objectInfoTable.TryGetValue(typeof(TNetObject), out var netServiceObjectInfo))
+        if (!objectInfoTable.TryGetValue(typeof(TNetObject), out var netObjectInfo))
         {
             return false;
         }
 
-        return ServiceInfoTable.TryAdd(typeof(TNetService), serviceType => new(serviceType, netServiceObjectInfo));
+        return ServiceInfoTable.TryAdd(typeof(TNetService), serviceType => new(serviceType, netObjectInfo));
     }
 
     private static class DelegateCache<T>

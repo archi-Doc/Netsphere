@@ -90,7 +90,7 @@ On the server side:
 Define a class that implements the interface and annotate it with `NetServiceObject` attribute.
 
 ```csharp
-[NetServiceObject] // Annotate NetServiceObject attribute.
+[NetObject] // Annotate NetServiceObject attribute.
 internal class TestServiceImpl : ITestService
 {
     async Task<string?> ITestService.DoubleString(string input)
@@ -149,7 +149,7 @@ await unit.Terminate(); // Perform the termination process for the unit.
 1. Define the interface shared between the client and server.
 
    ```csharp
-   [NetServiceInterface]
+   [NetService]
    public interface ITestService : INetService
    {
        Task<string?> DoubleString(string input);
@@ -160,7 +160,7 @@ await unit.Terminate(); // Perform the termination process for the unit.
 
 2. Implement the NetService agent (implementation class) on the server side.
    ```csharp
-   [NetServiceObject]
+   [NetObject]
    internal class TestServiceAgent : ITestService
    {
        async Task<string?> ITestService.DoubleString(string input)
