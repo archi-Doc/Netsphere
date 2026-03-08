@@ -56,7 +56,8 @@ public class Program
 
         // It is possible to unregister services, but frequent changes are not recommended (as the service table will be rebuilt). If frequent changes are necessary, consider using NetFilter or modifying the processing in the implementation class.
         var netTerminal = unit.Context.ServiceProvider.GetRequiredService<NetTerminal>();
-        // netTerminal.Services.Unregister<ITestService2>();
+        netTerminal.Services.EnableNetService<ITestService>();
+        netTerminal.Services.EnableNetService<ITestService2>();
 
         await Console.Out.WriteLineAsync($"{options.NodeName}: {node.ToString()}");
         await Console.Out.WriteLineAsync("Ctrl+C to exit");

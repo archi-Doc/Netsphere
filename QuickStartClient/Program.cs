@@ -47,8 +47,6 @@ public class Program
 
                 var sum = await service.Sum(1, 2); // // Get the sum of 1 and 2, but it is not implemented on the server side.
                 await Console.Out.WriteLineAsync($"1 + 2 = {sum}"); // 0
-                var r = await service.Sum(1, 2); // If the function fails, it returns the default value, so if detailed information is needed, please refer to ResponseAsync.
-                await Console.Out.WriteLineAsync($"{r.ToString()}"); // NetResult.NoNetService
 
                 var service2 = connection.GetService<ITestService2>();
                 var result = await service2.Random();
