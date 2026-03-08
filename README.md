@@ -210,7 +210,7 @@ await unit.Terminate(); // Perform the termination process for the unit.
    
    
 
-4. On the server side, you can also disable or enable the NetService.
+4. You can also disable or enable the NetService on the server side.
    ```csharp
    async Task<NetResult> ITestService.Disable()
    {
@@ -223,6 +223,8 @@ await unit.Terminate(); // Perform the termination process for the unit.
 
 ## Checklist for NetService
 
-- Ensure that NetService is registered on the server (`Context.AddNetService()` or `NetTerminal.Services.Register()`).
-- Verify that the Service object is registered in the DI container.
-- Check if the DI container can create instances (ensure no injection errors occur).
+- Check whether the service object can be created by the DI container.
+
+- Check whether the NetService is enabled via `NetTerminal.Services`.
+
+  
