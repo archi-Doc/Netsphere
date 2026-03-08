@@ -4,7 +4,7 @@ using Netsphere;
 
 namespace xUnitTest.NetsphereTest;
 
-[NetServiceInterface]
+[NetService]
 public interface IBasicTaskService : INetService
 {
     public Task SendInt(int x);
@@ -18,7 +18,7 @@ public interface IBasicTaskService : INetService
     public Task<NetResult> TestResult2();
 }
 
-[NetServiceObject]
+[NetObject]
 public class BasicTaskServiceImpl : IBasicTaskService
 {
     public BasicTaskServiceImpl(NullFilter nullFilter)

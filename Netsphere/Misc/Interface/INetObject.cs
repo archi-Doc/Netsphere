@@ -3,9 +3,9 @@
 namespace Netsphere;
 
 /// <summary>
-/// An attribute added to a NetServiceObject class that provides a NetService, allowing connection-related callback methods to be added.
+/// An attribute added to a NetObject class that provides a NetService, allowing connection-related callback methods to be added.
 /// </summary>
-public interface INetServiceObject
+public interface INetObject
 {
     /// <summary>
     /// Called when the network connection associated with this object is closed.

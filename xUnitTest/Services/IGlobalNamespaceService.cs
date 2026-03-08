@@ -2,13 +2,13 @@
 
 using Netsphere;
 
-[NetServiceInterface]
+[NetService]
 public interface IGlobalNamespaceService : INetService
 {
     public Task<int> Sum(int x, int y);
 }
 
-[NetServiceObject]
+[NetObject]
 public class GlobalNamespaceServiceAgent : IGlobalNamespaceService
 {
     async Task<int> IGlobalNamespaceService.Sum(int x, int y)

@@ -122,7 +122,7 @@ public class ServerConnectionContext
             {
                 if (this.netServiceItems[i].NetServiceInfo.ServiceId == serviceId)
                 {
-                    if (this.netServiceItems[i].Instance is INetServiceObject netObject)
+                    if (this.netServiceItems[i].Instance is INetObject netObject)
                     {
                         netObject.OnConnectionClosed();
                     }
@@ -459,7 +459,7 @@ SendNoNetService:
     {
         foreach (var x in this.netServiceItems)
         {
-            if (x.Instance is INetServiceObject netObject)
+            if (x.Instance is INetObject netObject)
             {
                 netObject.OnConnectionClosed();
             }

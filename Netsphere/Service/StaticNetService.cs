@@ -12,7 +12,7 @@ public static class StaticNetService
     public delegate INetService FrontendFactoryDelegate(ClientConnection clientConnection);
 
     internal static ThreadsafeTypeKeyHashtable<NetServiceInfo> ServiceInfoTable = new();
-    private static ThreadsafeTypeKeyHashtable<NetServiceObjectInfo> objectInfoTable = new();
+    private static ThreadsafeTypeKeyHashtable<NetObjectInfo> objectInfoTable = new();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetServiceId<TService>()
@@ -41,14 +41,14 @@ public static class StaticNetService
         throw new InvalidOperationException($"Could not create a frontend instance of NetService '{typeof(TNetService).ToString()}'.");
     }
 
-    public static NetServiceObjectInfo GetOrAddNetServiceObjectInfo(Type objectType, Func<object>? factory)
+    public static NetObjectInfo GetOrAddNetObjectInfo(Type objectType, Func<object>? factory)
         => objectInfoTable.GetOrAdd(objectType, x =>
         {
             return new(objectType, factory);
         });
 
-    public static bool TryGetNetServiceObjectInfo(Type objectType, [MaybeNullWhen(false)] out NetServiceObjectInfo netServiceObjectInfo)
-        => objectInfoTable.TryGetValue(objectType, out netServiceObjectInfo);
+    public static bool TryGetNetObjectInfo(Type objectType, [MaybeNullWhen(false)] out NetObjectInfo netObjectInfo)
+        => objectInfoTable.TryGetValue(objectType, out netObjectInfo);
 
     public static bool AddNetService<TNetService, TNetObject>()
         where TNetService : class, INetService

@@ -2,7 +2,7 @@
 
 namespace Netsphere.Interfaces;
 
-[NetServiceInterface]
+[NetService]
 public interface IRemoteControl : INetService
 {
     public Task<NetResult> Restart();

@@ -8,7 +8,7 @@ using NetsphereTest;
 
 namespace Lp.NetServices;
 
-[NetServiceObject]
+[NetObject]
 public class RemoteBenchRunnerAgent : IRemoteBenchRunner, INetServiceHandler
 {
     public RemoteBenchRunnerAgent(FileLogger<FileLoggerOptions> fileLogger, ILogger<RemoteBenchRunnerAgent> logger, NetTerminal netTerminal, NtpCorrection ntpCorrection)

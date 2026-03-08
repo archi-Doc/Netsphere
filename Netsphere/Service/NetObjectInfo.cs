@@ -4,9 +4,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Netsphere;
 
-public record class NetServiceObjectInfo
+public record class NetObjectInfo
 {
-    public NetServiceObjectInfo(Type objectType, Func<object>? objectFactory)
+    public NetObjectInfo(Type objectType, Func<object>? objectFactory)
     {
         this.ObjectType = objectType;
         this.ObjectFactory = objectFactory;

@@ -2,7 +2,7 @@
 
 namespace Lp.NetServices;
 
-[NetServiceInterface]
+[NetService]
 public interface IRemoteBenchHost : IRemoteBenchService, INetServiceWithConnectBidirectionally, INetServiceWithUpdateAgreement
 {
     Task<byte[]?> Pingpong(byte[] data);
@@ -12,7 +12,7 @@ public interface IRemoteBenchHost : IRemoteBenchService, INetServiceWithConnectB
     Task Report(RemoteBenchRecord record);
 }
 
-[NetServiceInterface]
+[NetService]
 public interface IRemoteBenchService : INetService
 {
     Task<ulong> GetHash(byte[] data);
