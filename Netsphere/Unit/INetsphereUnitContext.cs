@@ -21,7 +21,7 @@ public interface INetsphereUnitContext
     /// <typeparam name="TNetService">The type of the net service to add.</typeparam>
     /// <typeparam name="TNetObject">The type of the agent associated with the net service.</typeparam>
     /// <param name="factory">
-    /// A factory function that takes an <see cref="IServiceProvider"/> and returns an instance of <typeparamref name="TNetObject"/>.
+    /// A factory function that takes an <see crdef="IServiceProvider"/> and returns an instance of <typeparamref name="TNetObject"/>.
     /// </param>
     void AddNetService<TNetService, TNetObject>(Func<IServiceProvider, TNetObject> factory)
         where TNetService : class, INetService

@@ -20,6 +20,7 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
             if (!this.NetServices.ContainsKey(x.Key))
             {
                 var objectType = x.Value.NetObjectInfo.ObjectType;
+                // this.AddNetService(new(objectType, ServiceDescriptor.Transient(x.Key, objectType), x.Value.EnableByDefault));
                 this.AddNetService(new(objectType, ServiceDescriptor.Transient(x.Key, objectType)));
             }
         }

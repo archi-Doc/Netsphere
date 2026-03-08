@@ -13,7 +13,8 @@ public sealed class ServiceControl
         {// x.Key = NetService, x.Value.ImplementationType = NetObject
             if (StaticNetService.TryGetNetObjectInfo(x.Value.ObjectType, out var netObject))
             {
-                this.netServices.TryAdd(x.Key, new(x.Key, netObject));
+                var netServiceInfo = new NetServiceInfo(x.Key, netObject);
+                this.netServices.TryAdd(x.Key, netServiceInfo);
             }
         }
     }
@@ -32,12 +33,12 @@ public sealed class ServiceControl
     {
         using (this.lockObject.EnterScope())
         {
-            if (!this.netServices.TryGetValue(typeof(TNetService), out var netObject))
+            if (!this.netServices.TryGetValue(typeof(TNetService), out var netServiceInfo))
             {
                 throw new InvalidOperationException("The specified NetService type is not registered.");
             }
 
-            this.enabledServices.TryAdd(typeof(TNetService), netObject);
+            this.enabledServices.TryAdd(typeof(TNetService), netServiceInfo);
             this.ResetServiceArray();
         }
     }

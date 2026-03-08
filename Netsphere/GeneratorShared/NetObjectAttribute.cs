@@ -10,9 +10,9 @@ namespace Netsphere;
 public sealed class NetObjectAttribute : Attribute
 {
     /*/// <summary>
-    /// Gets or sets a value indicating whether this class should be registered automatically to the dependency injection container (default is <see langword="true"/>).
+    /// Gets or sets a value indicating whether this object should be enabled by default (default is <see langword="true"/>).
     /// </summary>
-    public bool EnableAutoRegistration { get; set; } = true;*/
+    public bool EnableByDefault { get; set; } = true;*/
 
     public NetObjectAttribute()
     {
