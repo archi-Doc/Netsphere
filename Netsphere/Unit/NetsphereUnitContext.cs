@@ -1,6 +1,7 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using Microsoft.Extensions.DependencyInjection;
+using Netsphere.Service;
 
 namespace Netsphere;
 
@@ -8,7 +9,7 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
 {
     // internal readonly record struct NetObjectAndLifetime(Type ObjectType, ServiceLifetime ServiceLifetime);
 
-    internal Dictionary<Type, ServiceDescriptor> NetServices { get; } = new();
+    internal Dictionary<Type, ObjectTypeAndServiceDescriptor> NetServices { get; } = new();
 
     void IUnitCustomContext.ProcessContext(IUnitConfigurationContext context)
     {
@@ -18,34 +19,34 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
         {// x: (INetService, NetServiceInfo)
             if (!this.NetServices.ContainsKey(x.Key))
             {
-                this.AddNetService(ServiceDescriptor.Transient(x.Key, x.Value.NetObjectInfo.ObjectType));
+                var objectType = x.Value.NetObjectInfo.ObjectType;
+                this.AddNetService(new(objectType, ServiceDescriptor.Transient(x.Key, objectType)));
             }
         }
 
         foreach (var x in this.NetServices)
         {// INetService, NetObjectType, Lifetime
-            context.Services.Add(x.Value); // INetService -> NetObject
+            context.Services.Add(x.Value.ServiceDescriptor); // INetService -> NetObject
         }
     }
 
     void INetsphereUnitContext.AddNetService<TNetService, TNetObject>()
     {
-        this.AddNetService(ServiceDescriptor.Transient<TNetService, TNetObject>());
+        this.AddNetService(new(typeof(TNetObject), ServiceDescriptor.Transient<TNetService, TNetObject>()));
     }
 
     void INetsphereUnitContext.AddNetService<TNetService, TNetObject>(Func<IServiceProvider, TNetObject> factory)
     {
-        this.AddNetService(ServiceDescriptor.Transient<TNetService, TNetObject>(factory));
+        this.AddNetService(new(typeof(TNetObject), ServiceDescriptor.Transient<TNetService, TNetObject>(factory)));
     }
 
-    private void AddNetService(ServiceDescriptor serviceDescriptor)
+    private void AddNetService(ObjectTypeAndServiceDescriptor netService)
     {
-        if (serviceDescriptor.ImplementationType is null ||
-            !StaticNetService.TryGetNetObjectInfo(serviceDescriptor.ImplementationType, out var netObjectInfo))
+        if (!StaticNetService.TryGetNetObjectInfo(netService.ObjectType, out var netObjectInfo))
         {
             throw new InvalidOperationException();
         }
 
-        this.NetServices[serviceDescriptor.ServiceType] = serviceDescriptor;
+        this.NetServices[netService.ServiceDescriptor.ServiceType] = netService;
     }
 }

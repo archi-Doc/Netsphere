@@ -2,6 +2,7 @@
 
 using Arc.Crypto;
 using Netsphere;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace QuickStart;
 
@@ -13,11 +14,15 @@ public interface ITestService : INetService // An interface for NetService must 
     // Ensure that both arguments and return values are serializable by Tinyhand serializer, and the return type must be Task or Task<T> or Task or Task<TResult>.
 
     Task<int> Sum(int x, int y);
+
+    Task<NetResultAndValue<int>> Random();
+
+    Task<NetResult> Disable();
 }
 
 // On the server side, define a class that implements the interface and annotate it with NetObject attribute.
 [NetObject] // Annotate NetObject attribute.
-internal class TestServiceAgent : ITestService, ITestService2
+internal class TestServiceAgent : ITestService
 {
     private readonly int number = RandomVault.Default.NextInt31();
 
@@ -32,12 +37,12 @@ internal class TestServiceAgent : ITestService, ITestService2
     async Task<int> ITestService.Sum(int x, int y)
         => x + y;
 
-    Task<int> ITestService2.Random()
-        => Task.FromResult(this.number);
-}
+    Task<NetResultAndValue<int>> ITestService.Random()
+        => Task.FromResult(new NetResultAndValue<int>(this.number));
 
-[NetService]
-public interface ITestService2 : INetService
-{
-    Task<int> Random();
+    async Task<NetResult> ITestService.Disable()
+    {
+        TransmissionContext.Current.ServerConnection.GetContext().DisableNetService<ITestService>();
+        return NetResult.Success;
+    }
 }

@@ -11,8 +11,7 @@ public sealed class ServiceControl
         this.netServices = new();
         foreach (var x in context.NetServices)
         {// x.Key = NetService, x.Value.ImplementationType = NetObject
-            if (x.Value.ImplementationType is { } objectType &&
-                StaticNetService.TryGetNetObjectInfo(objectType, out var netObject))
+            if (StaticNetService.TryGetNetObjectInfo(x.Value.ObjectType, out var netObject))
             {
                 this.netServices.TryAdd(x.Key, new(x.Key, netObject));
             }
