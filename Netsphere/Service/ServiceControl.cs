@@ -13,12 +13,8 @@ public sealed class ServiceControl
         {// x.Key = NetService, x.Value.ImplementationType = NetObject
             if (StaticNetService.TryGetNetObjectInfo(x.Value.ObjectType, out var netObject))
             {
-                var netServiceInfo = new NetServiceInfo(x.Key, netObject, x.Value.EnableByDefault);
+                var netServiceInfo = new NetServiceInfo(x.Key, netObject);
                 this.netServices.TryAdd(x.Key, netServiceInfo);
-                if (x.Value.EnableByDefault)
-                {
-                    this.enabledServices.TryAdd(x.Key, netServiceInfo);
-                }
             }
         }
     }

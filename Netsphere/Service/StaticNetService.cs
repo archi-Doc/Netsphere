@@ -50,7 +50,7 @@ public static class StaticNetService
     public static bool TryGetNetObjectInfo(Type objectType, [MaybeNullWhen(false)] out NetObjectInfo netObjectInfo)
         => objectInfoTable.TryGetValue(objectType, out netObjectInfo);
 
-    public static bool AddNetService<TNetService, TNetObject>(bool enableByDefault)
+    public static bool AddNetService<TNetService, TNetObject>()
         where TNetService : class, INetService
         where TNetObject : class, TNetService
     {
@@ -59,7 +59,7 @@ public static class StaticNetService
             return false;
         }
 
-        return ServiceInfoTable.TryAdd(typeof(TNetService), serviceType => new(serviceType, netObjectInfo, enableByDefault));
+        return ServiceInfoTable.TryAdd(typeof(TNetService), serviceType => new(serviceType, netObjectInfo));
     }
 
     private static class DelegateCache<T>
