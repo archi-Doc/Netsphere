@@ -49,6 +49,7 @@ public class Program
         var netBase = unit.Context.ServiceProvider.GetRequiredService<NetBase>();
         var node = new NetNode(new(IPAddress.Loopback, (ushort)options.Port), netBase.NodePublicKey);
 
+        // Specify which NetService should be enabled by default when a client connects.
         var netTerminal = unit.Context.ServiceProvider.GetRequiredService<NetTerminal>();
         netTerminal.Services.EnableNetService<ITestService>();
 

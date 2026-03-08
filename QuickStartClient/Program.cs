@@ -1,6 +1,5 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
-using System.Net;
 using Arc.Unit;
 using Microsoft.Extensions.DependencyInjection;
 using Netsphere;
@@ -30,6 +29,7 @@ public class Program
 
         var netUnit = unit.Context.ServiceProvider.GetRequiredService<NetUnit>(); // Get a NetUnit instance.
         // using (var connection = await netUnit.NetTerminal.UnsafeConnect(new(IPAddress.Loopback, 1981)))
+        // var netNode = NetNode.Loopback();
         NetNode.TryParse("127.0.0.1:1981(e:XWLus_KiQ3AaNVeBDBp3qaot8wQEbmzlHD3Wkg8cWmXZ5egP)", out var netNode, out _);
         using (var connection = await netUnit.NetTerminal.Connect(netNode!))
         {// Connect to the server's address (loopback address).

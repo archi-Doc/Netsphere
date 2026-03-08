@@ -46,10 +46,16 @@ First, define an interface shared between the client and server.
 
 ```csharp
 [NetService] // Annotate NetService attribute.
-public interface ITestService : INetService // An interface for NetService must inherit from INetService.
+public interface ITestService : INetService // NetService must inherit from INetService.
 {
     Task<string?> DoubleString(string input); // Declare the service method.
-    // Ensure that both arguments and return values are serializable by Tinyhand serializer, and the return type must be Task or Task<TResult>.
+    // Ensure that both arguments and return values are serializable by Tinyhand serializer, and the return type must be Task or Task<T> or Task or Task<TResult>.
+
+    Task<int> Sum(int x, int y); // Calculates the sum of two integers.
+
+    Task<NetResultAndValue<int>> Random(); // Gets a random integer value wrapped in a <see cref="NetResultAndValue{T}"/>.
+
+    Task<NetResult> Disable(); // Disables the service.
 }
 ```
 
@@ -91,10 +97,24 @@ Define a class that implements the interface and annotate it with `NetObject` at
 
 ```csharp
 [NetObject] // Annotate NetObject attribute.
-internal class TestServiceImpl : ITestService
+internal class TestServiceAgent : ITestService
 {
+    private readonly int number = RandomVault.Default.NextInt31();
+
     async Task<string?> ITestService.DoubleString(string input)
-        => input + input; // Simply repeat a string twice and return it.
+        => input + input;
+
+    async Task<int> ITestService.Sum(int x, int y)
+        => x + y;
+
+    Task<NetResultAndValue<int>> ITestService.Random()
+        => Task.FromResult(new NetResultAndValue<int>(this.number));
+
+    async Task<NetResult> ITestService.Disable()
+    {
+        TransmissionContext.Current.ServerConnection.GetContext().DisableNetService<ITestService>();
+        return NetResult.Success;
+    }
 }
 ```
 
@@ -137,7 +157,7 @@ await unit.Terminate(); // Perform the termination process for the unit.
 
 ## Instance management
 
-- **Service agent**: An instance is created for each connection by the DI container.
+- **Service object**: An instance is created for each connection by the DI container.
 - **Service filter**: Generated for each agent type (not for each instance).
 
 
