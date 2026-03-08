@@ -2,7 +2,7 @@
 
 namespace Lp.NetServices;
 
-[NetServiceInterface]
+[NetService]
 public partial interface IRemoteBenchRunner : INetService
 {
     Task<NetResult> Start(int total, int concurrent, string? remoteNode, string? remotePrivateKey);

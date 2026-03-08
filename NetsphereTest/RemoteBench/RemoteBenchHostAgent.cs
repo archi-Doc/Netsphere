@@ -3,7 +3,7 @@ using Netsphere.Crypto;
 
 namespace Lp.NetServices;
 
-[NetServiceObject]
+[NetObject]
 public class RemoteBenchHostAgent : IRemoteBenchHost, IRemoteBenchService
 {
     public RemoteBenchHostAgent()

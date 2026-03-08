@@ -1,11 +1,10 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Netsphere.Core;
 using Netsphere.Crypto;
 using Netsphere.Relay;
+using Netsphere.Service;
 
 #pragma warning disable SA1202
 
@@ -42,23 +41,6 @@ internal class ExampleConnectionContext : ServerConnectionContext
 
 public class ServerConnectionContext
 {
-    #region Service
-
-    public delegate INetService CreateFrontendDelegate(ClientConnection clientConnection);
-
-    public ServerConnectionContext(ServerConnection serverConnection)
-    {
-        this.ServiceProvider = serverConnection.ConnectionTerminal.ServiceProvider;
-        // this.serviceScope = serverConnection.ConnectionTerminal.ServiceProvider.CreateScope();
-        this.NetTerminal = serverConnection.ConnectionTerminal.NetTerminal;
-        this.ServerConnection = serverConnection;
-
-        this.serviceTable = this.NetTerminal.Services.GetTable();
-        this.agentInstances = new object[this.serviceTable.Count];
-    }
-
-    #endregion
-
     #region FieldAndProperty
 
     public IServiceProvider ServiceProvider { get; }
@@ -70,8 +52,109 @@ public class ServerConnectionContext
     public AuthenticationToken? AuthenticationToken { get; private set; }
 
     // private readonly IServiceScope serviceScope;
-    private readonly ServiceControl.Table serviceTable;
-    private readonly object[] agentInstances;
+    private object netServiceSync => this; // ...
+
+    private NetServiceItem[] netServiceItems;
+
+    #endregion
+
+    public ServerConnectionContext(ServerConnection serverConnection)
+    {
+        this.ServiceProvider = serverConnection.ConnectionTerminal.ServiceProvider;
+        // this.serviceScope = serverConnection.ConnectionTerminal.ServiceProvider.CreateScope();
+        this.NetTerminal = serverConnection.ConnectionTerminal.NetTerminal;
+        this.ServerConnection = serverConnection;
+        if (serverConnection.BidirectionalConnection is null)
+        {// Server
+            this.netServiceItems = this.NetTerminal.Services.GetServiceArray();
+        }
+        else
+        {// Client (Bidirectional)
+            // For security reasons, the client has no NetServices enabled by default. Enable the required services as needed.
+            this.netServiceItems = [];
+        }
+    }
+
+    #region NetService
+
+    public bool IsNetServiceEnabled<TService>()
+    {
+        var serviceId = StaticNetService.GetServiceId<TService>();
+        lock (this.netServiceSync)
+        {
+            foreach (var x in this.netServiceItems)
+            {
+                if (x.NetServiceInfo.ServiceId == serviceId)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public bool EnableNetService<TService>()
+    {
+        if (!this.NetTerminal.Services.TryGetNetServiceInfo(typeof(TService), out var netServiceInfo))
+        {// Not found
+            return false;
+        }
+
+        var serviceId = StaticNetService.GetServiceId<TService>();
+        lock (this.netServiceSync)
+        {
+            foreach (var x in this.netServiceItems)
+            {
+                if (x.NetServiceInfo.ServiceId == serviceId)
+                {// Already enabled
+                    return true;
+                }
+            }
+
+            var newArray = new NetServiceItem[this.netServiceItems.Length + 1];
+            Array.Copy(this.netServiceItems, newArray, this.netServiceItems.Length);
+            newArray[this.netServiceItems.Length] = new(netServiceInfo);
+            this.netServiceItems = newArray;
+        }
+
+        return true;
+    }
+
+    public bool DisableNetService<TService>()
+    {
+        var serviceId = StaticNetService.GetServiceId<TService>();
+        lock (this.netServiceSync)
+        {
+            for (var i = 0; i < this.netServiceItems.Length; i++)
+            {
+                if (this.netServiceItems[i].NetServiceInfo.ServiceId == serviceId)
+                {
+                    if (this.netServiceItems[i].Instance is INetObject netObject)
+                    {
+                        netObject.OnConnectionClosed();
+                    }
+
+                    var newArray = new NetServiceItem[this.netServiceItems.Length - 1];
+                    if (i > 0)
+                    {
+                        Array.Copy(this.netServiceItems, newArray, i);
+                    }
+
+                    if (i < this.netServiceItems.Length - 1)
+                    {
+                        Array.Copy(this.netServiceItems, i + 1, newArray, i, this.netServiceItems.Length - i - 1);
+                    }
+
+                    this.netServiceItems = newArray;
+                    return true;
+                }
+            }
+        }
+
+        // Not found
+        return false;
+    }
 
     #endregion
 
@@ -347,42 +430,49 @@ SendNoNetService:
     private (ServiceMethod? ServiceMethod, object AgentInstance) TryGetServiceMethod(ulong dataId)
     {
         var serviceId = unchecked((uint)(dataId >> 32));
-        if (!this.serviceTable.TryGetAgent(serviceId, out var agent))
-        {// No agent (implementation)
-            return default;
-        }
-
-        var agentInformation = agent.AgentInformation;
-        if (!agentInformation.TryGetMethod(dataId, out var serviceMethod))
-        {// No method
-            return default;
-        }
-
-        if (this.agentInstances[agent.Index] is null)
+        lock (this.netServiceSync)
         {
-            var instance = this.ServiceProvider?.GetService(agent.AgentInformation.AgentType);
-            instance ??= agent.AgentInformation.CreateAgent?.Invoke();
-            if (instance is null)
-            {// No instance
-                return default;
-            }
+            for (var i = 0; i < this.netServiceItems.Length; i++)
+            {
+                if (this.netServiceItems[i].NetServiceInfo.ServiceId == serviceId)
+                {// Found
+                    ref var item = ref this.netServiceItems[i];
+                    if (!item.NetServiceInfo.NetObjectInfo.TryGetMethod(dataId, out var serviceMethod))
+                    {// No method
+                        return default;
+                    }
 
-            Interlocked.CompareExchange(ref this.agentInstances[agent.Index], instance, null);
+                    if (item.Instance is null)
+                    {
+                        var instance = this.ServiceProvider?.GetService(item.NetServiceInfo.ServiceType);
+                        instance ??= item.NetServiceInfo.NetObjectInfo.ObjectFactory?.Invoke();
+                        if (instance is null)
+                        {// No instance
+                            return default;
+                        }
+
+                        item.Instance = instance;
+                    }
+
+                    return (serviceMethod, item.Instance);
+                }
+            }
         }
 
-        return (serviceMethod, this.agentInstances[agent.Index]);
+        // Not found
+        return default;
     }
 
     internal void DisposeActual()
     {
-        foreach (var x in this.agentInstances)
+        foreach (var x in this.netServiceItems)
         {
-            if (x is INetServiceObject netObject)
+            if (x.Instance is INetObject netObject)
             {
                 netObject.OnConnectionClosed();
             }
         }
 
-        Array.Clear(this.agentInstances);
+        Array.Clear(this.netServiceItems);
     }
 }

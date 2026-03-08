@@ -62,7 +62,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
 
     public TService GetService<TService>()
         where TService : INetService
-        => StaticNetService.CreateClient<TService>(this);
+        => StaticNetService.CreateFrontend<TService>(this);
 
     public async Task<NetResult> Send<TSend>(TSend data, ulong dataId = 0, CancellationToken cancellationToken = default)
     {

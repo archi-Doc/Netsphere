@@ -57,7 +57,7 @@ public class Program
             })
             .ConfigureNetsphere(context =>
             {// Register the services provided by the server.
-                context.AddNetService<Netsphere.Interfaces.IRemoteData, RemoteDataAgent>();
+                // context.AddNetService<Netsphere.Interfaces.IRemoteData, RemoteDataAgent>();
             })
             .PostConfigure(context =>
             {

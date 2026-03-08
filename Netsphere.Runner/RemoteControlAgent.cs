@@ -11,7 +11,7 @@ internal class RemoteControlBase
     public SignaturePublicKey RemotePublicKey { get; set; }
 }
 
-[NetServiceObject]
+[NetObject]
 internal class RemoteControlAgent : IRemoteControl
 {// Remote -> Netsphere.Runner
     public RemoteControlAgent(ILogger<RemoteControlAgent> logger, BigMachine bigMachine, RemoteControlBase remoteControlBase)

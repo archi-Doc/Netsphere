@@ -11,15 +11,15 @@ public sealed partial class ServerConnection : Connection, IEquatable<ServerConn
     [Link(Type = ChainType.Unordered, Name = "DestinationEndpoint", TargetMember = "DestinationEndpoint")]
     internal ServerConnection(PacketTerminal packetTerminal, ConnectionTerminal connectionTerminal, ulong connectionId, NetNode node, NetEndpoint endPoint)
         : base(packetTerminal, connectionTerminal, connectionId, node, endPoint)
-    {
+    {// CreateServerConnection (Client->Server)
         this.context = this.NetBase.NewServerConnectionContext(this);
     }
 
     internal ServerConnection(ClientConnection clientConnection)
         : base(clientConnection)
-    {
-        this.context = this.NetBase.NewServerConnectionContext(this);
+    {// CreateServerConnection (Bidirectional)
         this.BidirectionalConnection = clientConnection;
+        this.context = this.NetBase.NewServerConnectionContext(this);
     }
 
     #region FieldAndProperty

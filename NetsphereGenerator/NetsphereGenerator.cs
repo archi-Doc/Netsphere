@@ -53,13 +53,13 @@ public class NetsphereGeneratorV2 : IIncrementalGenerator, IGeneratorInformation
                 {
                     return typeSyntax;
                 }
-                else if (name.EndsWith(NetServiceObjectAttributeMock.StandardName) ||
-                    name.EndsWith(NetServiceObjectAttributeMock.SimpleName))
+                else if (name.EndsWith(NetObjectAttributeMock.StandardName) ||
+                    name.EndsWith(NetObjectAttributeMock.SimpleName))
                 {
                     return typeSyntax;
                 }
-                else if (name.EndsWith(NetServiceInterfaceAttributeMock.StandardName) ||
-                    name.EndsWith(NetServiceInterfaceAttributeMock.SimpleName))
+                else if (name.EndsWith(NetServiceAttributeMock.StandardName) ||
+                    name.EndsWith(NetServiceAttributeMock.SimpleName))
                 {
                     return typeSyntax;
                 }
@@ -84,20 +84,20 @@ public class NetsphereGeneratorV2 : IIncrementalGenerator, IGeneratorInformation
     {
         var compilation = source.Compilation;
 
-        var netServiceObjectAttributeSymbol = compilation.GetTypeByMetadataName(NetServiceObjectAttributeMock.FullName);
-        if (netServiceObjectAttributeSymbol == null)
+        var netObjectAttributeSymbol = compilation.GetTypeByMetadataName(NetObjectAttributeMock.FullName);
+        if (netObjectAttributeSymbol == null)
         {
             return;
         }
 
-        var netServiceInterfaceAttributeSymbol = compilation.GetTypeByMetadataName(NetServiceInterfaceAttributeMock.FullName);
-        if (netServiceInterfaceAttributeSymbol == null)
+        var netServiceAttributeSymbol = compilation.GetTypeByMetadataName(NetServiceAttributeMock.FullName);
+        if (netServiceAttributeSymbol == null)
         {
             return;
         }
 
-        var netServiceInterfaceSymbol = compilation.GetTypeByMetadataName(INetService.FullName);
-        if (netServiceInterfaceSymbol == null)
+        var netServiceSymbol = compilation.GetTypeByMetadataName(INetService.FullName);
+        if (netServiceSymbol == null)
         {
             return;
         }
@@ -133,7 +133,7 @@ public class NetsphereGeneratorV2 : IIncrementalGenerator, IGeneratorInformation
             {
                 processed.Add(s);
 
-                /*if (s.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(netServiceInterfaceSymbol, x)))
+                /*if (s.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(netServiceSymbol, x)))
                 {
                     body.Add(s);
                     break;
@@ -141,13 +141,13 @@ public class NetsphereGeneratorV2 : IIncrementalGenerator, IGeneratorInformation
 
                 foreach (var y in s.GetAttributes())
                 {
-                    if (SymbolEqualityComparer.Default.Equals(y.AttributeClass, netServiceObjectAttributeSymbol))
-                    { // NetServiceObject
+                    if (SymbolEqualityComparer.Default.Equals(y.AttributeClass, netObjectAttributeSymbol))
+                    { // NetObject
                         body.Add(s);
                         break;
                     }
-                    else if (SymbolEqualityComparer.Default.Equals(y.AttributeClass, netServiceInterfaceAttributeSymbol))
-                    { // NetServiceInterface
+                    else if (SymbolEqualityComparer.Default.Equals(y.AttributeClass, netServiceAttributeSymbol))
+                    { // NetService
                         body.Add(s);
                         break;
                     }

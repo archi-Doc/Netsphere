@@ -45,11 +45,11 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor Error_INetService = new DiagnosticDescriptor(
-        id: "NSG004", title: "INetService", messageFormat: "NetServiceObject or NetServiceInterface must be derived from INetService",
+        id: "NSG004", title: "INetService", messageFormat: "NetObject or NetService must be derived from INetService",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor Error_Accessibility = new DiagnosticDescriptor(
-        id: "NSG005", title: "Accessibility", messageFormat: "Access modifier of NetServiceObject must be public or internal",
+        id: "NSG005", title: "Accessibility", messageFormat: "Access modifier of NetObject must be public or internal",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor Error_DuplicateServiceId = new DiagnosticDescriptor(
@@ -170,16 +170,16 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                 ssb.AppendLine("Initialized = true;");
                 ssb.AppendLine();
 
-                foreach (var y in array.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetServiceInterface)))
+                foreach (var y in array.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetService)))
                 {
-                    ssb.AppendLine($"StaticNetService.SetFrontendDelegate<{y.FullName}>(static x => new {y.ClassName}(x));");
+                    ssb.AppendLine($"StaticNetService.SetFrontendFactory<{y.FullName}>(static x => new {y.ClassName}(x));");
                 }
             }
 
             foreach (var y in array)
             {
-                if (y.ObjectFlag.HasFlag(NetsphereObjectFlag.NetServiceInterface))
-                {// NetServiceInterface (Frontend)
+                if (y.ObjectFlag.HasFlag(NetsphereObjectFlag.NetService))
+                {// NetService (Frontend)
                     ssb.AppendLine();
                     y.GenerateFrontend(ssb, info);
                 }
@@ -223,14 +223,13 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                 ssb.AppendLine("Initialized = true;");
                 ssb.AppendLine();
 
-                foreach (var y in array.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetServiceObject)))
+                foreach (var y in array.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetObject)))
                 {
                     if (y.ServiceInterfaces != null)
                     {
                         foreach (var z in y.ServiceInterfaces)
                         {
-                            // ssb.AppendLine($"StaticNetService.TryAddAgentInfo({y.ClassName}.Agent_{z.NetServiceInterfaceAttribute!.ServiceId.ToString("x")}());");
-                            ssb.AppendLine($"{y.ClassName}.Agent_{z.NetServiceInterfaceAttribute!.ServiceId.ToString("x")}();");
+                            ssb.AppendLine($"{y.ClassName}.Object_{z.NetServiceAttribute!.ServiceId.ToString("x")}();");
                         }
                     }
                 }
@@ -238,8 +237,8 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
 
             foreach (var y in array)
             {
-                if (y.ObjectFlag.HasFlag(NetsphereObjectFlag.NetServiceObject))
-                {// NetServiceObject (Backend)
+                if (y.ObjectFlag.HasFlag(NetsphereObjectFlag.NetObject))
+                {// NetObject (Backend)
                     ssb.AppendLine();
                     y.GenerateBackend(ssb, info);
                 }
@@ -295,9 +294,9 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                     ssb.AppendLine("Initialized = true;");
                     ssb.AppendLine();
 
-                    foreach (var y in x.Value.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetServiceInterface)))
+                    foreach (var y in x.Value.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetService)))
                     {
-                        ssb.AppendLine($"StaticNetService.SetFrontendDelegate<{y.FullName}>(static x => new {y.ClassName}(x));");
+                        ssb.AppendLine($"StaticNetService.SetFrontendFactory<{y.FullName}>(static x => new {y.ClassName}(x));");
                     }
                 }
 

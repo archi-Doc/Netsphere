@@ -8,6 +8,7 @@ global using Netsphere;
 using Arc.Unit;
 using Lp.NetServices;
 using Microsoft.Extensions.DependencyInjection;
+using Netsphere.Interfaces;
 using Netsphere.Misc;
 using SimpleCommandLine;
 
@@ -192,8 +193,8 @@ public class Program
         await unit.Run(options, true, x => new TestConnectionContext(x));
 
         var netUnit = unit.Context.ServiceProvider.GetRequiredService<NetUnit>();
-        netUnit.Services.Register<IRemoteBenchHost, RemoteBenchHostAgent>();
-        netUnit.Services.Register<IRemoteBenchRunner, RemoteBenchRunnerAgent>();
+        netUnit.Services.EnableNetService<IRemoteBenchHost>();
+        netUnit.Services.EnableNetService<IRemoteBenchRunner>();
 
         var parserOptions = SimpleParserOptions.Standard with
         {

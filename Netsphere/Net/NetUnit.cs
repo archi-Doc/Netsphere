@@ -20,6 +20,7 @@ using Netsphere.Misc;
 using Netsphere.Packet;
 using Netsphere.Relay;
 using Netsphere.Responder;
+using Netsphere.Service;
 using Netsphere.Stats;
 
 namespace Netsphere;
@@ -45,7 +46,7 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 context.AddSingleton<NtpCorrection>();
                 context.AddSingleton<NetTerminal>();
                 context.AddSingleton<ServiceControl>();
-                //context.AddSingleton<RobustConnection.Factory>();
+                // context.AddSingleton<RobustConnection.Factory>();
                 context.TryAddSingleton<IRelayControl, NoRelayControl>();
 
                 // Stream logger
@@ -170,13 +171,8 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
         this.NetBase = netBase;
         this.NetStats = netStats;
         this.Responders = new();
-        this.Services = new();
-
         var netsphereContext = context.ServiceProvider.GetRequiredService<NetsphereUnitContext>();
-        foreach (var x in netsphereContext.ServiceToAgent)
-        {
-            this.Services.Register(x.Key, x.Value);
-        }
+        this.Services = new(netsphereContext);
 
         this.NetTerminal = netTerminal;
         this.NetTerminal.Initialize(this.Responders, this.Services, false);

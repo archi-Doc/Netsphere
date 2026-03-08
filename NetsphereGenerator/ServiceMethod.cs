@@ -73,13 +73,13 @@ public class ServiceMethod
 
         var serviceMethod = new ServiceMethod(method);
         serviceMethod.MethodId = (uint)Arc.Crypto.FarmHash.Hash64(method.FullName);
-        if (obj.NetServiceInterfaceAttribute == null)
+        if (obj.NetServiceAttribute == null)
         {
             serviceMethod.Id = serviceMethod.MethodId;
         }
         else
         {
-            serviceMethod.Id = (ulong)obj.NetServiceInterfaceAttribute.ServiceId << 32 | serviceMethod.MethodId;
+            serviceMethod.Id = (ulong)obj.NetServiceAttribute.ServiceId << 32 | serviceMethod.MethodId;
         }
 
         if (returnObject.Generics_Arguments.Length > 0)

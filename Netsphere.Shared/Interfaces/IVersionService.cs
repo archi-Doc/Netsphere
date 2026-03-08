@@ -4,7 +4,7 @@ using Netsphere.Crypto;
 
 namespace Netsphere.Version;
 
-/*[NetServiceInterface]
+/*[NetService]
 public interface IVersionService : INetService
 {
     Task<NetResultValue<CertificateToken<VersionInfo>?>> Get();

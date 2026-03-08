@@ -4,18 +4,18 @@ namespace Netsphere;
 
 /// <summary>
 /// An attribute that is applied to the interface when defining a NetService.<br/>
-/// The requirements are to add the <see cref="NetServiceInterfaceAttribute" /> and to derive from the <see cref="INetService" />.<br/>
+/// The requirements are to add the <see cref="NetServiceAttribute" /> and to derive from the <see cref="INetService" />.<br/>
 /// The return type of the interface function must be either <see cref="Task"/> or <see cref="Task{TResponse}"/>(TResponse is Tinyhand serializable).
 /// </summary>
 [AttributeUsage(AttributeTargets.Interface, AllowMultiple = false, Inherited = false)]
-public sealed class NetServiceInterfaceAttribute : Attribute
+public sealed class NetServiceAttribute : Attribute
 {
     /// <summary>
     /// Gets or sets an identifier of the net service [0: auto-generated from the interface full name].
     /// </summary>
     public uint ServiceId { get; set; } = 0;
 
-    public NetServiceInterfaceAttribute(uint serviceId = 0)
+    public NetServiceAttribute(uint serviceId = 0)
     {
         this.ServiceId = serviceId;
     }

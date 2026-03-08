@@ -2,19 +2,19 @@
 
 namespace NetsphereTest;
 
-[NetServiceInterface]
+[NetService]
 public interface ITestService : INetService
 {
     public Task Send(int x);
 }
 
-[NetServiceInterface]
+[NetService]
 public interface ITestService2 : INetService
 {
     public Task Send2(int x);
 }
 
-[NetServiceInterface]
+[NetService]
 public interface ITestService3 : INetService
 {
     public Task Send3(string x, int y);
@@ -26,7 +26,7 @@ public interface ITestService3 : INetService
     public Task<BytePool.RentReadOnlyMemory> SendReadOnlyMemoryOwner(BytePool.RentReadOnlyMemory rentMemory);
 }
 
-[NetServiceObject]
+[NetObject]
 public class TestServiceImpl0 : ITestService2
 {
     public void Test()
@@ -38,7 +38,7 @@ public class TestServiceImpl0 : ITestService2
     }
 }
 
-// [NetServiceObject]
+// [NetObject]
 public class TestServiceImpl : ITestService
 {
     public async Task Send(int x)
@@ -47,7 +47,7 @@ public class TestServiceImpl : ITestService
     }
 }
 
-[NetServiceObject]
+[NetObject]
 public class TestServiceImpl2 : TestServiceImpl
 {
     public async Task Send2(int x)
@@ -58,7 +58,7 @@ public class TestServiceImpl2 : TestServiceImpl
 
 public class ParentClass
 {
-    [NetServiceObject]
+    [NetObject]
     internal class NestedServiceImpl3 : ITestService3
     {
         public async Task<int> Increment3(int x)
@@ -82,7 +82,7 @@ public class ParentClass
         }
     }
 
-    [NetServiceInterface]
+    [NetService]
     public interface INestedService : INetService
     {
         public Task<int> Increment3(int x);

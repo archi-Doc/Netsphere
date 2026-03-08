@@ -372,7 +372,8 @@ public class ConnectionTerminal
         using (this.serverConnections.LockObject.EnterScope())
         {
             if (this.serverConnections.ConnectionIdChain.TryGetValue(clientConnection.ConnectionId, out var connection))
-            {
+            {// ReuseServerConnection
+                // Reusing a Connection may cause inconsistencies in the enabled NetServices, but for now the current implementation does not change the NetServices.
                 connection.ChangeStateInternal(Connection.State.Open);
             }
             else
@@ -620,7 +621,8 @@ public class ConnectionTerminal
                 this.serverConnections.ConnectionIdChain.TryGetValue(connectionId, out connection);
 
                 if (connection?.CurrentState == Connection.State.Closed)
-                {// Reopen (Closed -> Open)
+                {// Reopen (Closed -> Open), ReuseServerConnection
+                    // Reusing a Connection may cause inconsistencies in the enabled NetServices, but for now the current implementation does not change the NetServices.
                     connection.ChangeStateInternal(Connection.State.Open);
                 }
             }

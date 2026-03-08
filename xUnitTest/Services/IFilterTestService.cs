@@ -4,7 +4,7 @@ using Netsphere;
 
 namespace xUnitTest.NetsphereTest;
 
-[NetServiceInterface]
+[NetService]
 public interface IFilterTestService : INetService
 {
     public Task<int> NoFilter(int x);
@@ -20,7 +20,7 @@ public interface IFilterTestService : INetService
     public Task<int> Multiply2AndIncrement(int x);
 }
 
-[NetServiceObject]
+[NetObject]
 public class FilterTestServiceImpl : IFilterTestService
 {
     public async Task<int> NoFilter(int x) => x;

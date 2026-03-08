@@ -6,7 +6,7 @@ using Netsphere.Crypto;
 
 namespace xUnitTest.NetsphereTest;
 
-[NetServiceInterface]
+[NetService]
 public interface IStreamService : INetService, INetServiceWithUpdateAgreement
 {
     Task<byte[]?> Pingpong(byte[] data);
@@ -22,7 +22,7 @@ public interface IStreamService : INetService, INetServiceWithUpdateAgreement
     Task<SendStreamAndReceive<NetResult>?> Put2(ulong hash, long maxLength);
 }
 
-[NetServiceObject]
+[NetObject]
 public class StreamServiceImpl : IStreamService
 {
     public const long MaxStreamLength = 100_000_000;

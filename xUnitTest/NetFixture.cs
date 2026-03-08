@@ -39,9 +39,6 @@ public class NetFixture : IDisposable
             .ConfigureNetsphere(context =>
             {
                 context.AddNetService<IBasicService, BasicServiceImpl>();
-                context.AddNetService<IBasicTaskService, BasicTaskServiceImpl>();
-                context.AddNetService<IFilterTestService, FilterTestServiceImpl>();
-                context.AddNetService<IStreamService, StreamServiceImpl>();
             });
 
         var options = new NetOptions();
@@ -59,6 +56,13 @@ public class NetFixture : IDisposable
         this.NetUnit.NetBase.DefaultAgreement.MaxStreamLength = MaxStreamLength;
         this.NetUnit.NetBase.DefaultAgreement.StreamBufferSize = StreamBufferSize;
         this.NetUnit.NetBase.DefaultAgreement.MinimumConnectionRetentionMics = MinimumConnectionRetentionMics;
+
+        var services = this.NetUnit.NetTerminal.Services;
+        services.EnableNetService<IBasicService>();
+        services.EnableNetService<IBasicTaskService>();
+        services.EnableNetService<IFilterTestService>();
+        services.EnableNetService<IStreamService>();
+        services.EnableNetService<IBidirectionalService>();
     }
 
     public void Dispose()

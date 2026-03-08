@@ -43,7 +43,7 @@ public abstract class RunnerCommand
         options.NodeSecretKeyString = string.Empty;
 
         var netUnit = this.serviceProvider.GetRequiredService<NetUnit>();
-        netUnit.Services.Register<IRemoteControl, RemoteControlAgent>();
+        netUnit.Services.EnableNetService<IRemoteControl>();
 
         var remoteControlBase = this.serviceProvider.GetRequiredService<RemoteControlBase>();
         remoteControlBase.RemotePublicKey = options.RemotePublicKey;
