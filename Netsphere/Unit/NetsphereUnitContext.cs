@@ -41,7 +41,7 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
     private void AddNetService(ServiceDescriptor serviceDescriptor)
     {
         if (serviceDescriptor.ImplementationType is null ||
-            !StaticNetService.TryGetNetObjectInfo(serviceDescriptor.ImplementationType, out var netServiceObjectInfo))
+            !StaticNetService.TryGetNetObjectInfo(serviceDescriptor.ImplementationType, out var netObjectInfo))
         {
             throw new InvalidOperationException();
         }

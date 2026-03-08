@@ -13,7 +13,7 @@ public interface ITestService : INetService // An interface for NetService must 
     // Ensure that both arguments and return values are serializable by Tinyhand serializer, and the return type must be Task or Task<T> or Task or Task<TResult>.
 }
 
-// On the server side, define a class that implements the interface and annotate it with NetServiceObject attribute.
+// On the server side, define a class that implements the interface and annotate it with NetObject attribute.
 [NetObject] // Annotate NetObject attribute.
 internal class TestServiceAgent : ITestService, ITestService2
 {

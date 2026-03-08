@@ -87,10 +87,10 @@ await unit.Terminate(); // Perform the termination process for the unit.
 
 On the server side:
 
-Define a class that implements the interface and annotate it with `NetServiceObject` attribute.
+Define a class that implements the interface and annotate it with `NetObject` attribute.
 
 ```csharp
-[NetObject] // Annotate NetServiceObject attribute.
+[NetObject] // Annotate NetObject attribute.
 internal class TestServiceImpl : ITestService
 {
     async Task<string?> ITestService.DoubleString(string input)

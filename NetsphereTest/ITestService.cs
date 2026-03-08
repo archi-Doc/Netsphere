@@ -38,7 +38,7 @@ public class TestServiceImpl0 : ITestService2
     }
 }
 
-// [NetServiceObject]
+// [NetObject]
 public class TestServiceImpl : ITestService
 {
     public async Task Send(int x)

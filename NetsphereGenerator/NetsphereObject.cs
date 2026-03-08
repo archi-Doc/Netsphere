@@ -116,7 +116,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         this.ObjectFlag |= NetsphereObjectFlag.Configured;
 
         if (this.AllAttributes.FirstOrDefault(x => x.FullName == NetObjectAttributeMock.FullName) is { } objectAttribute)
-        {// NetServiceObjectAttribute
+        {// NetObjectAttribute
             try
             {
                 this.NetObjectAttribute = NetObjectAttributeMock.FromArray(objectAttribute.ConstructorArguments, objectAttribute.NamedArguments);
@@ -129,7 +129,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             }
         }
         else if (TryGetNetServiceInterfaceAttribute(this))
-        {// NetServiceInterfaceAttribute
+        {// NetServiceAttribute
         }
         else
         {

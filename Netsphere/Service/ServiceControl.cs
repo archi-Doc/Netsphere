@@ -33,12 +33,12 @@ public sealed class ServiceControl
     {
         using (this.lockObject.EnterScope())
         {
-            if (!this.netServices.TryGetValue(typeof(TNetService), out var netServiceObject))
+            if (!this.netServices.TryGetValue(typeof(TNetService), out var netObject))
             {
                 throw new InvalidOperationException();
             }
 
-            this.enabledServices.TryAdd(typeof(TNetService), netServiceObject);
+            this.enabledServices.TryAdd(typeof(TNetService), netObject);
             this.ResetServiceArray();
         }
     }
