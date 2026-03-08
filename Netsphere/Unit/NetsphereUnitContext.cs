@@ -23,8 +23,8 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
         }
 
         foreach (var x in this.NetServices)
-        {// INetService, NetServiceObjectType, Lifetime
-            context.Services.Add(x.Value); // INetService -> NetServiceObject
+        {// INetService, NetObjectType, Lifetime
+            context.Services.Add(x.Value); // INetService -> NetObject
         }
     }
 

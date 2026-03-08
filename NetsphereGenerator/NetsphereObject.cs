@@ -26,8 +26,8 @@ public enum NetsphereObjectFlag
     RelationConfigured = 1 << 1,
     Checked = 1 << 2,
 
-    NetService = 1 << 10, // NetServiceInterface
-    NetObject = 1 << 11, // NetServiceObject
+    NetService = 1 << 10, // NetService
+    NetObject = 1 << 11, // NetObject
     HasDefaultConstructor = 1 << 12, // Has default constructor
 }
 
@@ -59,9 +59,9 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
     public NetsphereObject? Implementation { get; private set; } // For NetServiceInterface; NetsphereObject that implements this net service interface.
 
-    public List<NetsphereObject>? ServiceInterfaces { get; private set; } // For NetServiceObjectAttribute; Net service interfaces implemented by this net service object.
+    public List<NetsphereObject>? ServiceInterfaces { get; private set; } // For NetObjectAttribute; Net service interfaces implemented by this net service object.
 
-    // public NetsphereObject? NetServiceBase { get; private set; } // For NetServiceObjectAttribute; Net service base implemented by this net service object.
+    // public NetsphereObject? NetServiceBase { get; private set; } // For NetObjectAttribute; Net service base implemented by this net service object.
 
     public ServiceFilterGroup? ClassFilters { get; private set; } // For NetObjectAttribute; Service filters.
 
@@ -370,7 +370,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         this.ObjectFlag |= NetsphereObjectFlag.Checked;
 
         if (this.NetObjectAttribute != null)
-        {// NetServiceObject
+        {// NetObject
             this.ClassName = NetsphereBody.BackendClassName + Arc.Crypto.FarmHash.Hash32(this.FullName).ToString("x");
 
             if (this.ServiceInterfaces != null)
@@ -1012,7 +1012,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 }
             }
 
-            // if (this.NetServiceObjectAttribute?.EnableAutoRegistration == true)
+            // if (this.NetObjectAttribute?.EnableAutoRegistration == true)
             {
                 ssb.AppendLine($"StaticNetService.AddNetService<{serviceInterface.FullName}, {this.FullName}>();");
             }
