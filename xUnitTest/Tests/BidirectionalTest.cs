@@ -23,7 +23,7 @@ public class BidirectionalTest
             connection.IsNotNull();
 
             var serverConnection = connection.PrepareBidirectionalConnection();
-            // serverConnection.GetContext().EnableNetService<IBidirectionalService>();
+            serverConnection.GetContext().EnableNetService<IBidirectionalService>();
 
             var service = connection.GetService<IBidirectionalService>();
             (await service.Connect()).Is(NetResult.Success);

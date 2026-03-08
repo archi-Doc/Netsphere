@@ -64,7 +64,15 @@ public class ServerConnectionContext
         // this.serviceScope = serverConnection.ConnectionTerminal.ServiceProvider.CreateScope();
         this.NetTerminal = serverConnection.ConnectionTerminal.NetTerminal;
         this.ServerConnection = serverConnection;
-        this.netServiceItems = this.NetTerminal.Services.GetServiceArray();
+        if (serverConnection.BidirectionalConnection is null)
+        {// Server
+            this.netServiceItems = this.NetTerminal.Services.GetServiceArray();
+        }
+        else
+        {// Client (Bidirectional)
+            // For security reasons, the client has no NetServices enabled by default. Enable the required services as needed.
+            this.netServiceItems = [];
+        }
     }
 
     #region NetService

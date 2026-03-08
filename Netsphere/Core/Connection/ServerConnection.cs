@@ -18,8 +18,8 @@ public sealed partial class ServerConnection : Connection, IEquatable<ServerConn
     internal ServerConnection(ClientConnection clientConnection)
         : base(clientConnection)
     {// CreateServerConnection (Bidirectional)
-        this.context = this.NetBase.NewServerConnectionContext(this);
         this.BidirectionalConnection = clientConnection;
+        this.context = this.NetBase.NewServerConnectionContext(this);
     }
 
     #region FieldAndProperty
