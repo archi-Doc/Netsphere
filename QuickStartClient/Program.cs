@@ -28,9 +28,8 @@ public class Program
         await unit.Run(new NetOptions(), true); // Execute the created unit with default options.
 
         var netUnit = unit.Context.ServiceProvider.GetRequiredService<NetUnit>(); // Get a NetUnit instance.
-        // using (var connection = await netUnit.NetTerminal.UnsafeConnect(new(IPAddress.Loopback, 1981)))
-        // var netNode = NetNode.Loopback();
-        NetNode.TryParse("127.0.0.1:1981(e:XWLus_KiQ3AaNVeBDBp3qaot8wQEbmzlHD3Wkg8cWmXZ5egP)", out var netNode, out _);
+                                                                                  // using (var connection = await netUnit.NetTerminal.UnsafeConnect(new(IPAddress.Loopback, 1981)))
+        var netNode = NetNode.Loopback(1981, "(e:XWLus_KiQ3AaNVeBDBp3qaot8wQEbmzlHD3Wkg8cWmXZ5egP)");
         using (var connection = await netUnit.NetTerminal.Connect(netNode!))
         {// Connect to the server's address (loopback address).
          // All communication in Netsphere is encrypted, and connecting by specifying only the address is not recommended due to the risk of man-in-the-middle attacks.

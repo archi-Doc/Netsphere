@@ -66,11 +66,13 @@ On the client side:
 Create an instance, connect to the server, obtain the service interface, and call the function.
 
 ```csharp
-var unit = new NetUnit.Builder().Build(); // Create a NetUnit unit that implements communication functionality.
+var unit = builder.Build(); // Create a NetUnit unit that implements communication functionality.
 await unit.Run(new NetOptions(), true); // Execute the created unit with default options.
 
 var netUnit = unit.Context.ServiceProvider.GetRequiredService<NetUnit>(); // Get a NetUnit instance.
-using (var connection = await netUnit.NetTerminal.UnsafeConnect(new(IPAddress.Loopback, 1981)))
+// using (var connection = await netUnit.NetTerminal.UnsafeConnect(new(IPAddress.Loopback, 1981)))
+var netNode = NetNode.Loopback(1981, "(e:XWLus_KiQ3AaNVeBDBp3qaot8wQEbmzlHD3Wkg8cWmXZ5egP)");
+using (var connection = await netUnit.NetTerminal.Connect(netNode!))
 {// Connect to the server's address (loopback address).
     // All communication in Netsphere is encrypted, and connecting by specifying only the address is not recommended due to the risk of man-in-the-middle attacks.
     if (connection is null)
@@ -83,6 +85,15 @@ using (var connection = await netUnit.NetTerminal.UnsafeConnect(new(IPAddress.Lo
         var input = "Nupo";
         var output = await service.DoubleString(input); // Arguments are sent to the server through the Tinyhand serializer, processed, and the results are received.
         await Console.Out.WriteLineAsync($"{input} -> {output}");
+
+        var sum = await service.Sum(1, 2); // // Get the sum of 1 and 2, but it is not implemented on the server side.
+        await Console.Out.WriteLineAsync($"1 + 2 = {sum}"); // 0
+
+        var result = await service.Random();
+        await Console.Out.WriteLineAsync($"{result}");
+        await service.Disable();
+        result = await service.Random();
+        await Console.Out.WriteLineAsync($"{result}");
     }
 }
 
@@ -190,28 +201,22 @@ await unit.Terminate(); // Perform the termination process for the unit.
 
    
 
-3. Add the network service to the server.
+3. Specify which NetService should be enabled by default when a client connects.
 
    ```csharp
-   .ConfigureNetsphere(context =>
-   {
-       context.AddNetService<ITestService, TestServiceAgent>();
-   });
+   var netTerminal = unit.Context.ServiceProvider.GetRequiredService<NetTerminal>();
+   netTerminal.Services.EnableNetService<ITestService>();
    ```
-
-   It can also be dynamically added via NetTerminal.
-   ```csharp
-   netTerminal.Services.Register<ITestService, TestServiceAgent>();
-   ```
-
+   
    
 
-4. Register the agent class in the DI container. If forgotten, it will be registered as Transient when the network service is registered.
+4. On the server side, you can also disable or enable the NetService.
    ```csharp
-   .Configure(context =>
+   async Task<NetResult> ITestService.Disable()
    {
-       context.Services.AddTransient<TestServiceAgent>();
-   })
+       TransmissionContext.Current.ServerConnection.GetContext().DisableNetService<ITestService>();
+       return NetResult.Success;
+   }
    ```
 
    
@@ -219,5 +224,5 @@ await unit.Terminate(); // Perform the termination process for the unit.
 ## Checklist for NetService
 
 - Ensure that NetService is registered on the server (`Context.AddNetService()` or `NetTerminal.Services.Register()`).
-- Verify that the Service agent is registered in the DI container.
+- Verify that the Service object is registered in the DI container.
 - Check if the DI container can create instances (ensure no injection errors occur).

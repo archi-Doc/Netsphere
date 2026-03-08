@@ -43,6 +43,13 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
     public bool IsValid
         => this.Address.IsValid && this.PublicKey.IsValid;
 
+    public static NetNode Loopback(ushort port, string encryptionPublicKey)
+    {
+        var netAddress = new NetAddress(IPAddress.Loopback, port);
+        EncryptionPublicKey.TryParse(encryptionPublicKey, out var publicKey, out _);
+        return new(netAddress, publicKey);
+    }
+
     public static bool TryParseNetNode(ILogger? logger, ReadOnlySpan<char> source, [MaybeNullWhen(false)] out NetNode node)
     {
         node = default;
