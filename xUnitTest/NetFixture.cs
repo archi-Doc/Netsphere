@@ -38,10 +38,7 @@ public class NetFixture : IDisposable
             })
             .ConfigureNetsphere(context =>
             {
-                /*context.AddNetService<IBasicService, BasicServiceImpl>();
-                context.AddNetService<IBasicTaskService, BasicTaskServiceImpl>();
-                context.AddNetService<IFilterTestService, FilterTestServiceImpl>();
-                context.AddNetService<IStreamService, StreamServiceImpl>();*/
+                context.AddNetService<IBasicService, BasicServiceImpl>();
             });
 
         var options = new NetOptions();

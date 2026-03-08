@@ -18,7 +18,7 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
         {// x: (INetService, NetServiceInfo)
             if (!this.NetServices.ContainsKey(x.Key))
             {
-                this.AddNetService(ServiceDescriptor.Transient(x.Key, x.Value.ServiceType));
+                this.AddNetService(ServiceDescriptor.Transient(x.Key, x.Value.NetServiceObjectInfo.ObjectType));
             }
         }
 
@@ -41,7 +41,7 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
     private void AddNetService(ServiceDescriptor serviceDescriptor)
     {
         if (serviceDescriptor.ImplementationType is null ||
-            StaticNetService.TryGetNetServiceObjectInfo(serviceDescriptor.ImplementationType, out var netServiceObjectInfo))
+            !StaticNetService.TryGetNetServiceObjectInfo(serviceDescriptor.ImplementationType, out var netServiceObjectInfo))
         {
             throw new InvalidOperationException();
         }
