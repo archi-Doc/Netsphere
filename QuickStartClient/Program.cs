@@ -50,6 +50,7 @@ public class Program
 
                 var result = await service.Random();
                 await Console.Out.WriteLineAsync($"{result}");
+                await service.Disable();
                 result = await service.Random();
                 await Console.Out.WriteLineAsync($"{result}");
             }
