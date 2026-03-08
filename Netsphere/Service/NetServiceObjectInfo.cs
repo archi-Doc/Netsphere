@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Netsphere;
 
-public class NetServiceObjectInfo
+public record class NetServiceObjectInfo
 {
     public NetServiceObjectInfo(Type objectType, Func<object>? objectFactory)
     {

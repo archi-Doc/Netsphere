@@ -27,6 +27,7 @@ public class BasicTaskServiceImpl : IBasicTaskService
 
     public async Task SendInt(int x)
     {
+        // TransmissionContext.Current.ServerConnection.GetContext().DisableNetService<IBasicTaskService>();
     }
 
     public async Task<int> IncrementInt(int x) => x + 1;

@@ -2,7 +2,7 @@
 
 namespace Netsphere;
 
-public class NetServiceInfo
+public record class NetServiceInfo
 {
     public NetServiceInfo(Type serviceType, NetServiceObjectInfo netServiceObjectInfo)
     {

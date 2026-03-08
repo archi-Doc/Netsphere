@@ -122,6 +122,11 @@ public class ServerConnectionContext
             {
                 if (this.netServiceItems[i].NetServiceInfo.ServiceId == serviceId)
                 {
+                    if (this.netServiceItems[i].Instance is INetServiceObject netObject)
+                    {
+                        netObject.OnConnectionClosed();
+                    }
+
                     var newArray = new NetServiceItem[this.netServiceItems.Length - 1];
                     if (i > 0)
                     {
