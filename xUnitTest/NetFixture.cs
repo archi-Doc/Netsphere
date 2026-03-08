@@ -62,6 +62,7 @@ public class NetFixture : IDisposable
         services.EnableNetService<IBasicTaskService>();
         services.EnableNetService<IFilterTestService>();
         services.EnableNetService<IStreamService>();
+        services.EnableNetService<IBidirectionalService>();
     }
 
     public void Dispose()
