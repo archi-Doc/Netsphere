@@ -478,7 +478,6 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
     {
         var genericString = method.ReturnObject == null ? string.Empty : $"<{method.ReturnObject.FullNameWithNullable}>";
         var taskString = $"Task{genericString}";
-        var returnTypeIsNetResult = method.ReturnObject?.FullName == NetsphereBody.NetResultFullName;
         var deserializeString = method.ReturnObject == null ? "NetResult" : method.ReturnObject.FullNameWithNullable;
 
         var asyncPrefix = "async ";
@@ -654,9 +653,13 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             }
             else
             {
-                if (returnTypeIsNetResult)
+                if (method.ReturnType == ServiceMethod.Type.NetResult)
                 {
                     ssb.AppendLine($"return {netResult};");
+                }
+                else if (method.ReturnType == ServiceMethod.Type.NetResultAndValue)
+                {
+                    ssb.AppendLine($"return new({netResult});");
                 }
                 else
                 {
