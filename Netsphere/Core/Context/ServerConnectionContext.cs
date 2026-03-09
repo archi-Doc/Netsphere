@@ -156,6 +156,32 @@ public class ServerConnectionContext
         return false;
     }
 
+    public TService? GetOrCreateNetService<TService>()
+        where TService : class
+    {
+        var serviceId = StaticNetService.GetServiceId<TService>();
+        lock (this.netServiceSync)
+        {
+            for (var i = 0; i < this.netServiceItems.Length; i++)
+            {
+                if (this.netServiceItems[i].NetServiceInfo.ServiceId == serviceId)
+                {// Found
+                    ref var item = ref this.netServiceItems[i];
+                    if (item.Instance is null)
+                    {
+                        var instance = this.ServiceProvider?.GetService(item.NetServiceInfo.ServiceType);
+                        instance ??= item.NetServiceInfo.NetObjectInfo.ObjectFactory?.Invoke();
+                        item.Instance = instance;
+                    }
+
+                    return (TService?)item.Instance;
+                }
+            }
+        }
+
+        return default;
+    }
+
     #endregion
 
     /*public virtual bool RespondUpdateAgreement(CertificateToken<ConnectionAgreement> token)
