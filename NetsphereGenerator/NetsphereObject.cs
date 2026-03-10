@@ -445,8 +445,25 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         }
     }
 
-    private static void AppendProperty(ScopingStringBuilder ssb, IPropertySymbol propertySymbol)
+    private static string ToPropertyDefinitionString(IPropertySymbol property)
     {
+        var sb = new StringBuilder();
+
+        sb.Append($"public {property.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)} {property.Name} {{");
+
+        if (property.GetMethod is not null)
+        {
+            sb.Append(" get => default!;");
+        }
+
+        if (property.SetMethod is not null)
+        {
+            sb.Append($" {(property.SetMethod.IsInitOnly ? "init" : "set")} {{ }}");
+        }
+
+        sb.Append(" }");
+
+        return sb.ToString();
     }
 
     internal void GenerateFrontend(ScopingStringBuilder ssb, GeneratorInformation info)
@@ -470,7 +487,8 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             {
                 if (x.symbol is IPropertySymbol propertySymbol)
                 {
-                    AppendProperty(ssb, propertySymbol);
+                    var definitionString = ToPropertyDefinitionString(propertySymbol);
+                    ssb.AppendLine(definitionString);
                 }
             }
 
