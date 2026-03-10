@@ -15,11 +15,13 @@ namespace Playground;
 [NetService]
 public interface ITestService : INetService
 {
+    public int X { get; set; }
 }
 
 [NetObject]
 public class TestServiceImpl : ITestService
 {
+    public int X { get; set; }
 }
 
 public class Program

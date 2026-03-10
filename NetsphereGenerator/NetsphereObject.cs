@@ -445,6 +445,10 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         }
     }
 
+    private static void AppendProperty(ScopingStringBuilder ssb, IPropertySymbol propertySymbol)
+    {
+    }
+
     internal void GenerateFrontend(ScopingStringBuilder ssb, GeneratorInformation info)
     {
         using (var cls = ssb.ScopeBrace($"private class {this.ClassName} : {this.FullName}")) // {this.AccessibilityName}
@@ -462,6 +466,13 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
             ssb.AppendLine();
             ssb.AppendLine("public ClientConnection ClientConnection { get; }");
+            foreach (var x in this.GetMembers(VisceralTarget.Property))
+            {
+                if (x.symbol is IPropertySymbol propertySymbol)
+                {
+                    AppendProperty(ssb, propertySymbol);
+                }
+            }
 
             if (this.ServiceMethods != null)
             {

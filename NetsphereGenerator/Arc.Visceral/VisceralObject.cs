@@ -1988,10 +1988,10 @@ public abstract class VisceralObjectBase<T> : IComparable<T>
 
                         if (ps.SetMethod is IMethodSymbol m2)
                         {
-                            if (m2.DeclaredAccessibility != Accessibility.Public)
+                            /*if (m2.DeclaredAccessibility != Accessibility.Public)
                             {
                                 this.isPublic = false;
-                            }
+                            }*/
                         }
                         else
                         {
@@ -2329,6 +2329,25 @@ public abstract class VisceralObjectBase<T> : IComparable<T>
             else if (this.memberInfo is { } mi)
             {
                 return false;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+
+    public bool IsRequired
+    {
+        get
+        {
+            if (this.symbol is IPropertySymbol ps)
+            {
+                return ps.IsRequired;
+            }
+            else if (this.symbol is IFieldSymbol fs)
+            {
+                return fs.IsRequired;
             }
             else
             {
@@ -2886,22 +2905,20 @@ public abstract class VisceralObjectBase<T> : IComparable<T>
         }
     }
 
-    public (Accessibility Getter, Accessibility Setter) Property_Accessibility
+    public VisceralProperty Property_Accessibility
     {
         get
         {
             if (this.symbol is IPropertySymbol ps)
             {
-                return (ps.GetMethod == null ? Accessibility.NotApplicable : ps.GetMethod.DeclaredAccessibility,
-                    ps.SetMethod == null ? Accessibility.NotApplicable : ps.SetMethod.DeclaredAccessibility);
+                return new(ps);
             }
             else if (this.memberInfo is PropertyInfo pi)
             {
-                return (VisceralHelper.MethodBaseToAccessibility(pi.GetMethod),
-                    VisceralHelper.MethodBaseToAccessibility(pi.SetMethod));
+                return new(pi);
             }
 
-            return (Accessibility.NotApplicable, Accessibility.NotApplicable);
+            return default;
         }
     }
 
@@ -3021,6 +3038,22 @@ public abstract class VisceralObjectBase<T> : IComparable<T>
 
             return false;
         }
+    }
+
+    public bool IsDerivedFrom(string fullName)
+    {
+        var t = (T?)this.OriginalDefinition;
+        while (t is not null)
+        {
+            if (t.FullName == fullName)
+            {
+                return true;
+            }
+
+            t = t.BaseObject?.OriginalDefinition;
+        }
+
+        return false;
     }
 
     public bool ContainsNonPublicObject()
