@@ -21,7 +21,7 @@ public class RelayCircuit
         this.netTerminal = netTerminal;
         this.IsIncoming = incoming;
 
-        this.logger = this.netTerminal.UnitLogger.GetLogger<RelayCircuit>();
+        this.logger = this.netTerminal.LogUnit.GetLogger<RelayCircuit>();
     }
 
     #region FieldAndProperty

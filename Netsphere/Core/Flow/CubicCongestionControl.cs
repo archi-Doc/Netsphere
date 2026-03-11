@@ -65,7 +65,7 @@ public class CubicCongestionControl : ICongestionControl
         if (NetConstants.LogLowLevelNet &&
             connection.IsClient)
         {
-            this.logger = this.Connection.ConnectionTerminal.NetBase.UnitLogger.GetLogger<CubicCongestionControl>();
+            this.logger = this.Connection.ConnectionTerminal.NetBase.LogUnit.GetLogger<CubicCongestionControl>();
         }
     }
 

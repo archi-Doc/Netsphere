@@ -71,10 +71,10 @@ internal partial class IdFileLoggerWorker : TaskCore
         private Queue<IdFileLoggerWork> queue = new();
     }
 
-    public IdFileLoggerWorker(UnitCore core, UnitLogger unitLogger, IdFileLoggerOptions options)
+    public IdFileLoggerWorker(UnitCore core, ILogService logService, IdFileLoggerOptions options)
         : base(core, Process, false)
     {
-        this.logger = unitLogger.GetLogger<IdFileLoggerWorker>();
+        this.logger = logService.GetLogger<IdFileLoggerWorker>();
         this.options = options;
         this.formatter = new(options.Formatter);
 

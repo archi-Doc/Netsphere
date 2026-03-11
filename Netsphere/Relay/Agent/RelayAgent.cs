@@ -67,7 +67,7 @@ public partial class RelayAgent
     {
         this.relayControl = relayControl;
         this.netTerminal = netTerminal;
-        this.logger = this.netTerminal.UnitLogger.GetLogger<RelayAgent>();
+        this.logger = this.netTerminal.LogUnit.GetLogger<RelayAgent>();
     }
 
     #region FieldAndProperty

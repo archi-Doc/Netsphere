@@ -115,7 +115,7 @@ Retry:
     public async Task CorrectMicsAndUnitLogger(ILogger? logger = default, CancellationToken cancellationToken = default)
     {
         var offset = await this.SendAndReceiveOffset();
-        UnitLogger.SetTimeOffset(offset);
+        LogUnit.SetTimeOffset(offset);
         if (this.timeoffsetCount <= 1)
         {
             this.meanTimeoffset = (long)offset.TotalMilliseconds;

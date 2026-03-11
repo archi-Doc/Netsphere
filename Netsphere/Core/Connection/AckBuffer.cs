@@ -24,7 +24,7 @@ internal partial class AckBuffer
     public AckBuffer(ConnectionTerminal connectionTerminal)
     {
         this.connectionTerminal = connectionTerminal;
-        this.logger = connectionTerminal.UnitLogger.GetLogger<AckBuffer>();
+        this.logger = connectionTerminal.LogUnit.GetLogger<AckBuffer>();
     }
 
     #region FieldAndProperty

@@ -26,7 +26,7 @@ public class ConnectionTerminal
         this.netStats = this.NetTerminal.NetStats;
         this.CongestionControlList.AddFirst(this.NoCongestionControl);
 
-        this.logger = this.NetTerminal.UnitLogger.GetLogger<ConnectionTerminal>();
+        this.logger = this.NetTerminal.LogUnit.GetLogger<ConnectionTerminal>();
     }
 
     #region FieldAndProperty
@@ -35,7 +35,7 @@ public class ConnectionTerminal
 
     internal IServiceProvider ServiceProvider { get; }
 
-    internal UnitLogger UnitLogger => this.NetTerminal.UnitLogger;
+    internal LogUnit LogUnit => this.NetTerminal.LogUnit;
 
     internal NetTerminal NetTerminal { get; }
 

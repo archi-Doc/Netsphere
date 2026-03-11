@@ -13,10 +13,10 @@ namespace Netsphere;
 
 public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 {
-    public NetTerminal(UnitContext unitContext, UnitLogger unitLogger, NetBase netBase, NetStats netStats, IRelayControl relayControl)
+    public NetTerminal(UnitContext unitContext, LogUnit unitLogger, NetBase netBase, NetStats netStats, IRelayControl relayControl)
         : base(unitContext)
     {
-        this.UnitLogger = unitLogger;
+        this.LogUnit = unitLogger;
         this.NetBase = netBase;
         this.NetStats = netStats;
 
@@ -71,7 +71,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 
     internal NetSender NetSender { get; }
 
-    internal UnitLogger UnitLogger { get; private set; }
+    internal LogUnit LogUnit { get; private set; }
 
     internal ConnectionTerminal ConnectionTerminal { get; private set; }
 
