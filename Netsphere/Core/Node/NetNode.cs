@@ -62,13 +62,13 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
         {
             if (!NetNode.TryParse(source, out var address, out _))
             {
-                logger?.TryGet(LogLevel.Error)?.Log($"Could not parse: {source}");
+                logger?.GetWriter(LogLevel.Error)?.Write($"Could not parse: {source}");
                 return false;
             }
 
             if (!address.Address.Validate())
             {
-                logger?.TryGet(LogLevel.Error)?.Log($"Invalid address: {source}");
+                logger?.GetWriter(LogLevel.Error)?.Write($"Invalid address: {source}");
                 return false;
             }
 

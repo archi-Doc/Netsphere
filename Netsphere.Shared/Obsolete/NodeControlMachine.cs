@@ -58,7 +58,7 @@ public partial class NodeControlMachine : Machine
             // var node = await this.netUnit.NetTerminal.UnsafeGetNetNode(netAddress);
             var r = await this.netUnit.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(netNode.Address, new(), 0, this.CancellationToken);
 
-            this.logger.TryGet(LogLevel.Information)?.Log($"{netNode.Address.ToString()} - {r.Result.ToString()}");
+            this.logger.GetWriter(LogLevel.Information)?.Write($"{netNode.Address.ToString()} - {r.Result.ToString()}");
             if (r.Result == NetResult.Success && r.Value is { } value)
             {// Success
                 this.nodeControl.ReportLifelineNode(netNode, ConnectionResult.Success);
@@ -93,7 +93,7 @@ public partial class NodeControlMachine : Machine
     {// KeepOnlineNode
         if (this.nodeControl.CountOnline == 0)
         {// No online node
-            this.logger.TryGet(LogLevel.Fatal)?.Log("No online nodes. Please check your network connection and add nodes to node_list.");
+            this.logger.GetWriter(LogLevel.Fatal)?.Write("No online nodes. Please check your network connection and add nodes to node_list.");
         }
         else
         {
@@ -115,6 +115,6 @@ public partial class NodeControlMachine : Machine
 
     private void ShowStatus()
     {
-        this.logger.TryGet()?.Log($"Lifeline online/offline: {this.nodeControl.CountLinfelineOnline}/{this.nodeControl.CountLinfelineOffline}, Online: {this.nodeControl.CountOnline}");
+        this.logger.GetWriter()?.Write($"Lifeline online/offline: {this.nodeControl.CountLinfelineOnline}/{this.nodeControl.CountLinfelineOffline}, Online: {this.nodeControl.CountOnline}");
     }
 }*/

@@ -13,15 +13,15 @@ namespace Netsphere;
 
 public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 {
-    public NetTerminal(UnitContext unitContext, LogUnit unitLogger, NetBase netBase, NetStats netStats, IRelayControl relayControl)
+    public NetTerminal(UnitContext unitContext, LogUnit logUnit, NetBase netBase, NetStats netStats, IRelayControl relayControl)
         : base(unitContext)
     {
-        this.LogUnit = unitLogger;
+        this.LogUnit = logUnit;
         this.NetBase = netBase;
         this.NetStats = netStats;
 
-        this.NetSender = new(this, this.NetBase, unitLogger.GetLogger<NetSender>());
-        this.PacketTerminal = new(this.NetBase, this, unitLogger.GetLogger<PacketTerminal>());
+        this.NetSender = new(this, this.NetBase, logUnit.RootLogService.GetLogger<NetSender>());
+        this.PacketTerminal = new(this.NetBase, this, logUnit.RootLogService.GetLogger<PacketTerminal>());
         this.IncomingCircuit = new(this, true);
         this.OutgoingCircuit = new(this, false);
         this.RelayControl = relayControl;

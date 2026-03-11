@@ -261,7 +261,7 @@ internal partial class IdFileLoggerWorker : TaskCore
             return;
         }
 
-        // this.logger?.TryGet()?.Log($"Limit logs {capacity}/{this.maxCapacity} {directory}");
+        // this.logger?.GetWriter()?.Write($"Limit logs {capacity}/{this.maxCapacity} {directory}");
         foreach (var x in pathToSize)
         {
             if (capacity < this.maxCapacity)
@@ -272,7 +272,7 @@ internal partial class IdFileLoggerWorker : TaskCore
             try
             {
                 File.Delete(x.Key);
-                this.logger?.TryGet()?.Log($"Deleted: {x.Key}");
+                this.logger?.GetWriter()?.Write($"Deleted: {x.Key}");
             }
             catch
             {

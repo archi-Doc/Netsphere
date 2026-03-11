@@ -107,7 +107,7 @@ internal partial class SendGene
 
         if (NetConstants.LogLowLevelNet)
         {
-            connection.Logger.TryGet(LogLevel.Debug)?.Log($"{connection.ConnectionIdText} {connection.ConnectionTerminal.NetTerminal.NetTerminalString} to {connection.DestinationEndpoint.ToString()}, Send gene {this.GeneSerialListLink.Position} {this.CurrentState.ToString()} {this.Packet.Memory.Length}");
+            connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{connection.ConnectionIdText} {connection.ConnectionTerminal.NetTerminal.NetTerminalString} to {connection.DestinationEndpoint.ToString()}, Send gene {this.GeneSerialListLink.Position} {this.CurrentState.ToString()} {this.Packet.Memory.Length}");
         }
 
         if (connection.MinimumNumberOfRelays == 0)

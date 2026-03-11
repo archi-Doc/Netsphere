@@ -17,11 +17,11 @@ internal class GetCommand : ISimpleCommandAsync<GetOptions>
 
     public async Task RunAsync(GetOptions options, string[] args)
     {
-        this.logger.TryGet()?.Log($"{options.ToString()}");
+        this.logger.GetWriter()?.Write($"{options.ToString()}");
 
         if (!NetAddress.TryParse(options.Address, out var address, out _))
         {
-            this.logger.TryGet(LogLevel.Fatal)?.Log($"Could not parse address: {options.Address}");
+            this.logger.GetWriter(LogLevel.Fatal)?.Write($"Could not parse address: {options.Address}");
             return;
         }
 
@@ -34,27 +34,27 @@ internal class GetCommand : ISimpleCommandAsync<GetOptions>
         {
             if (value.Token is { } token)
             {
-                this.logger.TryGet()?.Log($"Token: {BaseHelper.ConvertToString(token)}");
-                this.logger.TryGet()?.Log($"Version: {token.Target.ToString()}");
+                this.logger.GetWriter()?.Write($"Token: {BaseHelper.ConvertToString(token)}");
+                this.logger.GetWriter()?.Write($"Version: {token.Target.ToString()}");
             }
             else
             {
-                this.logger.TryGet()?.Log($"No version token");
+                this.logger.GetWriter()?.Write($"No version token");
             }
         }
         else
         {
-            this.logger.TryGet()?.Log($"{result.ToString()}");
+            this.logger.GetWriter()?.Write($"{result.ToString()}");
         }
     }
 
     /*public async Task RunAsync(GetOptions options, string[] args)
     {
-        this.logger.TryGet()?.Log($"{options.ToString()}");
+        this.logger.GetWriter()?.Write($"{options.ToString()}");
 
         if (!NetNode.TryParseNetNode(this.logger, options.Node, out var node))
         {
-            this.logger.TryGet(LogLevel.Fatal)?.Log($"Cannot parse node: {options.Node}");
+            this.logger.GetWriter(LogLevel.Fatal)?.Write($"Cannot parse node: {options.Node}");
             return;
         }
 

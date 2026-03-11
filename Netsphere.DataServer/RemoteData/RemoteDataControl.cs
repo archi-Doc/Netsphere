@@ -85,9 +85,9 @@ public class RemoteDataControl
                 return default;
                 }
 
-            this.logger.TryGet(LogLevel.Information)?.Log($"Get: {identifier}");
+            this.logger.GetWriter(LogLevel.Information)?.Write($"Get: {identifier}");
             var result = await NetHelper.StreamToSendStream(fileStream, sendStream);
-            this.logger.TryGet(LogLevel.Information)?.Log($"Get ({result}): {identifier} {sendStream.SentLength} bytes");
+            this.logger.GetWriter(LogLevel.Information)?.Write($"Get ({result}): {identifier} {sendStream.SentLength} bytes");
         }
         catch
         {
@@ -116,9 +116,9 @@ public class RemoteDataControl
             using var fileStream = File.Create(path);
             var receiveStream = transmissionContext.GetReceiveStream<NetResult>();
 
-            this.logger.TryGet(LogLevel.Information)?.Log($"Put: {identifier}");
+            this.logger.GetWriter(LogLevel.Information)?.Write($"Put: {identifier}");
             result = await NetHelper.ReceiveStreamToStream(receiveStream, fileStream);
-            this.logger.TryGet(LogLevel.Information)?.Log($"Put({result}): {identifier} {receiveStream.ReceivedLength} bytes");
+            this.logger.GetWriter(LogLevel.Information)?.Write($"Put({result}): {identifier} {receiveStream.ReceivedLength} bytes");
 
             receiveStream.SendAndDispose(result);
         }

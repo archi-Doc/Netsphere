@@ -25,7 +25,7 @@ public partial record RunOptions : RunnerOptions
         var result = base.Check(logger);
         if (string.IsNullOrEmpty(this.Image))
         {
-            logger.TryGet(LogLevel.Fatal)?.Log($"Specify the container image (-image).");
+            logger.GetWriter(LogLevel.Fatal)?.Write($"Specify the container image (-image).");
             result = false;
         }
 

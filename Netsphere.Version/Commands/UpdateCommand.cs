@@ -19,17 +19,17 @@ internal class UpdateCommand : ISimpleCommandAsync<UpdateOptions>
     public async Task RunAsync(UpdateOptions options, string[] args)
     {
         options.Prepare();
-        this.logger.TryGet()?.Log($"{options.ToString()}");
+        this.logger.GetWriter()?.Write($"{options.ToString()}");
 
         if (options.remoteSecretKey is not { } seedKey)
         {
-            this.logger.TryGet(LogLevel.Fatal)?.Log($"Could not parse remote secret key");
+            this.logger.GetWriter(LogLevel.Fatal)?.Write($"Could not parse remote secret key");
             return;
         }
 
         if (!NetAddress.TryParse(options.Address, out var address, out _))
         {
-            this.logger.TryGet(LogLevel.Fatal)?.Log($"Could not parse address: {options.Address}");
+            this.logger.GetWriter(LogLevel.Fatal)?.Write($"Could not parse address: {options.Address}");
             return;
         }
 
@@ -38,27 +38,27 @@ internal class UpdateCommand : ISimpleCommandAsync<UpdateOptions>
         var versionInfo = new VersionInfo(options.VersionIdentifier, options.VersionKind, Mics.GetCorrected(), 0);
         var token = new CertificateToken<VersionInfo>(versionInfo);
         seedKey.Sign(token);
-        this.logger.TryGet()?.Log($"{versionInfo.ToString()}");
+        this.logger.GetWriter()?.Write($"{versionInfo.ToString()}");
 
         var p = new UpdateVersionPacket(token);
         var result = await this.netTerminal.PacketTerminal.SendAndReceive<UpdateVersionPacket, UpdateVersionResponse>(address, p);
         if (result.Value is { } value)
         {
-            this.logger.TryGet()?.Log($"{value.Result.ToString()}");
+            this.logger.GetWriter()?.Write($"{value.Result.ToString()}");
         }
         else
         {
-            this.logger.TryGet()?.Log($"{result.ToString()}");
+            this.logger.GetWriter()?.Write($"{result.ToString()}");
         }
     }
 
     /*public async Task RunAsync(GetOptions options, string[] args)
     {
-        this.logger.TryGet()?.Log($"{options.ToString()}");
+        this.logger.GetWriter()?.Write($"{options.ToString()}");
 
         if (!NetNode.TryParseNetNode(this.logger, options.Node, out var node))
         {
-            this.logger.TryGet(LogLevel.Fatal)?.Log($"Cannot parse node: {options.Node}");
+            this.logger.GetWriter(LogLevel.Fatal)?.Write($"Cannot parse node: {options.Node}");
             return;
         }
 

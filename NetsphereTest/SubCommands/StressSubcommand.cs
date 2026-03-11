@@ -27,7 +27,7 @@ public class StressSubcommand : ISimpleCommandAsync<StressOptions>
             }
         }
 
-        this.logger.TryGet()?.Log($"Stress: {node.ToString()}, Total/Concurrent: {options.Total}/{options.Concurrent}");
+        this.logger.GetWriter()?.Write($"Stress: {node.ToString()}, Total/Concurrent: {options.Total}/{options.Concurrent}");
 
         await this.Stress1(node, options);
     }

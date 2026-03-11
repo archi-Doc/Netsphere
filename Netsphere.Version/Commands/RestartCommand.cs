@@ -22,11 +22,11 @@ public class RestartCommand : ISimpleCommandAsync<RestartOptions>
     public async Task RunAsync(RestartOptions options, string[] args)
     {
         options.Prepare();
-        this.logger.TryGet()?.Log($"{options.ToString()}");
+        this.logger.GetWriter()?.Write($"{options.ToString()}");
 
         if (options.RemoteSeedKey is not { } seedKey)
         {
-            this.logger.TryGet(LogLevel.Fatal)?.Log($"Could not parse remote secret key");
+            this.logger.GetWriter(LogLevel.Fatal)?.Write($"Could not parse remote secret key");
             return;
         }
 
@@ -52,7 +52,7 @@ public class RestartCommand : ISimpleCommandAsync<RestartOptions>
                 if (address.IsValidIpv4AndIpv6)
                 {
                     endpointResolution = EndpointResolution.Ipv4;
-                    this.logger.TryGet()?.Log($"Ipv6 -> Ipv4");
+                    this.logger.GetWriter()?.Write($"Ipv6 -> Ipv4");
                     if (await this.Ping(address, endpointResolution) == false)
                     {// No ping
                         return;
@@ -65,7 +65,7 @@ public class RestartCommand : ISimpleCommandAsync<RestartOptions>
             {
                 if (connection == null)
                 {
-                    this.logger.TryGet()?.Log($"Could not connect {netNode.ToString()}");
+                    this.logger.GetWriter()?.Write($"Could not connect {netNode.ToString()}");
                     return;
                 }
 
@@ -78,7 +78,7 @@ public class RestartCommand : ISimpleCommandAsync<RestartOptions>
 
                 var service = connection.GetService<IRemoteControl>();
                 result = await service.Restart();
-                this.logger.TryGet()?.Log($"Restart({result}): {netNode.Address.ToString()}");
+                this.logger.GetWriter()?.Write($"Restart({result}): {netNode.Address.ToString()}");
                 if (result != NetResult.Success)
                 {
                     return;
@@ -92,7 +92,7 @@ public class RestartCommand : ISimpleCommandAsync<RestartOptions>
             }
 
             // Wait
-            // this.logger.TryGet()?.Log($"Waiting...");
+            // this.logger.GetWriter()?.Write($"Waiting...");
             await Task.Delay(TimeSpan.FromSeconds(WaitIntervalInSeconds));
 
             // Ping container
@@ -110,13 +110,13 @@ public class RestartCommand : ISimpleCommandAsync<RestartOptions>
             }
         });
 
-        this.logger.TryGet()?.Log($"Restart Success/Total: {success}/{nodeList.Count}");
+        this.logger.GetWriter()?.Write($"Restart Success/Total: {success}/{nodeList.Count}");
     }
 
     private async Task<bool> Ping(NetAddress address, EndpointResolution endpointResolution)
     {
         var r = await this.netTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(address, new(), 0, default, endpointResolution);
-        this.logger.TryGet()?.Log($"Ping({r.Result}): {address.ToString()}");
+        this.logger.GetWriter()?.Write($"Ping({r.Result}): {address.ToString()}");
 
         if (r.Result == NetResult.Success)
         {

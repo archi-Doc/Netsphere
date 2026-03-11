@@ -28,8 +28,8 @@ public class BasicTestSubcommand : ISimpleCommandAsync<BasicTestOptions>
             return;
         }
 
-        this.logger.TryGet()?.Log($"SendData: {address.ToString()}");
-        this.logger.TryGet()?.Log($"{Stopwatch.Frequency}");
+        this.logger.GetWriter()?.Write($"SendData: {address.ToString()}");
+        this.logger.GetWriter()?.Write($"{Stopwatch.Frequency}");
 
         // var nodeInformation = NodeInformation.Alternative;
         using (var terminal = await this.NetUnit.NetTerminal.Connect(node))

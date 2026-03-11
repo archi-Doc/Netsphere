@@ -21,7 +21,7 @@ public class RelayCircuit
         this.netTerminal = netTerminal;
         this.IsIncoming = incoming;
 
-        this.logger = this.netTerminal.LogUnit.GetLogger<RelayCircuit>();
+        this.logger = this.netTerminal.LogUnit.RootLogService.GetLogger<RelayCircuit>();
     }
 
     #region FieldAndProperty
@@ -139,7 +139,7 @@ public class RelayCircuit
             {
                 if (NetConstants.LogRelay)
                 {
-                    this.logger.TryGet(LogLevel.Information)?.Log($"Removed (Clean) {x.ToString()}");
+                    this.logger.GetWriter(LogLevel.Information)?.Write($"Removed (Clean) {x.ToString()}");
                 }
 
                 x.Remove();

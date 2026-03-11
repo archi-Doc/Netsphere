@@ -63,8 +63,8 @@ public class NetBase : UnitBase, IUnitPreparable
             this.NetOptions.Port = RandomVault.Default.NextInt32(NetConstants.EphemeralPort, NetConstants.MaxPort + 1);
             if (showWarning)
             {
-                this.LogService.GetLogWriter<NetBase>(LogLevel.Error)?.Log($"Port number must be between {NetConstants.MinPort} and {NetConstants.MaxPort}");
-                this.LogService.GetLogWriter<NetBase>(LogLevel.Error)?.Log($"Port number is set to {this.NetOptions.Port}");
+                this.LogService.GetWriter<NetBase>(LogLevel.Error)?.Write($"Port number must be between {NetConstants.MinPort} and {NetConstants.MaxPort}");
+                this.LogService.GetWriter<NetBase>(LogLevel.Error)?.Write($"Port number is set to {this.NetOptions.Port}");
             }
         }
         else

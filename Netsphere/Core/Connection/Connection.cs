@@ -1071,7 +1071,7 @@ Wait:
 
                 transmission.MaxReceivePosition = maxReceivePosition;
 
-                this.Logger.TryGet(LogLevel.Debug)?.Log($"KnockResponse: {maxReceivePosition}");
+                this.Logger.GetWriter(LogLevel.Debug)?.Write($"KnockResponse: {maxReceivePosition}");
             }
         }
     }

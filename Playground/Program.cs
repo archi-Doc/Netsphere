@@ -113,9 +113,9 @@ public class Program
 
         ThreadCore.Root.Terminate();
         await ThreadCore.Root.WaitForTerminationAsync(-1); // Wait for the termination infinitely.
-        if (unit.Context.ServiceProvider.GetService<UnitLogger>() is { } unitLogger)
+        if (unit.Context.ServiceProvider.GetService<LogUnit>() is { } logunit)
         {
-            await unitLogger.FlushAndTerminate();
+            await logunit.FlushAndTerminate();
         }
 
         ThreadCore.Root.TerminationEvent.Set(); // The termination process is complete (#1).

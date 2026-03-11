@@ -44,7 +44,7 @@ internal class NetSender
                 var mics = NetConstants.SendIntervalMicroseconds - (Mics.GetSystem() - prev);
                 if (mics > 0)
                 {
-                    // core.socket.Logger?.TryGet()?.Log($"Nanosleep: {nano}");
+                    // core.socket.Logger?.GetWriter()?.Write($"Nanosleep: {nano}");
                     // core.TryNanoSleep(nano);
                     core.microSleep.Sleep((int)mics);
                 }
@@ -80,7 +80,7 @@ internal class NetSender
 
         if (NetConstants.LogLowLevelNet)
         {
-            // this.logger.TryGet(LogLevel.Debug)?.Log($"{this.netTerminal.NetTerminalString} to {endPoint.ToString()}, {toBeMoved.Span.Length} bytes");
+            // this.logger.GetWriter(LogLevel.Debug)?.Write($"{this.netTerminal.NetTerminalString} to {endPoint.ToString()}, {toBeMoved.Span.Length} bytes");
         }
 
         this.SendCount++;
@@ -117,12 +117,12 @@ internal class NetSender
 
             if (retry++ >= RetryLimit)
             {
-                this.logger.TryGet(LogLevel.Fatal)?.Log($"Could not create a UDP socket with port number {port}.");
+                this.logger.GetWriter(LogLevel.Fatal)?.Write($"Could not create a UDP socket with port number {port}.");
                 throw new PanicException();
             }
             else
             {
-                this.logger.TryGet(LogLevel.Warning)?.Log($"Retry creating a UDP socket with port number {port}.");
+                this.logger.GetWriter(LogLevel.Warning)?.Write($"Retry creating a UDP socket with port number {port}.");
                 await Task.Delay(RetryIntervalInMilliseconds);
             }
         }
@@ -137,12 +137,12 @@ internal class NetSender
 
             if (retry++ >= RetryLimit)
             {
-                this.logger.TryGet(LogLevel.Fatal)?.Log($"Could not create a UDP socket with port number {port}.");
+                this.logger.GetWriter(LogLevel.Fatal)?.Write($"Could not create a UDP socket with port number {port}.");
                 throw new PanicException();
             }
             else
             {
-                this.logger.TryGet(LogLevel.Warning)?.Log($"Retry creating a UDP socket with port number {port}.");
+                this.logger.GetWriter(LogLevel.Warning)?.Write($"Retry creating a UDP socket with port number {port}.");
                 await Task.Delay(RetryIntervalInMilliseconds);
             }
         }
@@ -269,7 +269,7 @@ internal class NetSender
 
                 if (NetConstants.LogLowLevelNet)
                 {
-                    // this.logger.TryGet(LogLevel.Debug)?.Log($"Send actual4 {item.EndPoint.ToString()} {item.MemoryOwner.Span.Length}");
+                    // this.logger.GetWriter(LogLevel.Debug)?.Write($"Send actual4 {item.EndPoint.ToString()} {item.MemoryOwner.Span.Length}");
                 }
 
                 try
@@ -303,7 +303,7 @@ internal class NetSender
 
                 if (NetConstants.LogLowLevelNet)
                 {
-                    // this.logger.TryGet(LogLevel.Debug)?.Log($"Send actual6 {item.EndPoint.ToString()} {item.MemoryOwner.Span.Length}");
+                    // this.logger.GetWriter(LogLevel.Debug)?.Write($"Send actual6 {item.EndPoint.ToString()} {item.MemoryOwner.Span.Length}");
                 }
 
                 try

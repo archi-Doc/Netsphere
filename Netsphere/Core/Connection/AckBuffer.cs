@@ -24,7 +24,7 @@ internal partial class AckBuffer
     public AckBuffer(ConnectionTerminal connectionTerminal)
     {
         this.connectionTerminal = connectionTerminal;
-        this.logger = connectionTerminal.LogUnit.GetLogger<AckBuffer>();
+        this.logger = connectionTerminal.LogUnit.RootLogService.GetLogger<AckBuffer>();
     }
 
     #region FieldAndProperty
@@ -45,7 +45,7 @@ internal partial class AckBuffer
     {
         if (NetConstants.LogLowLevelNet)
         {
-            this.logger.TryGet(LogLevel.Debug)?.Log($"AckBurst {this.connectionTerminal.NetTerminal.NetTerminalString} to {connection.DestinationEndpoint.ToString()} {receiveTransmission.TransmissionId}");
+            this.logger.GetWriter(LogLevel.Debug)?.Write($"AckBurst {this.connectionTerminal.NetTerminal.NetTerminalString} to {connection.DestinationEndpoint.ToString()} {receiveTransmission.TransmissionId}");
         }
 
         using (this.lockObject.EnterScope())
@@ -75,7 +75,7 @@ internal partial class AckBuffer
     {
         if (NetConstants.LogLowLevelNet)
         {
-            this.logger.TryGet(LogLevel.Debug)?.Log($"{connection.ConnectionIdText} AckBlock to {connection.DestinationEndpoint.ToString()} {receiveTransmission.TransmissionId}-{geneSerial}");
+            this.logger.GetWriter(LogLevel.Debug)?.Write($"{connection.ConnectionIdText} AckBlock to {connection.DestinationEndpoint.ToString()} {receiveTransmission.TransmissionId}-{geneSerial}");
         }
 
         using (this.lockObject.EnterScope())
@@ -257,7 +257,7 @@ NewPacket:
         {
             if (NetConstants.LogLowLevelNet)
             {
-                this.logger.TryGet(LogLevel.Debug)?.Log($"{connection.ConnectionIdText} to {connection.DestinationEndpoint.ToString()}, SendAck");
+                this.logger.GetWriter(LogLevel.Debug)?.Write($"{connection.ConnectionIdText} to {connection.DestinationEndpoint.ToString()}, SendAck");
             }
 
             connection.CreateAckPacket(rentArray, spanLength, out var packetLength);

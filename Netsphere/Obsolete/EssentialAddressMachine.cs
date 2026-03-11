@@ -32,7 +32,7 @@ public partial class EssentialAddressMachine : Machine
     [StateMethod(0)]
     protected async Task<StateResult> Initial(StateParameter parameter)
     {//
-        this.logger.TryGet(LogLevel.Information)?.Log($"Essential net machine");
+        this.logger.GetWriter(LogLevel.Information)?.Write($"Essential net machine");
 
         if (!this.netStats.EssentialAddress.GetUncheckedNode(out var netAddress))
         {

@@ -96,7 +96,7 @@ public class DefaultCommand : ISimpleCommandAsync<DefaultCommandOptions>
         var result = await this.netUnit.NetTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(node, p);
 
         sw.Stop();
-        this.logger.TryGet()?.Log($"Punch: {result.ToString()} {sw.ElapsedMilliseconds} ms");
+        this.logger.GetWriter()?.Write($"Punch: {result.ToString()} {sw.ElapsedMilliseconds} ms");
     }
 
     private readonly NetUnit.Product unit;

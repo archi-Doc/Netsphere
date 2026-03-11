@@ -31,12 +31,12 @@ public class StreamTestSubcommand : ISimpleCommandAsync<StreamTestOptions>
 
         try
         {
-            this.logger.TryGet()?.Log($"IRemoteBenchHost.GetHash()");
+            this.logger.GetWriter()?.Write($"IRemoteBenchHost.GetHash()");
 
             var sendStream = await r.Service.GetHash(data.Length);
             if (sendStream is null)
             {
-                this.logger.TryGet(LogLevel.Error)?.Log($"No stream");
+                this.logger.GetWriter(LogLevel.Error)?.Write($"No stream");
                 return;
             }
 
@@ -45,10 +45,10 @@ public class StreamTestSubcommand : ISimpleCommandAsync<StreamTestOptions>
             // result = await sendStream.Send(data);
             // await Console.Out.WriteLineAsync(result.ToString());
             var result2 = await sendStream.CompleteSendAndReceive();
-            this.logger.TryGet(LogLevel.Information)?.Log((result2.Value == hash).ToString());
+            this.logger.GetWriter(LogLevel.Information)?.Write((result2.Value == hash).ToString());
             if (result2.Result != NetResult.Success)
             {
-                this.logger.TryGet(LogLevel.Error)?.Log(result2.Result.ToString());
+                this.logger.GetWriter(LogLevel.Error)?.Write(result2.Result.ToString());
             }
         }
         finally

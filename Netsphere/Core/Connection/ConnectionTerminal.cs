@@ -26,7 +26,7 @@ public class ConnectionTerminal
         this.netStats = this.NetTerminal.NetStats;
         this.CongestionControlList.AddFirst(this.NoCongestionControl);
 
-        this.logger = this.NetTerminal.LogUnit.GetLogger<ConnectionTerminal>();
+        this.logger = this.NetTerminal.LogUnit.RootLogService.GetLogger<ConnectionTerminal>();
     }
 
     #region FieldAndProperty
@@ -82,7 +82,7 @@ public class ConnectionTerminal
                 {
                     if (clientConnection.LastEventMics + clientConnection.Agreement.MinimumConnectionRetentionMics < systemCurrentMics)
                     {// Open -> Closed
-                        clientConnection.Logger.TryGet(LogLevel.Debug)?.Log($"{clientConnection.ConnectionIdText} Close (unused)");
+                        clientConnection.Logger.GetWriter(LogLevel.Debug)?.Write($"{clientConnection.ConnectionIdText} Close (unused)");
                         clientToChange.Add(clientConnection);
 
                         clientConnection.SendCloseFrame();
@@ -92,7 +92,7 @@ public class ConnectionTerminal
                 {// Closed -> Dispose
                     if (clientConnection.LastEventMics + NetConstants.ConnectionClosedToDisposalMics < systemCurrentMics)
                     {
-                        clientConnection.Logger.TryGet(LogLevel.Debug)?.Log($"{clientConnection.ConnectionIdText} Disposed");
+                        clientConnection.Logger.GetWriter(LogLevel.Debug)?.Write($"{clientConnection.ConnectionIdText} Disposed");
                         clientToChange.Add(clientConnection);
 
                         clientConnection.CloseAllTransmission();
@@ -135,7 +135,7 @@ public class ConnectionTerminal
                 {
                     if (serverConnection.LastEventMics + serverConnection.Agreement.MinimumConnectionRetentionMics < systemCurrentMics)
                     {// Open -> Closed
-                        serverConnection.Logger.TryGet(LogLevel.Debug)?.Log($"{serverConnection.ConnectionIdText} Close (unused)");
+                        serverConnection.Logger.GetWriter(LogLevel.Debug)?.Write($"{serverConnection.ConnectionIdText} Close (unused)");
                         serverToChange.Add(serverConnection);
 
                         serverConnection.SendCloseFrame();
@@ -145,7 +145,7 @@ public class ConnectionTerminal
                 {// Closed -> Dispose
                     if (serverConnection.LastEventMics + NetConstants.ConnectionClosedToDisposalMics + AdditionalServerMics < systemCurrentMics)
                     {
-                        serverConnection.Logger.TryGet(LogLevel.Debug)?.Log($"{serverConnection.ConnectionIdText} Disposed");
+                        serverConnection.Logger.GetWriter(LogLevel.Debug)?.Write($"{serverConnection.ConnectionIdText} Disposed");
                         serverToChange.Add(serverConnection);
 
                         serverConnection.CloseAllTransmission();
@@ -474,7 +474,7 @@ public class ConnectionTerminal
                 clientConnection.SetOpenCount(0);
                 if (connection.CurrentState == Connection.State.Open)
                 {// Open -> Close
-                    connection.Logger.TryGet(LogLevel.Debug)?.Log($"{connection.ConnectionIdText} Open -> Closed, SendCloseFrame {sendCloseFrame}");
+                    connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{connection.ConnectionIdText} Open -> Closed, SendCloseFrame {sendCloseFrame}");
 
                     if (sendCloseFrame)
                     {
@@ -505,7 +505,7 @@ public class ConnectionTerminal
             {
                 if (connection.CurrentState == Connection.State.Open)
                 {// Open -> Close
-                    connection.Logger.TryGet(LogLevel.Debug)?.Log($"{connection.ConnectionIdText} Open -> Closed, SendCloseFrame {sendCloseFrame}");
+                    connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{connection.ConnectionIdText} Open -> Closed, SendCloseFrame {sendCloseFrame}");
 
                     if (sendCloseFrame)
                     {
@@ -605,7 +605,7 @@ public class ConnectionTerminal
         var connectionId = BitConverter.ToUInt64(toBeShared.Span.Slice(RelayHeader.RelayIdLength + 6)); // ConnectionId
         if (NetConstants.LogLowLevelNet)
         {
-            // this.logger.TryGet(LogLevel.Debug)?.Log($"{(ushort)connectionId:x4} Receive actual");
+            // this.logger.GetWriter(LogLevel.Debug)?.Write($"{(ushort)connectionId:x4} Receive actual");
         }
 
         if (packetUInt16 < 384)

@@ -586,7 +586,7 @@ Exit:
 
     internal void ProcessReceive_AckBurstInternal()
     {// using (this.lockObject.EnterScope())
-        this.Connection.Logger.TryGet(LogLevel.Debug)?.Log($"{this.Connection.ConnectionIdText} ReceiveAck Burst {this.GeneSerialMax}");
+        this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{this.Connection.ConnectionIdText} ReceiveAck Burst {this.GeneSerialMax}");
 
         if (this.gene0 is not null)
         {
@@ -682,7 +682,7 @@ Exit:
                 }
 
                 // NetTransmissionMode.Block
-                this.Connection.Logger.TryGet(LogLevel.Debug)?.Log($"{this.Connection.ConnectionIdText} ReceiveAck {startGene} - {endGene - 1}");
+                this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{this.Connection.ConnectionIdText} ReceiveAck {startGene} - {endGene - 1}");
                 var chain = this.genes.GeneSerialListChain;
 
                 // [chain.StartPosition, successiveReceivedPosition)
@@ -696,7 +696,7 @@ Exit:
 
                             if (NetConstants.LogLowLevelNet)
                             {
-                                // this.Connection.Logger.TryGet(LogLevel.Debug)?.Log($"ReceiveAck {gene.GeneSerial} {rtt} mics");
+                                // this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"ReceiveAck {gene.GeneSerial} {rtt} mics");
                             }
 
                             this.Connection.AddRtt(rtt);
@@ -724,7 +724,7 @@ Exit:
 
                             if (NetConstants.LogLowLevelNet)
                             {
-                                // this.Connection.Logger.TryGet(LogLevel.Debug)?.Log($"ReceiveAck {gene.GeneSerial} {rtt} mics");
+                                // this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"ReceiveAck {gene.GeneSerial} {rtt} mics");
                             }
 
                             this.Connection.AddRtt(rtt);
@@ -782,7 +782,7 @@ Exit:
 
                 var startPosition = Math.Max(this.lastLossPosition, c.StartPosition);
 
-                this.Connection.Logger.TryGet(LogLevel.Debug)?.Log($"Loss detected Start: {startPosition} Loss: {lossPosition} In-flight: {congestionControl.NumberInFlight}");
+                this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"Loss detected Start: {startPosition} Loss: {lossPosition} In-flight: {congestionControl.NumberInFlight}");
                 for (var i = startPosition; i < lossPosition; i++)
                 {
                     if (c.Get(i) is { } gene)

@@ -29,7 +29,7 @@ internal class ServerCommand : ISimpleCommandAsync<ServerOptions>
 
     public async Task RunAsync(ServerOptions options, string[] args)
     {
-        this.logger.TryGet()?.Log($"{options.ToString()}");
+        this.logger.GetWriter()?.Write($"{options.ToString()}");
 
         if (!options.Check(this.logger))
         {
@@ -45,9 +45,9 @@ internal class ServerCommand : ISimpleCommandAsync<ServerOptions>
         this.netUnit.NetBase.SetRespondPacketFunc(RespondPacketFunc);
         var address = await NetStatsHelper.GetOwnAddress((ushort)options.Port);
 
-        this.logger.TryGet()?.Log($"{address.ToString()}");
+        this.logger.GetWriter()?.Write($"{address.ToString()}");
         this.versionData.Log(this.logger);
-        this.logger.TryGet()?.Log("Press Ctrl+C to exit");
+        this.logger.GetWriter()?.Write("Press Ctrl+C to exit");
 
         var ntpCorrectionCount = 0;
         while (await ThreadCore.Root.Delay(1_000))
@@ -147,7 +147,7 @@ internal class ServerCommand : ISimpleCommandAsync<ServerOptions>
         }
 
         this.versionData.Update(token);
-        this.logger.TryGet()?.Log($"Updated: {token.Target.ToString()}");
+        this.logger.GetWriter()?.Write($"Updated: {token.Target.ToString()}");
         return new(UpdateVersionResult.Success);
     }
 

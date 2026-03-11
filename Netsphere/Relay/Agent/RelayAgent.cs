@@ -67,7 +67,7 @@ public partial class RelayAgent
     {
         this.relayControl = relayControl;
         this.netTerminal = netTerminal;
-        this.logger = this.netTerminal.LogUnit.GetLogger<RelayAgent>();
+        this.logger = this.netTerminal.LogUnit.RootLogService.GetLogger<RelayAgent>();
     }
 
     #region FieldAndProperty
@@ -184,7 +184,7 @@ public partial class RelayAgent
             {
                 if (NetConstants.LogRelay)
                 {
-                    this.logger.TryGet(LogLevel.Information)?.Log($"Removed (Clean) {x.ToString()}");
+                    this.logger.GetWriter(LogLevel.Information)?.Write($"Removed (Clean) {x.ToString()}");
                 }
 
                 x.Remove();
@@ -253,7 +253,7 @@ public partial class RelayAgent
             {// Despite coming from the inner node, the endpoint does not match.
                 if (NetConstants.LogLowRelay)
                 {
-                    this.logger.TryGet(LogLevel.Information)?.Log($"Inner({endpoint}) : invalid endpoint");
+                    this.logger.GetWriter(LogLevel.Information)?.Write($"Inner({endpoint}) : invalid endpoint");
                 }
             }
 
@@ -262,7 +262,7 @@ public partial class RelayAgent
             {
                 if (NetConstants.LogLowRelay)
                 {
-                    this.logger.TryGet(LogLevel.Information)?.Log($"Inner({endpoint}) : decryption failue2");
+                    this.logger.GetWriter(LogLevel.Information)?.Write($"Inner({endpoint}) : decryption failue2");
                 }
             }
 
@@ -283,7 +283,7 @@ public partial class RelayAgent
             {
                 if (NetConstants.LogLowRelay)
                 {
-                    this.logger.TryGet(LogLevel.Information)?.Log($"Inner({endpoint}) : decryption failue");
+                    this.logger.GetWriter(LogLevel.Information)?.Write($"Inner({endpoint}) : decryption failue");
                 }
 
                 goto Exit;
@@ -303,7 +303,7 @@ public partial class RelayAgent
 
                     if (NetConstants.LogLowRelay)
                     {
-                        this.logger.TryGet(LogLevel.Information)?.Log($"Inner({endpoint}) -> this({destinationRelayId}) Self");
+                        this.logger.GetWriter(LogLevel.Information)?.Write($"Inner({endpoint}) -> this({destinationRelayId}) Self");
                     }
 
                     return true;
@@ -314,7 +314,7 @@ public partial class RelayAgent
                     {// Inner relay
                         if (NetConstants.LogLowRelay)
                         {
-                            this.logger.TryGet(LogLevel.Information)?.Log($"Inner({endpoint}) -> this({destinationRelayId}): OuterEndpoint is already set");
+                            this.logger.GetWriter(LogLevel.Information)?.Write($"Inner({endpoint}) -> this({destinationRelayId}): OuterEndpoint is already set");
                         }
 
                         goto Exit;
@@ -346,7 +346,7 @@ public partial class RelayAgent
 
                     if (NetConstants.LogLowRelay)
                     {
-                        this.logger.TryGet(LogLevel.Information)?.Log($"Inner({endpoint}) -> this({destinationRelayId}) -> {relayHeader.NetAddress}: {decrypted.Memory.Length} bytes {exchange.OuterRelayId}->{relayHeader.NetAddress.RelayId}");
+                        this.logger.GetWriter(LogLevel.Information)?.Write($"Inner({endpoint}) -> this({destinationRelayId}) -> {relayHeader.NetAddress}: {decrypted.Memory.Length} bytes {exchange.OuterRelayId}->{relayHeader.NetAddress.RelayId}");
                     }
                 }
             }
@@ -364,14 +364,14 @@ public partial class RelayAgent
 
                     if (NetConstants.LogLowRelay)
                     {
-                        this.logger.TryGet(LogLevel.Information)?.Log($"Inner({endpoint}) -> this({destinationRelayId}) -> Outer({exchange.OuterEndpoint}): {source.Memory.Length} bytes");
+                        this.logger.GetWriter(LogLevel.Information)?.Write($"Inner({endpoint}) -> this({destinationRelayId}) -> Outer({exchange.OuterEndpoint}): {source.Memory.Length} bytes");
                     }
                 }
                 else
                 {// No outer relay. Discard
                     if (NetConstants.LogLowRelay)
                     {
-                        this.logger.TryGet(LogLevel.Information)?.Log($"Inner({endpoint}) -> relay: No outer relay");
+                        this.logger.GetWriter(LogLevel.Information)?.Write($"Inner({endpoint}) -> relay: No outer relay");
                     }
                 }
             }
@@ -388,7 +388,7 @@ public partial class RelayAgent
                     {
                         if (NetConstants.LogLowRelay)
                         {
-                            this.logger.TryGet(LogLevel.Information)?.Log($"Outer({endpoint}) : decryption failue2");
+                            this.logger.GetWriter(LogLevel.Information)?.Write($"Outer({endpoint}) : decryption failue2");
                         }
                     }
                 }
@@ -396,7 +396,7 @@ public partial class RelayAgent
                 {// Other (unrestricted or restricted)
                     if (NetConstants.LogLowRelay)
                     {// Packets from endpoints other than the outer relay are not accepted.
-                        this.logger.TryGet(LogLevel.Information)?.Log($"Outer({endpoint}) : not accepted");
+                        this.logger.GetWriter(LogLevel.Information)?.Write($"Outer({endpoint}) : not accepted");
                     }
 
                     goto Exit;
@@ -427,7 +427,7 @@ public partial class RelayAgent
                     // Discard
                     if (NetConstants.LogLowRelay)
                     {// Packets from endpoints other than the outer relay are not accepted.
-                        this.logger.TryGet(LogLevel.Information)?.Log($"Outermost({endpoint}) : discard");
+                        this.logger.GetWriter(LogLevel.Information)?.Write($"Outermost({endpoint}) : discard");
                     }
 
                     goto Exit;
@@ -475,7 +475,7 @@ AcceptIncoming:
 
                 if (NetConstants.LogLowRelay)
                 {// Packets from endpoints other than the outer relay are not accepted.
-                    this.logger.TryGet(LogLevel.Information)?.Log($"Outer({endpoint}) -> this({destinationRelayId}) -> {serverConnection.DestinationEndpoint} : {source.Memory.Length} bytes");
+                    this.logger.GetWriter(LogLevel.Information)?.Write($"Outer({endpoint}) -> this({destinationRelayId}) -> {serverConnection.DestinationEndpoint} : {source.Memory.Length} bytes");
                 }
             }
         }

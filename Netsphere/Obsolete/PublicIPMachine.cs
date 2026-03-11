@@ -44,7 +44,7 @@ public partial class PublicIPMachine : Machine
         {
             var nodeAddress = new NodeAddress(this.crystal.Data.IPAddress, (ushort)this.netUnit.NetBase.NetsphereOptions.Port);
             this.netUnit.NetStatus.ReportMyNodeAddress(nodeAddress);
-            this.logger?.TryGet()?.Log($"{nodeAddress.ToString()} from file");
+            this.logger?.GetWriter()?.Write($"{nodeAddress.ToString()} from file");
             return StateResult.Terminate;
         }
 
@@ -64,7 +64,7 @@ public partial class PublicIPMachine : Machine
     {
         var nodeAddress = new NodeAddress(ipAddress, (ushort)this.netUnit.NetBase.NetsphereOptions.Port);
         this.netUnit.NetStatus.ReportMyNodeAddress(nodeAddress);
-        this.logger?.TryGet()?.Log($"{nodeAddress.ToString()} from {uri}");
+        this.logger?.GetWriter()?.Write($"{nodeAddress.ToString()} from {uri}");
 
         this.crystal.Data.Mics = Mics.GetUtcNow();
         this.crystal.Data.IPAddress = ipAddress;
