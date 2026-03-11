@@ -40,7 +40,7 @@ internal static class RunnerHelper
 
     /*public static Task DispatchCommand(ILogger logger, string filename, string arguments)
     {
-        logger.TryGet()?.Log($"Dispatch: {filename}");
+        logger.GetWriter()?.Write($"Dispatch: {filename}");
 
         var startInfo = new ProcessStartInfo
         {
@@ -67,7 +67,7 @@ internal static class RunnerHelper
         }
         catch
         {
-            logger.TryGet(LogLevel.Fatal)?.Log("A fatal error occurred during execution.");
+            logger.GetWriter(LogLevel.Fatal)?.Write("A fatal error occurred during execution.");
             return Task.CompletedTask;
         }
     }*/
@@ -84,7 +84,7 @@ internal static class RunnerHelper
             shellName = @"/bin/bash";
         }
 
-        logger.TryGet()?.Log($"Dispatch: {command}");
+        logger.GetWriter()?.Write($"Dispatch: {command}");
 
         var startInfo = new ProcessStartInfo
         {
@@ -103,7 +103,7 @@ internal static class RunnerHelper
         }
         catch
         {
-            logger.TryGet(LogLevel.Fatal)?.Log("A fatal error occurred during execution.");
+            logger.GetWriter(LogLevel.Fatal)?.Write("A fatal error occurred during execution.");
             return Task.CompletedTask;
         }
     }
@@ -120,7 +120,7 @@ internal static class RunnerHelper
             shellName = @"/bin/bash";
         }
 
-        logger.TryGet()?.Log($"Command: {command}");
+        logger.GetWriter()?.Write($"Command: {command}");
         if (string.IsNullOrEmpty(command))
         {
             command = "echo hello";
@@ -151,7 +151,7 @@ internal static class RunnerHelper
         }
         catch
         {
-            logger.TryGet(LogLevel.Fatal)?.Log("A fatal error occurred during execution.");
+            logger.GetWriter(LogLevel.Fatal)?.Write("A fatal error occurred during execution.");
             return null;
         }
     }*/

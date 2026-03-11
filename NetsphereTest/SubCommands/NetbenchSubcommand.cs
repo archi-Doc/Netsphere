@@ -36,7 +36,7 @@ public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
                 return;
             }
 
-            this.logger.TryGet()?.Log($"Netbench: {node.ToString()}");
+            this.logger.GetWriter()?.Write($"Netbench: {node.ToString()}");
 
             /*var p = new PacketPunch(null);
             var sw = Stopwatch.StartNew();

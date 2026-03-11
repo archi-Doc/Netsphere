@@ -54,21 +54,21 @@ public partial class RestartMachine : Machine
         this.docker = await RunnerHelper.CreateDockerClient();
         if (this.docker == null)
         {
-            this.logger.TryGet(LogLevel.Fatal)?.Log($"Docker engine is not available");
+            this.logger.GetWriter(LogLevel.Fatal)?.Write($"Docker engine is not available");
             return StateResult.Terminate;
         }
 
-        this.logger.TryGet()?.Log($"Netsphere.Runner (Restart)");
-        this.logger.TryGet()?.Log($"{this.options.ToString()}");
+        this.logger.GetWriter()?.Write($"Netsphere.Runner (Restart)");
+        this.logger.GetWriter()?.Write($"{this.options.ToString()}");
 
         var address = await NetStatsHelper.GetOwnAddress((ushort)this.options.Port);
         if (address.IsValid)
         {
             var node = new NetNode(address, this.netTerminal.NetBase.NodePublicKey);
-            this.logger.TryGet()?.Log($"{node.ToString()}");
+            this.logger.GetWriter()?.Write($"{node.ToString()}");
         }
 
-        this.logger.TryGet()?.Log($"Remote public key: {this.options.RemotePublicKey.ToString()}");
+        this.logger.GetWriter()?.Write($"Remote public key: {this.options.RemotePublicKey.ToString()}");
 
         var hostname = Environment.GetEnvironmentVariable("HOSTNAME");
         var containers = await this.docker.Containers.ListContainersAsync(new ContainersListParameters { All = false });
@@ -78,18 +78,18 @@ public partial class RestartMachine : Machine
             if (myContainer.Labels.TryGetValue("com.docker.compose.project", out var projectName))
             {
                 this.projectName = projectName;
-                this.logger.TryGet()?.Log($"Restart project name: {projectName}");
+                this.logger.GetWriter()?.Write($"Restart project name: {projectName}");
             }
 
             var mount = myContainer.Mounts.FirstOrDefault(x => x.Destination == ConfigFile);
             this.configurationSource = mount?.Source ?? string.Empty;
             if (!string.IsNullOrEmpty(this.configurationSource))
             {
-                this.logger.TryGet()?.Log($"Configuration source: {this.configurationSource}");
+                this.logger.GetWriter()?.Write($"Configuration source: {this.configurationSource}");
             }
         }
 
-        // this.logger.TryGet()?.Log($"Target Container Name: {this.ContainerName}");
+        // this.logger.GetWriter()?.Write($"Target Container Name: {this.ContainerName}");
 
         Console.WriteLine();
         Console.WriteLine("Press Ctrl+C to exit, Ctrl+R to restart container, Ctrl+Q to stop container and exit");
@@ -112,10 +112,10 @@ public partial class RestartMachine : Machine
         var list = await this.dockerClient.Containers.ListContainersAsync(new() { Limit = ListContainersLimit, });
         foreach(var x in list)
         {// list.Where(x => x.Image.StartsWith(this.options.Image)
-            this.logger.TryGet()?.Log($"{x.Image} {x.State}");
+            this.logger.GetWriter()?.Write($"{x.Image} {x.State}");
             foreach (var y in x.Names)
             {
-                this.logger.TryGet()?.Log($"{y}");
+                this.logger.GetWriter()?.Write($"{y}");
             }
 
             if (x.Names.Any(z => z.StartsWith(containerName)))
@@ -135,7 +135,7 @@ public partial class RestartMachine : Machine
             return CommandResult.Failure;
         }
 
-        this.logger.TryGet()?.Log("Restart");
+        this.logger.GetWriter()?.Write("Restart");
 
         if (this.docker is null)
         {
@@ -147,7 +147,7 @@ public partial class RestartMachine : Machine
         {
             if (string.IsNullOrEmpty(this.options.Service))
             {
-                this.logger.TryGet(LogLevel.Error)?.Log("Project and service are not specified.");
+                this.logger.GetWriter(LogLevel.Error)?.Write("Project and service are not specified.");
                 return CommandResult.Failure;
             }
             else
@@ -166,7 +166,7 @@ public partial class RestartMachine : Machine
             if (r is null ||
                 !r.Labels.TryGetValue("com.docker.compose.project", out var name))
             {
-                this.logger.TryGet(LogLevel.Error)?.Log("Project not found.");
+                this.logger.GetWriter(LogLevel.Error)?.Write("Project not found.");
                 return CommandResult.Failure;
             }
 
@@ -187,7 +187,7 @@ public partial class RestartMachine : Machine
         var container = list.FirstOrDefault(x => x.State == "running" && x.Names.Any(n => n.StartsWith(prefix)));
         if (container is null)
         {
-            this.logger.TryGet(LogLevel.Error)?.Log("Container not found.");
+            this.logger.GetWriter(LogLevel.Error)?.Write("Container not found.");
             return CommandResult.Failure;
         }
 
@@ -202,14 +202,14 @@ public partial class RestartMachine : Machine
                     config = config.Substring(index + 1);
                 }
 
-                this.logger.TryGet()?.Log($"Config: {config}");
+                this.logger.GetWriter()?.Write($"Config: {config}");
                 if (this.configurationSource.EndsWith(config))
                 {
-                    this.logger.TryGet()?.Log($"{ConfigFile} matches the underlying YAML file.");
+                    this.logger.GetWriter()?.Write($"{ConfigFile} matches the underlying YAML file.");
                 }
                 else
                 {
-                    this.logger.TryGet(LogLevel.Warning)?.Log($"{ConfigFile} does not match the underlying YAML file.");
+                    this.logger.GetWriter(LogLevel.Warning)?.Write($"{ConfigFile} does not match the underlying YAML file.");
                 }
             }
         }
@@ -245,11 +245,11 @@ public partial class RestartMachine : Machine
             return;
         }
 
-        this.logger.TryGet()?.Log($"Project: {projectName}");
+        this.logger.GetWriter()?.Write($"Project: {projectName}");
 
         if (!this.TryGetConfigurationFile(inspect, out var configFile))
         {
-            this.logger.TryGet(LogLevel.Error)?.Log($"Failed to load the configuration file. Please specify it using 'volumes: - ./docker-compose.yml:{ConfigFile}:ro'");
+            this.logger.GetWriter(LogLevel.Error)?.Write($"Failed to load the configuration file. Please specify it using 'volumes: - ./docker-compose.yml:{ConfigFile}:ro'");
             return;
         }
 
@@ -265,7 +265,7 @@ public partial class RestartMachine : Machine
         await RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {projectName} -f {configFile} up -d{param}");
         Console.WriteLine("\r");
 
-        this.logger.TryGet()?.Log($"Restart complete");
+        this.logger.GetWriter()?.Write($"Restart complete");
         Console.WriteLine();
     }
 

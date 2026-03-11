@@ -34,7 +34,7 @@ public partial class NtpMachine : Machine
         if (dif > 0 && dif < Mics.FromHours(1))
         {// Already correctedd
             corrected = this.ntpCorrection.TryGetCorrectedUtcNow(out correctedNow);
-            this.logger.TryGet()?.Log($"Already corrected {corrected}, {correctedNow.ToString()}");
+            this.logger.GetWriter()?.Write($"Already corrected {corrected}, {correctedNow.ToString()}");
             this.SetLoggerTimeOffset();
 
             var ts = (Mics.FromHours(1) - dif).MicsToTimeSpan();
@@ -52,11 +52,11 @@ public partial class NtpMachine : Machine
             return StateResult.Continue;
         }
 
-        this.logger.TryGet(LogLevel.Debug)?.Log($"Timeoffset {timeoffset.MeanTimeoffset} ms [{timeoffset.TimeoffsetCount}]");
+        this.logger.GetWriter(LogLevel.Debug)?.Write($"Timeoffset {timeoffset.MeanTimeoffset} ms [{timeoffset.TimeoffsetCount}]");
         this.SetLoggerTimeOffset();
 
         corrected = this.ntpCorrection.TryGetCorrectedUtcNow(out correctedNow);
-        this.logger.TryGet()?.Log($"Corrected {corrected}, {correctedNow.ToString()}");
+        this.logger.GetWriter()?.Write($"Corrected {corrected}, {correctedNow.ToString()}");
 
         this.TimeUntilRun = TimeSpan.FromHours(1);
         return StateResult.Continue;
@@ -65,7 +65,7 @@ public partial class NtpMachine : Machine
     [StateMethod]
     protected async Task<StateResult> SafeHoldMode(StateParameter parameter)
     {
-        this.logger?.TryGet(LogLevel.Warning)?.Log($"Safe-hold mode");
+        this.logger?.GetWriter(LogLevel.Warning)?.Write($"Safe-hold mode");
         if (await this.ntpCorrection.CheckConnection(this.CancellationToken).ConfigureAwait(false))
         {
             this.ntpCorrection.ResetHostnames();
@@ -79,7 +79,7 @@ public partial class NtpMachine : Machine
     private void SetLoggerTimeOffset()
     {
         var offset = this.ntpCorrection.GetTimeOffset();
-        UnitLogger.SetTimeOffset(TimeSpan.FromMilliseconds(offset.MeanTimeoffset));
+        LogUnit.SetTimeOffset(TimeSpan.FromMilliseconds(offset.MeanTimeoffset));
     }
 
     private ILogger<NtpMachine> logger;

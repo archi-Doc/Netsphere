@@ -76,12 +76,12 @@ internal class DockerRunner
             try
             {
                 await this.client.Containers.RemoveContainerAsync(x.ID, new());
-                this.logger.TryGet()?.Log($"Container removed: {x.ID}");
-                // this.logger.TryGet()?.Log("Success");
+                this.logger.GetWriter()?.Write($"Container removed: {x.ID}");
+                // this.logger.GetWriter()?.Write("Success");
             }
             catch
             {
-                // this.logger.TryGet()?.Log("Failure");
+                // this.logger.GetWriter()?.Write("Failure");
             }
         }
     }
@@ -89,7 +89,7 @@ internal class DockerRunner
     public async Task<bool> RunContainer(string dockerParameters, string containerParameters)
     {
         // Create image
-        this.logger.TryGet()?.Log($"Pull image: {this.options.Image}");
+        this.logger.GetWriter()?.Write($"Pull image: {this.options.Image}");
 
         string image = this.options.Image;
         string tag = string.Empty;
@@ -112,16 +112,16 @@ internal class DockerRunner
                 null,
                 progress);
 
-            // this.logger.TryGet()?.Log("Success");
+            // this.logger.GetWriter()?.Write("Success");
         }
         catch
         {
-            // this.logger.TryGet()?.Log("Failure");
+            // this.logger.GetWriter()?.Write("Failure");
             return false;
         }
 
         // Create container
-        this.logger.TryGet()?.Log($"Start container: {this.options.Image}");
+        this.logger.GetWriter()?.Write($"Start container: {this.options.Image}");
 
         var command = $"docker run {dockerParameters} {this.options.Image} {containerParameters}"; // -i: key input, -t: , -d: leave the container running
         await RunnerHelper.DispatchCommand(this.logger, command);
@@ -155,11 +155,11 @@ internal class DockerRunner
             });
 
             await this.client.Containers.StartContainerAsync(containerResponse.ID, new());
-            this.logger.TryGet()?.Log($"Success: {containerResponse.ID}");
+            this.logger.GetWriter()?.Write($"Success: {containerResponse.ID}");
         }
         catch
         {
-            this.logger.TryGet()?.Log("Failure");
+            this.logger.GetWriter()?.Write("Failure");
             return false;
         }*/
 
@@ -173,7 +173,7 @@ internal class DockerRunner
         {
             if (x.State == "created" || x.State == "exited")
             {
-                this.logger.TryGet()?.Log($"Restart container: {x.ID}");
+                this.logger.GetWriter()?.Write($"Restart container: {x.ID}");
                 try
                 {
                     await this.client.Containers.StartContainerAsync(x.ID, new());

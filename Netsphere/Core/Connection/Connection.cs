@@ -45,7 +45,7 @@ public abstract class Connection : IDisposable
     public Connection(PacketTerminal packetTerminal, ConnectionTerminal connectionTerminal, ulong connectionId, NetNode node, NetEndpoint endPoint)
     {
         this.NetBase = connectionTerminal.NetBase;
-        this.Logger = this.NetBase.UnitLogger.GetLogger(this.GetType());
+        this.Logger = this.NetBase.LogService.GetLogger(this.GetType());
         this.PacketTerminal = packetTerminal;
         this.ConnectionTerminal = connectionTerminal;
         this.ConnectionId = connectionId;
@@ -1071,7 +1071,7 @@ Wait:
 
                 transmission.MaxReceivePosition = maxReceivePosition;
 
-                this.Logger.TryGet(LogLevel.Debug)?.Log($"KnockResponse: {maxReceivePosition}");
+                this.Logger.GetWriter(LogLevel.Debug)?.Write($"KnockResponse: {maxReceivePosition}");
             }
         }
     }

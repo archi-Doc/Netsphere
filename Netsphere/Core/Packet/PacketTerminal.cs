@@ -146,7 +146,7 @@ public sealed partial class PacketTerminal
 
         if (NetConstants.LogLowLevelNet)
         {
-            // this.logger.TryGet(LogLevel.Debug)?.Log($"{this.netTerminal.NetTerminalString} to {endPoint.ToString()} {rentMemory.Length} {typeof(TSend).Name}/{typeof(TReceive).Name}");
+            // this.logger.GetWriter(LogLevel.Debug)?.Write($"{this.netTerminal.NetTerminalString} to {endPoint.ToString()} {rentMemory.Length} {typeof(TSend).Name}/{typeof(TReceive).Name}");
         }
 
         try
@@ -207,7 +207,7 @@ public sealed partial class PacketTerminal
 
         if (NetConstants.LogLowLevelNet)
         {
-            // this.logger.TryGet(LogLevel.Debug)?.Log($"{this.netTerminal.NetTerminalString} to {endPoint.ToString()} {rentMemory.Length} {typeof(TSend).Name}/{typeof(TReceive).Name}");
+            // this.logger.GetWriter(LogLevel.Debug)?.Write($"{this.netTerminal.NetTerminalString} to {endPoint.ToString()} {rentMemory.Length} {typeof(TSend).Name}/{typeof(TReceive).Name}");
         }
 
         try
@@ -254,7 +254,7 @@ public sealed partial class PacketTerminal
 
                 if (NetConstants.LogLowLevelNet)
                 {
-                    // this.logger.TryGet(LogLevel.Debug)?.Log($"{this.netTerminal.NetTerminalString} to {item.EndPoint.ToString()}, Send packet id:{item.PacketId}");
+                    // this.logger.GetWriter(LogLevel.Debug)?.Write($"{this.netTerminal.NetTerminalString} to {item.EndPoint.ToString()}, Send packet id:{item.PacketId}");
                 }
 
                 if (item.ResponseTcs is not null)
@@ -308,7 +308,7 @@ public sealed partial class PacketTerminal
     {// Checked: toBeShared.Length
         if (NetConstants.LogLowLevelNet)
         {
-            // this.logger.TryGet(LogLevel.Debug)?.Log($"Receive actual");
+            // this.logger.GetWriter(LogLevel.Debug)?.Write($"Receive actual");
         }
 
         // PacketHeaderCode
@@ -372,7 +372,7 @@ public sealed partial class PacketTerminal
 
                     if (NetConstants.LogLowLevelNet)
                     {
-                        // this.logger.TryGet()?.Log($"{this.netTerminal.NetTerminalString} to {endPoint.ToString()} PingResponse");
+                        // this.logger.GetWriter()?.Write($"{this.netTerminal.NetTerminalString} to {endPoint.ToString()} PingResponse");
                     }
                 }
 
@@ -480,7 +480,7 @@ public sealed partial class PacketTerminal
             {
                 if (NetConstants.LogLowLevelNet)
                 {
-                    this.logger.TryGet(LogLevel.Debug)?.Log($"{this.netTerminal.NetTerminalString} received {toBeShared.Span.Length} {packetType.ToString()}");
+                    this.logger.GetWriter(LogLevel.Debug)?.Write($"{this.netTerminal.NetTerminalString} received {toBeShared.Span.Length} {packetType.ToString()}");
                 }
 
                 if (item.ResponseTcs is { } tcs)
@@ -573,7 +573,7 @@ public sealed partial class PacketTerminal
             }*/
         }
 
-        // this.logger.TryGet(LogLevel.Debug)?.Log("AddSendPacket");
+        // this.logger.GetWriter(LogLevel.Debug)?.Write("AddSendPacket");
 
         return NetResult.Success;
     }

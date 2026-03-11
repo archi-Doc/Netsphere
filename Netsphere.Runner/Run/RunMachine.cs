@@ -55,23 +55,23 @@ public partial class RunMachine : Machine
         this.docker = await DockerRunner.Create(this.logger, this.options);
         if (this.docker == null)
         {
-            this.logger.TryGet(LogLevel.Fatal)?.Log($"Docker engine is not available");
+            this.logger.GetWriter(LogLevel.Fatal)?.Write($"Docker engine is not available");
             return StateResult.Terminate;
         }
 
-        this.logger.TryGet()?.Log($"Netsphere.Runner (Run)");
-        this.logger.TryGet()?.Log($"{this.options.ToString()}");
+        this.logger.GetWriter()?.Write($"Netsphere.Runner (Run)");
+        this.logger.GetWriter()?.Write($"{this.options.ToString()}");
 
         var address = await NetStatsHelper.GetOwnAddress((ushort)this.options.Port);
         if (address.IsValid)
         {
             var node = new NetNode(address, this.netTerminal.NetBase.NodePublicKey);
-            this.logger.TryGet()?.Log($"{node.ToString()}");
+            this.logger.GetWriter()?.Write($"{node.ToString()}");
         }
 
-        this.logger.TryGet()?.Log($"Remote public key: {this.options.RemotePublicKey.ToString()}");
+        this.logger.GetWriter()?.Write($"Remote public key: {this.options.RemotePublicKey.ToString()}");
 
-        this.logger.TryGet()?.Log("Press Ctrl+C to exit, Ctrl+R to restart container, Ctrl+Q to stop container and exit");
+        this.logger.GetWriter()?.Write("Press Ctrl+C to exit, Ctrl+R to restart container, Ctrl+Q to stop container and exit");
         await Console.Out.WriteLineAsync();
 
         // Remove container
@@ -110,7 +110,7 @@ public partial class RunMachine : Machine
             return StateResult.Terminate;
         }
 
-        this.logger.TryGet()?.Log($"Status({this.retries}): {this.GetState()} -> Create container");
+        this.logger.GetWriter()?.Write($"Status({this.retries}): {this.GetState()} -> Create container");
 
         if (await this.docker.RunContainer(this.options.DockerParameters, this.options.ContainerParameters) == false)
         {
@@ -134,7 +134,7 @@ public partial class RunMachine : Machine
             return StateResult.Terminate;
         }
 
-        this.logger.TryGet()?.Log($"Running");
+        this.logger.GetWriter()?.Write($"Running");
 
         if (await this.docker.CountContainersAsync() == 0)
         {// No container
@@ -181,20 +181,20 @@ public partial class RunMachine : Machine
         if (result == NetResult.Success)
         {// Healthy
             this.retries = 0;
-            this.logger.TryGet()?.Log($"Status({this.retries}): Healthy");
+            this.logger.GetWriter()?.Write($"Status({this.retries}): Healthy");
         }
         else
         {// Unhealthy
             if (this.retries++ >= UnhealthyRetries)
             {
-                this.logger.TryGet()?.Log($"Status({this.retries}): Unhealthy -> Restart");
+                this.logger.GetWriter()?.Write($"Status({this.retries}): Unhealthy -> Restart");
                 await this.docker.RemoveAllContainers();
                 this.ChangeStateAndRunImmediately(State.NoContainer);
                 return StateResult.Continue;
             }
             else
             {
-                this.logger.TryGet()?.Log($"Status({this.retries}): Unhealthy");
+                this.logger.GetWriter()?.Write($"Status({this.retries}): Unhealthy");
             }
         }
 
@@ -221,7 +221,7 @@ public partial class RunMachine : Machine
             return StateResult.Terminate;
         }
 
-        this.logger.TryGet()?.Log($"Status({this.retries}): {this.GetState()}");
+        this.logger.GetWriter()?.Write($"Status({this.retries}): {this.GetState()}");
         this.TimeUntilRun = TimeSpan.FromSeconds(TerminatingInvervalInSeconds);
         return StateResult.Continue;
     }
@@ -229,7 +229,7 @@ public partial class RunMachine : Machine
     [CommandMethod]
     protected async Task<CommandResult> Restart()
     {
-        this.logger.TryGet()?.Log("Restart");
+        this.logger.GetWriter()?.Write("Restart");
 
         var state = this.GetState();
         if (state == State.NoContainer ||
@@ -253,7 +253,7 @@ public partial class RunMachine : Machine
     [CommandMethod]
     protected async Task<CommandResult> StopAll()
     {
-        this.logger.TryGet()?.Log("Stop all containers");
+        this.logger.GetWriter()?.Write("Stop all containers");
 
         // Remove container
         if (this.docker != null)
@@ -288,7 +288,7 @@ public partial class RunMachine : Machine
         }
 
         var r = await this.netTerminal.PacketTerminal.SendAndReceive<PingPacket, PingPacketResponse>(netAddress, new());
-        // this.logger.TryGet()?.Log($"Ping: {r.Result}");
+        // this.logger.GetWriter()?.Write($"Ping: {r.Result}");
 
         return r.Result;
     }

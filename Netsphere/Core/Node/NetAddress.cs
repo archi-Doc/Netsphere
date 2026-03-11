@@ -216,13 +216,13 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
         {
             if (!NetAddress.TryParse(source, out address, out _))
             {
-                logger?.TryGet(LogLevel.Error)?.Log($"Could not parse: {source.ToString()}");
+                logger?.GetWriter(LogLevel.Error)?.Write($"Could not parse: {source.ToString()}");
                 return false;
             }
 
             if (!address.Validate())
             {
-                logger?.TryGet(LogLevel.Error)?.Log($"Invalid node address: {source.ToString()}");
+                logger?.GetWriter(LogLevel.Error)?.Write($"Invalid node address: {source.ToString()}");
                 return false;
             }
 

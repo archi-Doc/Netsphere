@@ -75,11 +75,11 @@ public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
 
         if (await service.ConnectBidirectionally(token) == NetResult.Success)
         {
-            this.logger.TryGet()?.Log($"Register: Success");
+            this.logger.GetWriter()?.Write($"Register: Success");
         }
         else
         {
-            this.logger.TryGet()?.Log($"Register: Failure");
+            this.logger.GetWriter()?.Write($"Register: Failure");
             return;
         }
 
@@ -95,14 +95,14 @@ public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
 
         /*while (true)
         {
-            this.logger.TryGet()?.Log($"Waiting...");
+            this.logger.GetWriter()?.Write($"Waiting...");
             if (await this.remoteBenchBroker.Wait() == false)
             {
                 Console.WriteLine($"Exit");
                 break;
             }
 
-            this.logger.TryGet()?.Log($"Benchmark {node.ToString()}, Total/Concurrent: {this.remoteBenchBroker.Total}/{this.remoteBenchBroker.Concurrent}");
+            this.logger.GetWriter()?.Write($"Benchmark {node.ToString()}, Total/Concurrent: {this.remoteBenchBroker.Total}/{this.remoteBenchBroker.Concurrent}");
             await this.remoteBenchBroker.Process(netUnit.NetTerminal, node);
         }*/
     }
@@ -127,7 +127,7 @@ public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
 
             sw.Stop();
 
-            this.logger.TryGet()?.Log($"Pingpong x {N} {sw.ElapsedMilliseconds} ms");
+            this.logger.GetWriter()?.Write($"Pingpong x {N} {sw.ElapsedMilliseconds} ms");
         }
     }
 

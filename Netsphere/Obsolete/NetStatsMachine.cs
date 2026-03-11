@@ -22,7 +22,7 @@ public partial class NetStatsMachine : Machine
     [StateMethod(0)]
     protected async Task<StateResult> Unknown(StateParameter parameter)
     {
-        this.logger.TryGet()?.Log("Unknown");
+        this.logger.GetWriter()?.Write("Unknown");
 
         this.netStats.UpdateStats();
 
@@ -71,7 +71,7 @@ public partial class NetStatsMachine : Machine
     [StateMethod]
     protected async Task<StateResult> AddressFixed(StateParameter parameter)
     {
-        this.logger.TryGet()?.Log(this.netStats.GetOwnNetNode().ToString());
+        this.logger.GetWriter()?.Write(this.netStats.GetOwnNetNode().ToString());
 
         return StateResult.Terminate;
     }

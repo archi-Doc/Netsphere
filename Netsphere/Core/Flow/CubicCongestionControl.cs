@@ -65,7 +65,7 @@ public class CubicCongestionControl : ICongestionControl
         if (NetConstants.LogLowLevelNet &&
             connection.IsClient)
         {
-            this.logger = this.Connection.ConnectionTerminal.NetBase.UnitLogger.GetLogger<CubicCongestionControl>();
+            this.logger = this.Connection.ConnectionTerminal.NetBase.LogUnit.RootLogService.GetLogger<CubicCongestionControl>();
         }
     }
 
@@ -222,7 +222,7 @@ public class CubicCongestionControl : ICongestionControl
 
                     if (NetConstants.LogLowLevelNet)
                     {
-                        this.logger?.TryGet(LogLevel.Debug)?.Log($"cwnd:{this.cwnd:F2} {this.increasePerAck:F3} k:{this.k:F2} tcp:{this.tcpCwnd:F2}");
+                        this.logger?.GetWriter(LogLevel.Debug)?.Write($"cwnd:{this.cwnd:F2} {this.increasePerAck:F3} k:{this.k:F2} tcp:{this.tcpCwnd:F2}");
                         // Console.WriteLine($"cwnd:{this.cwnd:F2} {this.increasePerAck:F3} k:{this.k:F2} tcp:{this.tcpCwnd:F2}");
                     }
                 }
@@ -235,7 +235,7 @@ public class CubicCongestionControl : ICongestionControl
             this.CalculateCapacity(elapsedMics, elapsedMilliseconds);
             this.capacityInt = (int)this.capacity;
 
-            // this.logger?.TryGet(LogLevel.Debug)?.Log($"{(capacityLimited ? "CAP " : string.Empty)}current/cap/cwnd {this.NumberOfGenesInFlight}/{this.capacity:F1}/{this.cwnd:F1} regen {this.regen:F2} boost {this.boost:F2} mics/max {this.boostMics}/{this.boostMicsMax}");
+            // this.logger?.GetWriter(LogLevel.Debug)?.Write($"{(capacityLimited ? "CAP " : string.Empty)}current/cap/cwnd {this.NumberOfGenesInFlight}/{this.capacity:F1}/{this.cwnd:F1} regen {this.regen:F2} boost {this.boost:F2} mics/max {this.boostMics}/{this.boostMicsMax}");
 
             // Resend
             this.ProcessResend(netSender);

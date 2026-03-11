@@ -7,10 +7,11 @@ namespace Netsphere;
 
 public class NetBase : UnitBase, IUnitPreparable
 {
-    public NetBase(UnitContext context, UnitLogger logger)
+    public NetBase(UnitContext context, LogUnit logUnit, ILogService logService)
         : base(context)
     {
-        this.UnitLogger = logger;
+        this.LogUnit = logUnit;
+        this.LogService = logService;
 
         this.NetOptions = new();
         this.NewServerConnectionContext = connection => new ServerConnectionContext(connection);
@@ -19,7 +20,9 @@ public class NetBase : UnitBase, IUnitPreparable
 
     #region FieldAndProperty
 
-    public UnitLogger UnitLogger { get; }
+    public LogUnit LogUnit { get; }
+
+    public ILogService LogService { get; }
 
     public NetOptions NetOptions { get; private set; }
 
@@ -60,8 +63,8 @@ public class NetBase : UnitBase, IUnitPreparable
             this.NetOptions.Port = RandomVault.Default.NextInt32(NetConstants.EphemeralPort, NetConstants.MaxPort + 1);
             if (showWarning)
             {
-                this.UnitLogger.TryGet<NetBase>(LogLevel.Error)?.Log($"Port number must be between {NetConstants.MinPort} and {NetConstants.MaxPort}");
-                this.UnitLogger.TryGet<NetBase>(LogLevel.Error)?.Log($"Port number is set to {this.NetOptions.Port}");
+                this.LogService.GetWriter<NetBase>(LogLevel.Error)?.Write($"Port number must be between {NetConstants.MinPort} and {NetConstants.MaxPort}");
+                this.LogService.GetWriter<NetBase>(LogLevel.Error)?.Write($"Port number is set to {this.NetOptions.Port}");
             }
         }
         else

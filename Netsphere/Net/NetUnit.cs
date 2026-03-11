@@ -163,10 +163,10 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
         private readonly NetUnit unit;
     }
 
-    public NetUnit(UnitContext context, UnitLogger unitLogger, NetBase netBase, NetStats netStats, NetTerminal netTerminal, IRelayControl relayControl)
+    public NetUnit(UnitContext context, LogUnit logUnit, NetBase netBase, NetStats netStats, NetTerminal netTerminal, IRelayControl relayControl)
         : base(context)
     {
-        this.unitLogger = unitLogger;
+        this.logUnit = logUnit;
         this.ServiceProvider = context.ServiceProvider;
         this.NetBase = netBase;
         this.NetStats = netStats;
@@ -178,7 +178,7 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
         this.NetTerminal.Initialize(this.Responders, this.Services, false);
         if (this.NetBase.NetOptions.EnableAlternative)
         {// For debugging
-            this.Alternative = new(context, unitLogger, netBase, netStats, CertificateRelayControl.Instance);
+            this.Alternative = new(context, logUnit, netBase, netStats, CertificateRelayControl.Instance);
             this.Alternative.Initialize(this.Responders, this.Services, true);
         }
     }
@@ -211,7 +211,7 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
     internal IServiceProvider ServiceProvider { get; }
 
-    private readonly UnitLogger unitLogger;
+    private readonly LogUnit logUnit;
     private IntervalTask? intervalTask;
 
     #endregion

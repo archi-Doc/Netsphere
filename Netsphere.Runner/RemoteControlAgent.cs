@@ -61,14 +61,14 @@ internal class RemoteControlAgent : IRemoteControl
 
             var remoteControl = terminal.GetService<IRemoteControl>();
             var response = await remoteControl.Authenticate(this.token).ResponseAsync;
-            this.logger.TryGet()?.Log($"RequestAuthorization: {response.Result}");
+            this.logger.GetWriter()?.Write($"RequestAuthorization: {response.Result}");
             if (!response.IsSuccess)
             {
                 return NetResult.NotAuthorized;
             }
 
             var result = await remoteControl.Restart();
-            this.logger.TryGet()?.Log($"Restart: {result}");
+            this.logger.GetWriter()?.Write($"Restart: {result}");
             if (result == NetResult.Success)
             {
                 var machine = this.bigMachine.RunnerMachine.GetOrCreate();

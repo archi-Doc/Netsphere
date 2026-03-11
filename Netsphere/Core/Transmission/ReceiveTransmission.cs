@@ -334,7 +334,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
             {
                 if (this.Connection.Agreement.MaxTransmissions < 10)
                 {// Instant
-                    this.Connection.Logger.TryGet(LogLevel.Debug)?.Log($"{this.Connection.ConnectionIdText} Send Instant Ack {this.totalGene} to {this.Connection.DestinationEndpoint}");
+                    this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{this.Connection.ConnectionIdText} Send Instant Ack {this.totalGene} to {this.Connection.DestinationEndpoint}");
 
                     Span<byte> ackFrame = stackalloc byte[2 + 4 + 4];
                     var span = ackFrame;
@@ -350,7 +350,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
                 }
                 else
                 {// Defer
-                    // this.Connection.Logger.TryGet(LogLevel.Debug)?.Log($"{this.Connection.ConnectionIdText} Send Ack 0 - {this.totalGene}");
+                    // this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{this.Connection.ConnectionIdText} Send Ack 0 - {this.totalGene}");
 
                     this.Connection.ConnectionTerminal.AckQueue.AckBurst(this.Connection, this);
                 }

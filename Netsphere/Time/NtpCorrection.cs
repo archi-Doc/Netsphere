@@ -85,7 +85,7 @@ Retry:
         await Parallel.ForEachAsync(hostnames, this.Process).ConfigureAwait(false);
         if (this.timeoffsetCount == 0)
         {
-            this.logger?.TryGet(LogLevel.Error)?.Log("Retry");
+            this.logger?.GetWriter(LogLevel.Error)?.Write("Retry");
             goto Retry;
         }
     }
@@ -115,14 +115,14 @@ Retry:
     public async Task CorrectMicsAndUnitLogger(ILogger? logger = default, CancellationToken cancellationToken = default)
     {
         var offset = await this.SendAndReceiveOffset();
-        UnitLogger.SetTimeOffset(offset);
+        LogUnit.SetTimeOffset(offset);
         if (this.timeoffsetCount <= 1)
         {
             this.meanTimeoffset = (long)offset.TotalMilliseconds;
             this.timeoffsetCount = 1;
         }
 
-        logger?.TryGet(LogLevel.Information)?.Log($"Corrected: {offset.ToString()}");
+        logger?.GetWriter(LogLevel.Information)?.Write($"Corrected: {offset.ToString()}");
     }
 
     public async Task<bool> CheckConnection(CancellationToken cancellationToken)
@@ -236,7 +236,7 @@ Retry:
                 var result = await client.ReceiveAsync().WaitAsync(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
                 packet = new NtpPacket(result.Buffer);
 
-                this.logger?.TryGet(LogLevel.Debug)?.Log($"{hostname}, RoundtripTime: {(int)packet.RoundtripTime.TotalMilliseconds} ms, TimeOffset: {(int)packet.TimeOffset.TotalMilliseconds} ms");
+                this.logger?.GetWriter(LogLevel.Debug)?.Write($"{hostname}, RoundtripTime: {(int)packet.RoundtripTime.TotalMilliseconds} ms, TimeOffset: {(int)packet.TimeOffset.TotalMilliseconds} ms");
 
                 using (this.lockObject.EnterScope())
                 {
@@ -252,7 +252,7 @@ Retry:
             }
             catch
             {
-                this.logger?.TryGet(LogLevel.Error)?.Log($"{hostname}");
+                this.logger?.GetWriter(LogLevel.Error)?.Write($"{hostname}");
 
                 using (this.lockObject.EnterScope())
                 {

@@ -59,7 +59,7 @@ public class RemoteBenchRunnerAgent : IRemoteBenchRunner, INetServiceHandler
     private async Task RunBenchmark(int total, int concurrent)
     {
         var transmissionContext = TransmissionContext.Current;
-        this.logger.TryGet()?.Log($"Benchmark {transmissionContext.ServerConnection.DestinationNode.ToString()}, Total/Concurrent: {total}/{concurrent}");
+        this.logger.GetWriter()?.Write($"Benchmark {transmissionContext.ServerConnection.DestinationNode.ToString()}, Total/Concurrent: {total}/{concurrent}");
 
         var serverConnection = transmissionContext.ServerConnection;
         var connectionContext = serverConnection.GetContext<TestConnectionContext>();
@@ -137,7 +137,7 @@ public class RemoteBenchRunnerAgent : IRemoteBenchRunner, INetServiceHandler
         var service = clientConnection.GetService<IRemoteBenchHost>();
         await service.Report(record);
 
-        this.logger.TryGet()?.Log(record.ToString());
+        this.logger.GetWriter()?.Write(record.ToString());
 
         // Send log
         await RemoteDataHelper.SendLog(this.netTerminal, this.fileLogger, this.remoteNode, this.remotePrivateKey, "RemoteBench.Runner.txt");

@@ -103,6 +103,6 @@ public partial record VersionData
 
     public void Log(ILogger logger)
     {
-        logger.TryGet()?.Log($"Development: {this.Development?.Target.ToString()}, Release: {this.Release?.Target.ToString()}");
+        logger.GetWriter()?.Write($"Development: {this.Development?.Target.ToString()}, Release: {this.Release?.Target.ToString()}");
     }
 }
