@@ -6,7 +6,7 @@ namespace Netsphere.Crypto;
 
 public class Alias : IConversionOptions
 {// Identifier/PublicKey <-> Alias
-    public const int MaxAliasLength = 32; //  <= RawPublicKeyLengthInBase64
+    public const int MaxAliasLength = 16; // Must be set to RawPublicKeyLengthInBase64 or less.
 
     public static Alias Instance { get; } = new();
 
