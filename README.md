@@ -132,35 +132,38 @@ internal class TestServiceAgent : ITestService
 Create a builder to instantiate, register Options and Services. From the builder, you create a Unit and execute it.
 
 ```csharp
-var builder = new NetUnit.Builder() // Create a NetUnit builder.
-    .SetupOptions<NetOptions>((context, options) =>
-    {// Modify NetOptions.
-        options.NodeName = "Test server";
-        options.Port = 1999; // Specify the port number.
-        options.EnableEssential = true; // Required when using functions such as UnsafeGetNetNode() or Ping.
-        options.EnableServer = true;
-    })
+// Create a NetUnit builder.
+var builder = new NetUnit.Builder()
     .Configure(context =>
     {
-        context.Services.AddTransient<TestServiceAgent>(); // Register the service implementation. If a default constructor is available, an instance will be automatically created.
     })
-    .ConfigureNetsphere(context =>
-    {// Register the services provided by the server.
-        context.AddNetService<ITestService, TestServiceAgent>();
-        context.AddNetService<ITestService2, TestServiceAgent>();
+    .PostConfigure(context =>
+    {
+        context.SetOptions(context.GetOptions<NetOptions>() with
+        {
+            NodeName = "Test server",
+            Port = 1981, // Specify the port number.
+            NodeSecretKey = "!!!m6Ao8Rkgsrn1-EqG_kzZgrKmWXt5orPpHAz6DbSaAfUmlLCN!!!(e:XWLus_KiQ3AaNVeBDBp3qaot8wQEbmzlHD3Wkg8cWmXZ5egP)", // Test Private key.
+            EnablePing = true,
+            EnableServer = true,
+        });
     });
 
 var unit = builder.Build(); // Create a unit that provides network functionality.
 var options = unit.Context.ServiceProvider.GetRequiredService<NetOptions>();
-await Console.Out.WriteLineAsync(options.ToString()); // Display the NetOptions.
-
-// It is possible to unregister services, but frequent changes are not recommended (as the service table will be rebuilt). If frequent changes are necessary, consider using NetFilter or modifying the processing in the implementation class.
-var netTerminal = unit.Context.ServiceProvider.GetRequiredService<NetTerminal>();
-netTerminal.Services.Unregister<ITestService2>();
-
 await unit.Run(options, true); // Execute the created unit with the specified options.
-await Console.Out.WriteLineAsync("Server: Ctrl+C to exit");
-await ThreadCore.Root.Delay(100_000); // Wait until the server shuts down.
+
+await Console.Out.WriteLineAsync(options.ToString()); // Display the NetOptions.
+var netBase = unit.Context.ServiceProvider.GetRequiredService<NetBase>();
+var node = new NetNode(new(IPAddress.Loopback, (ushort)options.Port), netBase.NodePublicKey);
+
+// Specify which NetService should be enabled by default when a client connects.
+var netTerminal = unit.Context.ServiceProvider.GetRequiredService<NetTerminal>();
+netTerminal.Services.EnableNetService<ITestService>();
+
+await Console.Out.WriteLineAsync($"{options.NodeName}: {node.ToString()}");
+await Console.Out.WriteLineAsync("Ctrl+C to exit");
+await ThreadCore.Root.Delay(Timeout.InfiniteTimeSpan); // Wait until the server shuts down.
 await unit.Terminate(); // Perform the termination process for the unit.
 ```
 

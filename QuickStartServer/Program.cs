@@ -27,7 +27,6 @@ public class Program
         var builder = new NetUnit.Builder()
             .Configure(context =>
             {
-                // context.Services.AddTransient<TestServiceAgent>(); // Register the service implementation. If a default constructor is available, an instance will be automatically created.
             })
             .PostConfigure(context =>
             {
