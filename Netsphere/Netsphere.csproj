@@ -34,7 +34,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
     <PackageReference Include="SimpleCommandLine" Version="0.39.2" />
     <PackageReference Include="Tinyhand" Version="0.135.1" />
-    <PackageReference Include="ValueLink" Version="0.108.2" />
+    <PackageReference Include="ValueLink" Version="0.109.0" />
   </ItemGroup>
 
   <ItemGroup>
