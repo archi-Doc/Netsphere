@@ -188,7 +188,7 @@ public class RelayCircuit
 
         using (this.relayNodes.LockObject.EnterScope())
         {
-            this.relayNodes.Clear();
+            this.relayNodes.ClearAll();
             this.ResetRelayKeyInternal();
         }
 
