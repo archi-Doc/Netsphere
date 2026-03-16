@@ -30,7 +30,7 @@
     <PackageReference Include="Arc.Threading" Version="0.36.1" />
     <PackageReference Include="Arc.Crypto" Version="1.42.1" />
     <PackageReference Include="Arc.Unit" Version="0.35.0" />
-    <PackageReference Include="BigMachines" Version="0.53.0" />
+    <PackageReference Include="BigMachines" Version="0.53.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
     <PackageReference Include="SimpleCommandLine" Version="0.39.2" />
     <PackageReference Include="Tinyhand" Version="0.135.1" />
