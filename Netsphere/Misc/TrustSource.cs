@@ -241,8 +241,8 @@ public sealed partial class TrustSource<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ClearInternal()
     {
-        this.items.Clear();
-        this.counters.Clear();
+        this.items.ClearAll();
+        this.counters.ClearAll();
         this.isFixed = false;
         this.fixedValue = default;
     }
