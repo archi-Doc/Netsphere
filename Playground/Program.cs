@@ -44,8 +44,6 @@ public class Program
         var builder = new NetUnit.Builder()
             .Configure(context =>
             {
-                context.Services.AddCrossChannel();
-
                 context.AddSingleton<IRelayControl, CertificateRelayControl>();
 
                 // Command
