@@ -24,7 +24,7 @@ public class ClockHand
 
     public ClockHand(RadioClass radio)
     {
-        this.broker = radio.GetChannel<IClockHandTarget>().GetSender();
+        this.broker = radio.GetChannel<IClockHandTarget>().GetBroker();
         this.broker.OnEveryMinute();
     }
 }
