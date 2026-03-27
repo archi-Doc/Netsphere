@@ -4,6 +4,7 @@ global using Arc.Threading;
 global using Tinyhand;
 using Arc;
 using Arc.Unit;
+using CrossChannel;
 using Microsoft.Extensions.DependencyInjection;
 using Netsphere;
 using Netsphere.Crypto;
@@ -43,6 +44,8 @@ public class Program
         var builder = new NetUnit.Builder()
             .Configure(context =>
             {
+                context.Services.AddCrossChannel();
+
                 context.AddSingleton<IRelayControl, CertificateRelayControl>();
 
                 // Command
