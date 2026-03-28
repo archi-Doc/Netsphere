@@ -11,7 +11,7 @@ namespace Netsphere;
 /// Implementations are invoked by the clock hand dispatcher at fixed intervals.
 /// Keep handlers lightweight and non-blocking to avoid delaying other targets.
 /// </remarks>
-[RadioService]
+[RadioService(AutoRegisterRadioServiceAndSender = false)]
 public interface IClockHandTarget : IRadioService
 {
     /// <summary>
