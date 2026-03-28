@@ -1,25 +1,21 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
-using CrossChannel;
-
 namespace Netsphere;
 
-[RadioService]
-public interface IClockHandTarget : IRadioService
-{
-    /// <summary>
-    /// Called once per second.
-    /// </summary>
-    void OnEverySecond();
-
-    /// <summary>
-    /// Called once per minute.
-    /// </summary>
-    void OnEveryMinute();
-}
-
+/// <summary>
+/// Runs a lightweight background clock loop and publishes second/minute ticks to <see cref="IClockHandTarget"/>.<br/>
+/// Do not forget to call ClockHand.Start() before using it.
+/// </summary>
+/// <remarks>
+/// The loop checks time every <see cref="MillisecondsToWait"/> milliseconds, emits
+/// <see cref="IClockHandTarget.OnEverySecond"/> once per second, and emits
+/// <see cref="IClockHandTarget.OnEveryMinute"/> at each minute boundary.
+/// </remarks>
 public class ClockHand : TaskCore
 {
+    /// <summary>
+    /// Poll interval for the internal timing loop.
+    /// </summary>
     private const int MillisecondsToWait = 50;
 
     private readonly IClockHandTarget broker;
@@ -41,6 +37,11 @@ public class ClockHand : TaskCore
             }
 
             lastSeconds = currentSeconds;
+            if (clockHand.IsPaused)
+            {
+                continue;
+            }
+
             clockHand.broker.OnEverySecond();
 
             if (currentSeconds % 60 == 0)

@@ -21,6 +21,7 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         this.relayControl = relayControl;
         // Radio.Open<IClockHandService>(default);
         clockHand.Start();
+        clockHand.Pause();
         clockHandChannel.Open(this, true);
     }
 
