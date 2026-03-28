@@ -12,6 +12,8 @@ namespace Netsphere;
 [ValueLinkObject(Isolation = IsolationLevel.Serializable, Restricted = true)]
 public sealed partial class ClientConnection : Connection, IClientConnectionInternal, IEquatable<ClientConnection>, IComparable<ClientConnection>
 {
+    public delegate void ResponseActionDelegate(NetResult result, ulong dataId, BytePool.RentMemory value);
+
     [Link(Primary = true, Type = ChainType.Unordered, TargetMember = "ConnectionId")]
     [Link(Type = ChainType.Unordered, Name = "DestinationEndpoint", TargetMember = "DestinationEndpoint")]
     internal ClientConnection(PacketTerminal packetTerminal, ConnectionTerminal connectionTerminal, ulong connectionId, NetNode node, NetEndpoint endPoint)
@@ -512,6 +514,38 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         }
 
         return new(NetResult.Success, response.DataId, response.Received);
+    }
+
+    void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, ResponseActionDelegate action)
+    {
+        if (!this.IsActive)
+        {
+            action(NetResult.Closed, 0, default);
+            return;
+        }
+
+        using (var transmission = this.TryCreateSendTransmission())
+        {
+            if (transmission is null)
+            {
+                action(NetResult.NoTransmission, 0, default);
+                return;
+            }
+
+            var result = transmission.SendBlock(1, dataId, data, default);
+            if (result != NetResult.Success)
+            {
+                action(result, 0, default);
+                return;
+            }
+
+            var receiveTransmission = this.TryCreateReceiveTransmission(transmission.TransmissionId, action);
+            if (receiveTransmission is null)
+            {
+                action(NetResult.NoTransmission, 0, default);
+                return;
+            }
+        }
     }
 
     async Task<(NetResult Result, ReceiveStream? Stream)> IClientConnectionInternal.RpcSendAndReceiveStream(BytePool.RentMemory data, ulong dataId)

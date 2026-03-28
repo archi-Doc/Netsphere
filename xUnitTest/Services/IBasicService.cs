@@ -21,6 +21,8 @@ public interface IBasicService : INetService
 
     public Task<NetResultAndValue<int>> TestResult3(int x);
 
+    void SendInt2(NetTransmission<int, int> tx);
+
     public int TestProperty { get; protected set; }
 
     public string TestProperty2 { get; init; }
