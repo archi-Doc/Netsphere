@@ -16,7 +16,7 @@ public class ClockHand : TaskCore
     /// <summary>
     /// Poll interval for the internal timing loop.
     /// </summary>
-    private const int MillisecondsToWait = 50;
+    private const int MillisecondsToWait = 20;
 
     private readonly IClockHandTarget broker;
 

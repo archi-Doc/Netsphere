@@ -21,7 +21,7 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         this.relayControl = relayControl;
         // Radio.Open<IClockHandService>(default);
         clockHand.Start();
-        clockHand.Pause();
+        // clockHand.Pause();
         clockHandChannel.Open(this, true);
     }
 
@@ -66,7 +66,7 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
 
     void IClockHandTarget.OnEveryMinute()
     {
-        this.logger.GetWriter()?.Write("Minute: " + Mics.GetCorrected().MicsToDateTimeString("yyyy-MM-dd HH:mm:ss.ffffff K"));
+        this.logger.GetWriter()?.Write("Minute");
     }
 
     private readonly NetUnit netUnit;
