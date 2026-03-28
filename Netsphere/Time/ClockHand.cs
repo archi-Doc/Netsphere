@@ -18,13 +18,41 @@ public interface IClockHandTarget : IRadioService
     void OnEveryMinute();
 }
 
-public class ClockHand
+public class ClockHand : TaskCore
 {
+    private const int MillisecondsToWait = 50;
+
     private readonly IClockHandTarget broker;
 
-    public ClockHand(RadioClass radio)
+    private static async Task Process(object? obj)
     {
-        this.broker = radio.GetChannel<IClockHandTarget>().GetBroker();
-        this.broker.OnEveryMinute();
+        if (obj is not ClockHand clockHand)
+        {
+            return;
+        }
+
+        long lastSeconds = 0;
+        while (await clockHand.Delay(MillisecondsToWait))
+        {
+            var currentSeconds = Mics.GetCorrected() / Mics.MicsPerSecond;
+            if (currentSeconds == lastSeconds)
+            {
+                continue;
+            }
+
+            lastSeconds = currentSeconds;
+            clockHand.broker.OnEverySecond();
+
+            if (currentSeconds % 60 == 0)
+            {
+                clockHand.broker.OnEveryMinute();
+            }
+        }
+    }
+
+    public ClockHand(UnitContext unitContext)
+        : base(unitContext.Core, Process, false)
+    {
+        this.broker = unitContext.Radio.GetChannel<IClockHandTarget>().GetBroker();
     }
 }

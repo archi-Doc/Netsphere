@@ -7,7 +7,6 @@ using Netsphere;
 using Netsphere.Crypto;
 using Netsphere.Packet;
 using Netsphere.Relay;
-using Netsphere.Stats;
 using SimpleCommandLine;
 
 namespace Playground;
@@ -15,12 +14,13 @@ namespace Playground;
 [SimpleCommand("basic")]
 public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHandTarget
 {
-    public BasicCommand(ILogger<BasicCommand> logger, NetUnit netUnit, IRelayControl relayControl, IChannel<IClockHandTarget> clockHandChannel)
+    public BasicCommand(ILogger<BasicCommand> logger, NetUnit netUnit, IRelayControl relayControl, IChannel<IClockHandTarget> clockHandChannel, ClockHand clockHand)
     {
         this.logger = logger;
         this.netUnit = netUnit;
         this.relayControl = relayControl;
         // Radio.Open<IClockHandService>(default);
+        clockHand.Start();
         clockHandChannel.Open(this, true);
     }
 
@@ -55,16 +55,17 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
 
         Console.WriteLine("ClockHand");
 
-        await Task.Delay(3_000);
+        await ThreadCore.Root.Delay(100_000);
     }
 
     void IClockHandTarget.OnEverySecond()
     {
-        Console.WriteLine(Mics.GetCorrected().MicsToDateTimeString());
+        this.logger.GetWriter()?.Write(Mics.GetCorrected().MicsToDateTimeString("yyyy-MM-dd HH:mm:ss.ffffff K"));
     }
 
     void IClockHandTarget.OnEveryMinute()
     {
+        this.logger.GetWriter()?.Write("Minute: " + Mics.GetCorrected().MicsToDateTimeString("yyyy-MM-dd HH:mm:ss.ffffff K"));
     }
 
     private readonly NetUnit netUnit;
