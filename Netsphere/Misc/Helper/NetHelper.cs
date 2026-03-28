@@ -474,7 +474,7 @@ public static class NetHelper
     }
 
     public static ulong GetDataId<TSend, TReceive>()
-        => (ulong)Tinyhand.TinyhandHelper.GetFullNameId<TSend>() | ((ulong)Tinyhand.TinyhandHelper.GetFullNameId<TReceive>() << 32);
+        => (ulong)TinyhandTypeIdentifier.GetTypeIdentifier<TSend>() | ((ulong)TinyhandTypeIdentifier.GetTypeIdentifier<TReceive>() << 32);
 
     public static string ToBase64<T>(this T value)
         where T : ITinyhandSerializable<T>

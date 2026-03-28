@@ -2,23 +2,27 @@
 
 using System.Diagnostics;
 using Arc.Unit;
+using CrossChannel;
 using Netsphere;
 using Netsphere.Crypto;
 using Netsphere.Packet;
 using Netsphere.Relay;
-using Netsphere.Stats;
 using SimpleCommandLine;
 
 namespace Playground;
 
 [SimpleCommand("basic")]
-public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>
+public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHandTarget
 {
-    public BasicCommand(ILogger<BasicCommand> logger, NetUnit netUnit, IRelayControl relayControl)
+    public BasicCommand(ILogger<BasicCommand> logger, NetUnit netUnit, IRelayControl relayControl, IChannel<IClockHandTarget> clockHandChannel, ClockHand clockHand)
     {
         this.logger = logger;
         this.netUnit = netUnit;
         this.relayControl = relayControl;
+        // Radio.Open<IClockHandService>(default);
+        clockHand.Start();
+        // clockHand.Pause();
+        clockHandChannel.Open(this, true);
     }
 
     public async Task RunAsync(BasicCommandOptions options, string[] args)
@@ -50,19 +54,19 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>
         micsId = Mics.GetMicsId();
         Console.WriteLine(micsId);
 
-        /*var netNode = await netTerminal.UnsafeGetNetNode(Alternative.NetAddress);
-        if (netNode is null)
-        {
-            return;
-        }
+        Console.WriteLine("ClockHand");
 
-        using (var clientConnection = await netTerminal.Connect(netNode, Connection.ConnectMode.ReuseIfAvailable, 0))
-        {
-            if (clientConnection is null)
-            {
-                return;
-            }
-        }*/
+        await ThreadCore.Root.Delay(100_000);
+    }
+
+    void IClockHandTarget.OnEverySecond()
+    {
+        this.logger.GetWriter()?.Write(Mics.GetCorrected().MicsToDateTimeString("yyyy-MM-dd HH:mm:ss.ffffff K"));
+    }
+
+    void IClockHandTarget.OnEveryMinute()
+    {
+        this.logger.GetWriter()?.Write("Minute");
     }
 
     private readonly NetUnit netUnit;

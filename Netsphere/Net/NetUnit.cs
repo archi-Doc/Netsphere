@@ -48,6 +48,7 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 context.AddSingleton<ServiceControl>();
                 // context.AddSingleton<RobustConnection.Factory>();
                 context.TryAddSingleton<IRelayControl, NoRelayControl>();
+                context.AddSingleton<ClockHand>();
 
                 // Stream logger
                 context.Services.Add(ServiceDescriptor.Singleton(typeof(IdFileLogger<>), typeof(IdFileLoggerFactory<>)));
