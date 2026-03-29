@@ -785,7 +785,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         {
             if (method.ReturnType == ServiceMethod.Type.ReceiveDelegateAndValue)
             {//
-                using (var scopeDeserialize = ssb.ScopeBrace($"if (!NetHelper.Deserialize<{method.GetParameterTypes(0)}>(c0.RentMemory, out var value) || value is null)"))
+                using (var scopeDeserialize = ssb.ScopeBrace($"if (!NetHelper.Deserialize<{method.GetParameterTypes(0)}>(c0.RentMemory, out var value))"))
                 {
                     ssb.AppendLine("c0.Result = NetResult.DeserializationFailed;");
                     ssb.AppendLine("return;");
