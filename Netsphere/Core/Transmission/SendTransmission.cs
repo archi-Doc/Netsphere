@@ -78,8 +78,6 @@ internal sealed partial class SendTransmission : IDisposable
 
     #endregion
 
-    // private int skip19 = 0;//
-
     public void Dispose()
     {
         if (this.IsDisposed)

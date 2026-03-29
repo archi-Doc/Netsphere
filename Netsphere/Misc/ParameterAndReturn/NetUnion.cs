@@ -1,9 +1,9 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Netsphere.Core;
 using Tinyhand.IO;
 using Tinyhand.Tree;
-using static SimpleCommandLine.SimpleParser;
 
 namespace Netsphere;
 
@@ -12,6 +12,8 @@ public interface INetUnionInternal
     void Invoke(NetResult result);
 
     void Invoke(NetResponse response);
+
+    // internal void SetSendTransmission(SendTransmission sendTransmission);
 }
 
 /// <summary>
@@ -45,6 +47,8 @@ public sealed partial record class NetUnion<TSend, TReceive> : INetUnionInternal
 
     public bool IsResponded { get; private set; }
 
+    // private SendTransmission? sendTransmission;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="NetUnion{TSend, TReceive}"/> class with a request value and optional receive callback.
     /// </summary>
@@ -66,6 +70,11 @@ public sealed partial record class NetUnion<TSend, TReceive> : INetUnionInternal
         this.ReceiveValue = receiveValue;
     }
 
+    /*void INetUnionInternal.SetSendTransmission(SendTransmission sendTransmission)
+    {
+        this.sendTransmission = sendTransmission;
+    }*/
+
     void INetUnionInternal.Invoke(NetResponse response)
     {
         if (response.Result != NetResult.Success ||
@@ -86,7 +95,6 @@ public sealed partial record class NetUnion<TSend, TReceive> : INetUnionInternal
         try
         {
             var reader = new TinyhandReader(span);
-
             if (reader.TryReadNil())
             {
                 this.ReceiveDelegate?.Invoke(NetResult.DeserializationFailed, default);
@@ -119,12 +127,26 @@ public sealed partial record class NetUnion<TSend, TReceive> : INetUnionInternal
 
         // this.IsResponded = true;
         // this.ReceiveValue = receiveValue;
+
+        /*if (this.sendTransmission is not null)
+        {
+            this.sendTransmission.Dispose();
+            this.sendTransmission = default;
+        }*/
+
         this.ReceiveDelegate?.Invoke(response.Result, receiveValue);
     }
 
     void INetUnionInternal.Invoke(NetResult result)
     {
         // this.IsResponded = true;
+
+        /*if (this.sendTransmission is not null)
+        {
+            this.sendTransmission.Dispose();
+            this.sendTransmission = default;
+        }*/
+
         this.ReceiveDelegate?.Invoke(result, default);
     }
 

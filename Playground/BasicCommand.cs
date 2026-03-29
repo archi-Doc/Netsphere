@@ -48,6 +48,8 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         {
             var service = connection.GetService<ITestService>();
             service.MethodB(new(1, (result, value) => { Console.WriteLine(value); }));
+
+            await Task.Delay(100);
         }
 
         var length = AuthenticationToken.MaxStringLength;

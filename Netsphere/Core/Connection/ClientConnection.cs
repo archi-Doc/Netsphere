@@ -519,34 +519,33 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
     }
 
     void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, INetUnionInternal netUnion)
-    {//
+    {
         if (!this.IsActive)
         {
             netUnion.Invoke(NetResult.Closed);
             return;
         }
 
-        using (var transmission = this.TryCreateSendTransmission())
+        var sendTransmission = this.TryCreateSendTransmission(); // A Transmission that was not released because sending did not complete will be released when the Connection is closed or when ConnectionTerminal.Clean() is called.
+        if (sendTransmission is null)
         {
-            if (transmission is null)
-            {
-                netUnion.Invoke(NetResult.NoTransmission);
-                return;
-            }
+            netUnion.Invoke(NetResult.NoTransmission);
+            return;
+        }
 
-            var result = transmission.SendBlock(1, dataId, data, default);
-            if (result != NetResult.Success)
-            {
-                netUnion.Invoke(result);
-                return;
-            }
+        // netUnion.SetSendTransmission(sendTransmission);
+        var result = sendTransmission.SendBlock(1, dataId, data, default);
+        if (result != NetResult.Success)
+        {
+            netUnion.Invoke(result);
+            return;
+        }
 
-            var receiveTransmission = this.TryCreateReceiveTransmission(transmission.TransmissionId, default, netUnion);
-            if (receiveTransmission is null)
-            {
-                netUnion.Invoke(NetResult.NoTransmission);
-                return;
-            }
+        var receiveTransmission = this.TryCreateReceiveTransmission(sendTransmission.TransmissionId, default, netUnion);
+        if (receiveTransmission is null)
+        {
+            netUnion.Invoke(NetResult.NoTransmission);
+            return;
         }
     }
 

@@ -66,7 +66,7 @@ public class BasicTest
             int receivedValue = 2;
             var netUnion = new NetUnion<int, int>(2, (result, value) => { receivedValue = value; });
             basicService.SendInt2(netUnion);
-            // await Task.Delay(10, TestContext.Current.CancellationToken);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
             receivedValue.Is(6);
         }
     }
