@@ -62,6 +62,9 @@ public class BasicTest
             var resultAndValue = await basicService.TestResult3(42);
             resultAndValue.Result.Is(NetResult.Completed);
             resultAndValue.Value.Is(42);
+
+            var netUnion = new NetUnion<int, int>(2, default);
+            basicService.SendInt2(netUnion);
         }
     }
 

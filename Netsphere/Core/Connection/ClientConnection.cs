@@ -9,11 +9,11 @@ using Netsphere.Packet;
 
 namespace Netsphere;
 
+public delegate void ReceiveDelegate(NetResult result, ulong dataId, BytePool.RentMemory value);
+
 [ValueLinkObject(Isolation = IsolationLevel.Serializable, Restricted = true)]
 public sealed partial class ClientConnection : Connection, IClientConnectionInternal, IEquatable<ClientConnection>, IComparable<ClientConnection>
 {
-    public delegate void ResponseActionDelegate(NetResult result, ulong dataId, BytePool.RentMemory value);
-
     [Link(Primary = true, Type = ChainType.Unordered, TargetMember = "ConnectionId")]
     [Link(Type = ChainType.Unordered, Name = "DestinationEndpoint", TargetMember = "DestinationEndpoint")]
     internal ClientConnection(PacketTerminal packetTerminal, ConnectionTerminal connectionTerminal, ulong connectionId, NetNode node, NetEndpoint endPoint)
@@ -516,7 +516,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         return new(NetResult.Success, response.DataId, response.Received);
     }
 
-    void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, ResponseActionDelegate action)
+    void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, ReceiveDelegate action)
     {
         if (!this.IsActive)
         {
