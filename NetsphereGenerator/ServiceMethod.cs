@@ -64,10 +64,10 @@ public class ServiceMethod
             {// Task<TResult>
             }
             else if (fullName is null &&
-                method.Method_Parameters.Length == 1 &&
-                (method.Method_Parameters[0].StartsWith(ServiceMethod.ReceiveDelegateAndValueName) ||
-                method.Method_Parameters[0].StartsWith(ServiceMethod.ReceiveDelegateAndValueFullName)))
-            {// void Method(ReceiveDelegateAndValue<TReceive> x);
+                method.Method_Parameters.Length > 0 &&
+                (method.Method_Parameters[method.Method_Parameters.Length - 1].StartsWith(ServiceMethod.ReceiveDelegateAndValueName) ||
+                method.Method_Parameters[method.Method_Parameters.Length - 1].StartsWith(ServiceMethod.ReceiveDelegateAndValueFullName)))
+            {// void Method(int x, ReceiveDelegateAndValue<TReceive> channel);
             }
             else
             {// Invalid return type
@@ -110,14 +110,16 @@ public class ServiceMethod
                 }
             }
         }
-        else if (returnObject.FullName == "void")
-        {
-            serviceMethod.ReturnType = Type.ReceiveDelegateAndValue;
-        }
 
         if (method.Method_Parameters.Length == 1)
         {
             serviceMethod.ParameterType = NameToType(method.Method_Parameters[0]);
+        }
+
+        if (returnObject.FullName == "void")
+        {
+            serviceMethod.ReturnType = Type.ReceiveDelegateAndValue;
+            serviceMethod.ParameterType = Type.ReceiveDelegateAndValue;
         }
 
         /*if (serviceMethod.ReturnType == Type.SendStream)

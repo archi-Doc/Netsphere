@@ -520,15 +520,16 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         {
             using (var scopeMethod = ssb.ScopeBrace($"public void {method.SimpleName}({method.GetParameters()})"))
             {
+                var channelName = $"{NetsphereBody.ArgumentName}{method.ParameterLength}";
                 using (var scopeSerialize = ssb.ScopeBrace($"if (!NetHelper.TrySerialize({method.GetParameterNames(NetsphereBody.ArgumentName, 0)}, out var owner))"))
                 {
-                    ssb.AppendLine($"((INetUnionInternal){NetsphereBody.ArgumentName}1).Invoke(NetResult.SerializationFailed);");
+                    ssb.AppendLine($"(({NetsphereBody.ReceiveDelegateAndValueInternalName}){channelName}).Invoke(NetResult.SerializationFailed);");
                     ssb.AppendLine("return;");
                 }
 
                 ssb.AppendLine();
 
-                ssb.AppendLine($"((Netsphere.Internal.IClientConnectionInternal)this.ClientConnection).RpcSendAndReceive2(owner, {method.IdString}, a1);");
+                ssb.AppendLine($"((Netsphere.Internal.IClientConnectionInternal)this.ClientConnection).RpcSendAndReceive2(owner, {method.IdString}, {channelName});");
                 ssb.AppendLine("owner.Return();");
             }
 
@@ -791,7 +792,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 }
 
                 ssb.AppendLine();
-                ssb.AppendLine($"(({serviceInterface.FullName})obj).{method.SimpleName}(value);");
+                ssb.AppendLine($"(({serviceInterface.FullName})obj).{method.SimpleName}(({method.GetTupleNames("value", 0)});");
 
                 using (var scopeSerialize = ssb.ScopeBrace($"if (NetHelper.TrySerialize(value, out var owner2))"))
                 {
