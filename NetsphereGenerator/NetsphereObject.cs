@@ -517,18 +517,18 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         }
 
         if (method.ReturnType == ServiceMethod.Type.NetUnion)
-        {//
+        {
             using (var scopeMethod = ssb.ScopeBrace($"public void {method.SimpleName}({method.GetParameters()})"))
             {
                 using (var scopeSerialize = ssb.ScopeBrace($"if (!NetHelper.TrySerialize({method.GetParameterNames(NetsphereBody.ArgumentName, 0)}, out var owner))"))
                 {
-                    ssb.AppendLine($"{NetsphereBody.ArgumentName}1.ReceiveDelegate?.Invoke(NetResult.SerializationFailed, default!);");
+                    ssb.AppendLine($"((INetUnionInternal){NetsphereBody.ArgumentName}1).Invoke(NetResult.SerializationFailed);");
                     ssb.AppendLine("return;");
                 }
 
                 ssb.AppendLine();
 
-                ssb.AppendLine($"((Netsphere.Internal.IClientConnectionInternal)this.ClientConnection).RpcSendAndReceive2(owner, 0xe3608d1e579db445ul, a1);");
+                ssb.AppendLine($"((Netsphere.Internal.IClientConnectionInternal)this.ClientConnection).RpcSendAndReceive2(owner, {method.IdString}, a1);");
                 ssb.AppendLine("owner.Return();");
             }
 
@@ -784,6 +784,27 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         {
             if (method.ReturnType == ServiceMethod.Type.NetUnion)
             {//
+                using (var scopeDeserialize = ssb.ScopeBrace($"if (!NetHelper.Deserialize<{method.GetParameterTypes(0)}>(c0.RentMemory, out var value) || value is null)"))
+                {
+                    ssb.AppendLine("c0.Result = NetResult.DeserializationFailed;");
+                    ssb.AppendLine("return;");
+                }
+
+                ssb.AppendLine();
+                ssb.AppendLine($"(({serviceInterface.FullName})obj).{method.SimpleName}(value);");
+
+                using (var scopeSerialize = ssb.ScopeBrace($"if (NetHelper.TrySerialize(value, out var owner2))"))
+                {
+                    ssb.AppendLine("c0.RentMemory = c0.RentMemory.Return();");
+                    ssb.AppendLine("c0.RentMemory = owner2;");
+                }
+
+                using (var scopeElse = ssb.ScopeBrace("else"))
+                {
+                    ssb.AppendLine("c0.RentMemory = c0.RentMemory.Return();");
+                    ssb.AppendLine("c0.Result = NetResult.SerializationFailed;");
+                }
+
                 return;
             }
 

@@ -44,6 +44,12 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         netTerminal.Services.EnableNetService<ITestService>();
         var packetTerminal = netTerminal.PacketTerminal;
 
+        using (var connection = (await netTerminal.Connect(Alternative.NetNode))!)
+        {
+            var service = connection.GetService<ITestService>();
+            service.MethodB(new(1, (result, value) => { Console.WriteLine(value); }));
+        }
+
         var length = AuthenticationToken.MaxStringLength;
         var p = new PingPacket("test56789");
         var result = await packetTerminal.SendAndReceive<PingPacket, PingPacketResponse>(address, p, 0, default, EndpointResolution.NetAddress);
@@ -55,11 +61,6 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         micsId = Mics.GetMicsId();
         Console.WriteLine(micsId);
 
-        using (var connection = (await netTerminal.Connect(Alternative.NetNode))!)
-        {
-            var service = connection.GetService<ITestService>();
-            service.MethodB(new(1, default));
-        }
 
         Console.WriteLine("ClockHand");
 

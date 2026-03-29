@@ -519,7 +519,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
     }
 
     void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, INetUnionInternal netUnion)
-    {
+    {//
         if (!this.IsActive)
         {
             netUnion.Invoke(NetResult.Closed);

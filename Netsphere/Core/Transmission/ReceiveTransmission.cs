@@ -366,11 +366,14 @@ internal sealed partial class ReceiveTransmission : IDisposable
         if (completeFlag)
         {// Receive complete
             TaskCompletionSource<NetResponse>? receivedTcs;
+            INetUnionInternal? receivedNetUnion;
 
             using (this.lockObject.EnterScope())
             {
                 receivedTcs = this.receivedTcs;
+                receivedNetUnion = this.receivedNetUnion;
                 this.receivedTcs = default;
+                this.receivedNetUnion = default;
 
                 // this.Goshujin = null; // -> this.Connection.RemoveTransmission(this);
                 this.DisposeInternal();
@@ -386,7 +389,9 @@ internal sealed partial class ReceiveTransmission : IDisposable
                     serverConnection.GetContext().InvokeSync(transmissionContext);
                 }
 
-                receivedTcs?.SetResult(new(NetResult.Success, dataId, 0, rentMemory.IncrementAndShare()));
+                var response = new NetResponse(NetResult.Success, dataId, 0, rentMemory.IncrementAndShare());
+                receivedTcs?.SetResult(response);
+                receivedNetUnion?.Invoke(response);
                 rentMemory.Return();
             }
         }

@@ -2,6 +2,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Tinyhand.IO;
+using Tinyhand.Tree;
+using static SimpleCommandLine.SimpleParser;
 
 namespace Netsphere;
 
@@ -73,7 +75,47 @@ public sealed partial record class NetUnion<TSend, TReceive> : INetUnionInternal
             return;
         }
 
-        var receiveValue = TinyhandSerializer.Deserialize<TReceive>(response.Received.Span);
+        if (response.DataId != 0)
+        {
+            this.ReceiveDelegate?.Invoke((NetResult)response.DataId, default);
+            return;
+        }
+
+        var span = response.Received.Span;
+        TReceive? receiveValue = default;
+        try
+        {
+            var reader = new TinyhandReader(span);
+
+            if (reader.TryReadNil())
+            {
+                this.ReceiveDelegate?.Invoke(NetResult.DeserializationFailed, default);
+                return;
+            }
+
+            var numberOfData = reader.ReadArrayHeader();
+            byte b = 0;
+            if (numberOfData-- > 0 && !reader.TryReadNil())
+            {
+                b = reader.ReadUInt8();
+            }
+
+            if (numberOfData-- > 0 && !reader.TryReadNil())
+            {
+                if (b == 0)
+                {// SendValue
+                }
+                else
+                {// ReceiveValue
+                    receiveValue = TinyhandSerializer.Deserialize<TReceive>(ref reader, TinyhandSerializerOptions.Standard);
+                }
+            }
+        }
+        catch
+        {
+            this.ReceiveDelegate?.Invoke(NetResult.DeserializationFailed, default);
+            return;
+        }
 
         // this.IsResponded = true;
         // this.ReceiveValue = receiveValue;
@@ -128,7 +170,7 @@ public sealed partial record class NetUnion<TSend, TReceive> : INetUnionInternal
             byte b = 0;
             if (numberOfData-- > 0 && !reader.TryReadNil())
             {
-                reader.TryRead(out b);
+                b = reader.ReadUInt8();
             }
 
             if (numberOfData-- > 0 && !reader.TryReadNil())
