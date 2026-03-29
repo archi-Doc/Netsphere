@@ -516,6 +516,22 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             asyncPrefix = string.Empty;
         }
 
+        if (method.ReturnType == ServiceMethod.Type.NetUnion)
+        {//
+            using (var scopeMethod = ssb.ScopeBrace($"public void {method.SimpleName}({method.GetParameters()})"))
+            {
+                using (var scopeSerialize = ssb.ScopeBrace($"if (!NetHelper.TrySerialize({method.GetParameterNames(NetsphereBody.ArgumentName, 0)}, out var owner))"))
+                {
+                    ssb.AppendLine($"{NetsphereBody.ArgumentName}1.ReceiveDelegate?.Invoke(NetResult.SerializationFailed, default!);");
+                    ssb.AppendLine("return;");
+                }
+
+                ssb.AppendLine();
+            }
+
+            return;
+        }
+
         using (var scopeMethod = ssb.ScopeBrace($"public {asyncPrefix}{taskString} {method.SimpleName}({method.GetParameters()})"))
         {
             if (method.Kind == ServiceMethod.MethodKind.UpdateAgreement)
@@ -763,6 +779,11 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
     {
         using (var scopeMethod = ssb.ScopeBrace($"private static async Task {method.MethodString}(object obj, TransmissionContext c0)"))
         {
+            if (method.ReturnType == ServiceMethod.Type.NetUnion)
+            {//
+                return;
+            }
+
             var methodFilters = this.GetServiceFilter(serviceInterface, method);
             var filters = ServiceFilterGroup.FromClassAndMethod(this.ClassFilters, methodFilters);
 

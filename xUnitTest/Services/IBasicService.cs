@@ -4,6 +4,8 @@ using Netsphere;
 
 namespace xUnitTest.NetsphereTest;
 
+#pragma warning disable SA1502 // Element should not be on a single line
+
 [NetService]
 public interface IBasicService : INetService
 {
@@ -19,7 +21,7 @@ public interface IBasicService : INetService
 
     public Task<NetResultAndValue<int>> TestResult3(int x);
 
-    void SendInt2(NetUnion<int, int> union);
+    void SendInt2(Netsphere.NetUnion<int, int> union);
 
     public int TestProperty { get; protected set; }
 

@@ -26,14 +26,16 @@ public sealed partial record class NetUnion<TSend, TReceive> : ITinyhandSerializ
     public TSend? SendValue { get; private set; }
 
     /// <summary>
-    /// Gets or sets the value returned by the server to the client.
+    /// Gets the value returned by the server to the client.
     /// </summary>
-    public TReceive? ReceiveValue { get; set; }
+    public TReceive? ReceiveValue { get; private set; }
 
     /// <summary>
     /// Gets the callback invoked on the client when a response is received.
     /// </summary>
     public ReceiveDelegate<TReceive>? ReceiveDelegate { get; private set; }
+
+    public bool IsResponded { get; private set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NetUnion{TSend, TReceive}"/> class with a request value and optional receive callback.
@@ -50,6 +52,12 @@ public sealed partial record class NetUnion<TSend, TReceive> : ITinyhandSerializ
     {
     }
 
+    public void SetResponse(TReceive receiveValue)
+    {
+        this.IsResponded = true;
+        this.ReceiveValue = receiveValue;
+    }
+
     static void ITinyhandSerializable<NetUnion<TSend, TReceive>>.Serialize(ref TinyhandWriter writer, scoped ref NetUnion<TSend, TReceive>? value, TinyhandSerializerOptions options)
     {
         if (value is null ||
@@ -60,15 +68,20 @@ public sealed partial record class NetUnion<TSend, TReceive> : ITinyhandSerializ
         }
 
         writer.WriteArrayHeader(2);
-        if (value.ReceiveValue is null)
+        if (!value.IsResponded)
         {// 0, SendValue
             writer.WriteUInt8(0);
             TinyhandSerializer.Serialize<TSend>(ref writer, value.SendValue, options);
         }
-        else
+        else if (value.ReceiveValue is not null)
         {// 1, ReceiveValue
             writer.WriteUInt8(1);
             TinyhandSerializer.Serialize<TReceive>(ref writer, value.ReceiveValue, options);
+        }
+        else
+        {
+            writer.WriteNil();
+            writer.WriteNil();
         }
     }
 

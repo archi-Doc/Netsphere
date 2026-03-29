@@ -20,6 +20,8 @@ public class ServiceMethod
     public const string NetResultAndValueName = "Netsphere.NetResultAndValue<TValue>";
     public const string ConnectBidirectionallyName = "Netsphere.INetServiceWithConnectBidirectionally.ConnectBidirectionally(Netsphere.Crypto.CertificateToken<Netsphere.ConnectionAgreement>)";
     public const string UpdateAgreementName = "Netsphere.INetServiceWithUpdateAgreement.UpdateAgreement(Netsphere.Crypto.CertificateToken<Netsphere.ConnectionAgreement>)";
+    public const string NetUnionName = "NetUnion<";
+    public const string NetUnionFullName = "Netsphere.NetUnion<";
 
     public enum Type
     {
@@ -34,6 +36,7 @@ public class ServiceMethod
         ReceiveStream,
         SendStream,
         SendStreamAndReceive,
+        NetUnion,
     }
 
     public enum MethodKind
@@ -59,6 +62,12 @@ public class ServiceMethod
             var fullName = returnObject.OriginalDefinition?.FullName;
             if (fullName == NetsphereBody.TaskFullName2)
             {// Task<TResult>
+            }
+            else if (fullName is null &&
+                method.Method_Parameters.Length == 1 &&
+                (method.Method_Parameters[0].StartsWith(ServiceMethod.NetUnionName) ||
+                method.Method_Parameters[0].StartsWith(ServiceMethod.NetUnionFullName)))
+            {// void Method(NetUnion<A, B> x);
             }
             else
             {// Invalid return type
@@ -100,6 +109,10 @@ public class ServiceMethod
                     serviceMethod.GenericsType = rt.Generics_Arguments[0].FullName;
                 }
             }
+        }
+        else if (returnObject.FullName == "void")
+        {
+            serviceMethod.ReturnType = Type.NetUnion;
         }
 
         if (method.Method_Parameters.Length == 1)
@@ -343,20 +356,35 @@ public class ServiceMethod
         }
     }
 
-    private static Type NameToType(string? name) => name switch
+    private static Type NameToType(string? name)
     {
-        NetResultName => Type.NetResult,
-        NetResultAndValueName => Type.NetResultAndValue,
-        ByteArrayName => Type.ByteArray,
-        MemoryName => Type.Memory,
-        ReadOnlyMemoryName => Type.ReadOnlyMemory,
-        RentMemoryName => Type.RentMemory,
-        RentReadOnlyMemoryName => Type.RentReadOnlyMemory,
-        ReceiveStreamName => Type.ReceiveStream,
-        SendStreamName => Type.SendStream,
-        SendStreamAndReceiveName => Type.SendStreamAndReceive,
-        _ => Type.Other,
-    };
+        var result = name switch
+        {
+            NetResultName => Type.NetResult,
+            NetResultAndValueName => Type.NetResultAndValue,
+            ByteArrayName => Type.ByteArray,
+            MemoryName => Type.Memory,
+            ReadOnlyMemoryName => Type.ReadOnlyMemory,
+            RentMemoryName => Type.RentMemory,
+            RentReadOnlyMemoryName => Type.RentReadOnlyMemory,
+            ReceiveStreamName => Type.ReceiveStream,
+            SendStreamName => Type.SendStream,
+            SendStreamAndReceiveName => Type.SendStreamAndReceive,
+            _ => Type.Other,
+        };
+
+        if (name is not null &&
+            result == Type.Other)
+        {
+            if (name.StartsWith(NetUnionName) ||
+                name.StartsWith(NetUnionFullName))
+            {
+                result = Type.NetUnion;
+            }
+        }
+
+        return result;
+    }
 
     private NetsphereObject method;
 }

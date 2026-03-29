@@ -41,6 +41,7 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
 
         var sw = Stopwatch.StartNew();
         var netTerminal = this.netUnit.NetTerminal;
+        netTerminal.Services.EnableNetService<ITestService>();
         var packetTerminal = netTerminal.PacketTerminal;
 
         var length = AuthenticationToken.MaxStringLength;
@@ -53,6 +54,12 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         Console.WriteLine(micsId);
         micsId = Mics.GetMicsId();
         Console.WriteLine(micsId);
+
+        using (var connection = (await netTerminal.Connect(Alternative.NetNode))!)
+        {
+            var service = connection.GetService<ITestService>();
+            service.MethodB(new(1, default));
+        }
 
         Console.WriteLine("ClockHand");
 

@@ -16,6 +16,10 @@ namespace Playground;
 [NetService]
 public interface ITestService : INetService
 {
+    Task<int> MethodA(int x);
+
+    void MethodB(NetUnion<int, int> union);
+
     public int X { get; set; }
 }
 
@@ -23,6 +27,16 @@ public interface ITestService : INetService
 public class TestServiceImpl : ITestService
 {
     public int X { get; set; }
+
+    Task<int> ITestService.MethodA(int x)
+    {
+        return Task.FromResult(1);
+    }
+
+    void ITestService.MethodB(NetUnion<int, int> union)
+    {
+        union.SetResponse(111);
+    }
 }
 
 public class Program
