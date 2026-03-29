@@ -11,11 +11,12 @@ namespace Netsphere.Core;
 internal sealed partial class ReceiveTransmission : IDisposable
 {
     // [Link(Name = "DisposedList", Type = ChainType.QueueList, AutoLink = false)]
-    public ReceiveTransmission(Connection connection, uint transmissionId, TaskCompletionSource<NetResponse>? receivedTcs)
+    public ReceiveTransmission(Connection connection, uint transmissionId, TaskCompletionSource<NetResponse>? receivedTcs, INetUnionInternal? netUnion)
     {
         this.Connection = connection;
         this.TransmissionId = transmissionId;
         this.receivedTcs = receivedTcs;
+        this.receivedNetUnion = netUnion;
     }
 
     #region FieldAndProperty
@@ -58,6 +59,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
     private readonly Lock lockObject = new();
     private int totalGene;
     private TaskCompletionSource<NetResponse>? receivedTcs;
+    private INetUnionInternal? receivedNetUnion;
     private int successiveReceivedPosition;
     private ReceiveGene? gene0; // Gene 0
     private ReceiveGene? gene1; // Gene 1
@@ -111,6 +113,12 @@ internal sealed partial class ReceiveTransmission : IDisposable
             this.receivedTcs.SetResult(new(NetResult.Closed));
             this.receivedTcs = null;
         }
+
+        if (this.receivedNetUnion is not null)
+        {
+            this.receivedNetUnion.Invoke(NetResult.Closed);
+            this.receivedNetUnion = null;
+        }
     }
 
     internal async Task<NetResponse> Wait(Task<NetResponse> task, int timeoutInMilliseconds, CancellationToken cancellationToken)
@@ -153,12 +161,6 @@ internal sealed partial class ReceiveTransmission : IDisposable
                 return new(NetResult.Closed);
             }
         }
-    }
-
-    internal void Reset(TaskCompletionSource<NetResponse>? receivedTcs)
-    {
-        this.Mode = NetTransmissionMode.Initial;
-        this.receivedTcs = receivedTcs;
     }
 
     internal void SetState_Receiving(int totalGene)

@@ -541,7 +541,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
                 return;
             }
 
-            var receiveTransmission = this.TryCreateReceiveTransmission(transmission.TransmissionId, default!);
+            var receiveTransmission = this.TryCreateReceiveTransmission(transmission.TransmissionId, default, netUnion);
             if (receiveTransmission is null)
             {
                 netUnion.Invoke(NetResult.NoTransmission);
