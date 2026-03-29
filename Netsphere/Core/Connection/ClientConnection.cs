@@ -522,7 +522,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
     {
         if (!this.IsActive)
         {
-            netUnion.Respond(NetResult.Closed);
+            netUnion.Invoke(NetResult.Closed);
             return;
         }
 
@@ -530,21 +530,21 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         {
             if (transmission is null)
             {
-                netUnion.Respond(NetResult.NoTransmission);
+                netUnion.Invoke(NetResult.NoTransmission);
                 return;
             }
 
             var result = transmission.SendBlock(1, dataId, data, default);
             if (result != NetResult.Success)
             {
-                netUnion.Respond(result);
+                netUnion.Invoke(result);
                 return;
             }
 
             var receiveTransmission = this.TryCreateReceiveTransmission(transmission.TransmissionId, default!);
             if (receiveTransmission is null)
             {
-                netUnion.Respond(NetResult.NoTransmission);
+                netUnion.Invoke(NetResult.NoTransmission);
                 return;
             }
         }

@@ -1,14 +1,15 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using Netsphere;
 using Tinyhand.IO;
 
 namespace Netsphere;
 
 public interface INetUnionInternal
 {
-    void Respond(NetResult netResult);
+    void Invoke(NetResult result);
+
+    void Invoke(NetResponse response);
 }
 
 /// <summary>
@@ -63,10 +64,26 @@ public sealed partial record class NetUnion<TSend, TReceive> : INetUnionInternal
         this.ReceiveValue = receiveValue;
     }
 
-    void INetUnionInternal.Respond(NetResult netResult)
+    void INetUnionInternal.Invoke(NetResponse response)
     {
-        this.IsResponded = true;
-        this.ReceiveDelegate?.Invoke(netResult, default);
+        if (response.Result != NetResult.Success ||
+            response.Received.IsEmpty)
+        {
+            this.ReceiveDelegate?.Invoke(response.Result, default);
+            return;
+        }
+
+        var receiveValue = TinyhandSerializer.Deserialize<TReceive>(response.Received.Span);
+
+        // this.IsResponded = true;
+        // this.ReceiveValue = receiveValue;
+        this.ReceiveDelegate?.Invoke(response.Result, receiveValue);
+    }
+
+    void INetUnionInternal.Invoke(NetResult result)
+    {
+        // this.IsResponded = true;
+        this.ReceiveDelegate?.Invoke(result, default);
     }
 
     static void ITinyhandSerializable<NetUnion<TSend, TReceive>>.Serialize(ref TinyhandWriter writer, scoped ref NetUnion<TSend, TReceive>? value, TinyhandSerializerOptions options)
