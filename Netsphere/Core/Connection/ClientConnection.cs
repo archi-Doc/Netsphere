@@ -518,11 +518,11 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         return new(NetResult.Success, response.DataId, response.Received);
     }
 
-    /*void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, ReceiveDelegate action)
+    void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, INetUnionInternal netUnion)
     {
         if (!this.IsActive)
         {
-            action(NetResult.Closed, 0, default);
+            netUnion.Respond(NetResult.Closed);
             return;
         }
 
@@ -530,25 +530,25 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         {
             if (transmission is null)
             {
-                action(NetResult.NoTransmission, 0, default);
+                netUnion.Respond(NetResult.NoTransmission);
                 return;
             }
 
             var result = transmission.SendBlock(1, dataId, data, default);
             if (result != NetResult.Success)
             {
-                action(result, 0, default);
+                netUnion.Respond(result);
                 return;
             }
 
-            var receiveTransmission = this.TryCreateReceiveTransmission(transmission.TransmissionId, action);
+            var receiveTransmission = this.TryCreateReceiveTransmission(transmission.TransmissionId, default!);
             if (receiveTransmission is null)
             {
-                action(NetResult.NoTransmission, 0, default);
+                netUnion.Respond(NetResult.NoTransmission);
                 return;
             }
         }
-    }*/
+    }
 
     async Task<(NetResult Result, ReceiveStream? Stream)> IClientConnectionInternal.RpcSendAndReceiveStream(BytePool.RentMemory data, ulong dataId)
     {

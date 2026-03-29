@@ -6,6 +6,11 @@ using Tinyhand.IO;
 
 namespace Netsphere;
 
+public interface INetUnionInternal
+{
+    void Respond(NetResult netResult);
+}
+
 /// <summary>
 /// A shared structure used to send and receive data between the client and server.<br/>
 /// On the client side, a delegate is invoked when data is received.<br/>
@@ -18,7 +23,7 @@ namespace Netsphere;
 /// <typeparam name="TSend"></typeparam>
 /// <typeparam name="TReceive"></typeparam>
 [TinyhandObject]
-public sealed partial record class NetUnion<TSend, TReceive> : ITinyhandSerializable<NetUnion<TSend, TReceive>>, ITinyhandCloneable<NetUnion<TSend, TReceive>>, ITinyhandReconstructable<NetUnion<TSend, TReceive>>
+public sealed partial record class NetUnion<TSend, TReceive> : INetUnionInternal, ITinyhandSerializable<NetUnion<TSend, TReceive>>, ITinyhandCloneable<NetUnion<TSend, TReceive>>, ITinyhandReconstructable<NetUnion<TSend, TReceive>>
 {
     /// <summary>
     /// Gets the value sent from the client.
@@ -56,6 +61,12 @@ public sealed partial record class NetUnion<TSend, TReceive> : ITinyhandSerializ
     {
         this.IsResponded = true;
         this.ReceiveValue = receiveValue;
+    }
+
+    void INetUnionInternal.Respond(NetResult netResult)
+    {
+        this.IsResponded = true;
+        this.ReceiveDelegate?.Invoke(netResult, default);
     }
 
     static void ITinyhandSerializable<NetUnion<TSend, TReceive>>.Serialize(ref TinyhandWriter writer, scoped ref NetUnion<TSend, TReceive>? value, TinyhandSerializerOptions options)

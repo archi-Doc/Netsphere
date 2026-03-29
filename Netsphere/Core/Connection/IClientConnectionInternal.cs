@@ -8,6 +8,8 @@ public interface IClientConnectionInternal
 {
     Task<(NetResult Result, ulong DataId, BytePool.RentMemory Value)> RpcSendAndReceive(BytePool.RentMemory data, ulong dataId);
 
+    void RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, INetUnionInternal netUnion);
+
     Task<(NetResult Result, ReceiveStream? Stream)> RpcSendAndReceiveStream(BytePool.RentMemory data, ulong dataId);
 
     Task<NetResult> UpdateAgreement(ulong dataId, CertificateToken<ConnectionAgreement> a1);

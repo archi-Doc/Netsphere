@@ -527,6 +527,9 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 }
 
                 ssb.AppendLine();
+
+                ssb.AppendLine($"((Netsphere.Internal.IClientConnectionInternal)this.ClientConnection).RpcSendAndReceive2(owner, 0xe3608d1e579db445ul, a1);");
+                ssb.AppendLine("owner.Return();");
             }
 
             return;

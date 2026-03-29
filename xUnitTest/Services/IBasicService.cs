@@ -62,7 +62,7 @@ public class BasicServiceImpl : IBasicService
 
     public void SendInt2(NetUnion<int, int> netUnion)
     {
-        netUnion.ReceiveValue = netUnion.SendValue + 4;
+        netUnion.SetResponse(netUnion.SendValue + 4);
     }
 
     public int TestProperty { get => default!; set { } }
