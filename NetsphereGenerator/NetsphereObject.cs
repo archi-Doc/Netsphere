@@ -792,7 +792,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 }
 
                 ssb.AppendLine();
-                ssb.AppendLine($"(({serviceInterface.FullName})obj).{method.SimpleName}(({method.GetTupleNames("value", 0)});");
+                ssb.AppendLine($"(({serviceInterface.FullName})obj).{method.SimpleName}({method.GetTupleNames("value", 0)});");
 
                 using (var scopeSerialize = ssb.ScopeBrace($"if (NetHelper.TrySerialize(value, out var owner2))"))
                 {
