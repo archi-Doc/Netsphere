@@ -11,6 +11,8 @@ namespace Netsphere;
 
 public delegate void ReceiveDelegate(NetResult result, ulong dataId, BytePool.RentMemory value);
 
+public delegate void ReceiveDelegate<TReceive>(NetResult result, TReceive? value);
+
 [ValueLinkObject(Isolation = IsolationLevel.Serializable, Restricted = true)]
 public sealed partial class ClientConnection : Connection, IClientConnectionInternal, IEquatable<ClientConnection>, IComparable<ClientConnection>
 {

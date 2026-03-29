@@ -4,20 +4,45 @@ using System.Diagnostics.CodeAnalysis;
 using Netsphere;
 using Tinyhand.IO;
 
-namespace xUnitTest.NetsphereTest;
+namespace Netsphere;
 
+/// <summary>
+/// A shared structure used to send and receive data between the client and server.<br/>
+/// On the client side, a delegate is invoked when data is received.<br/>
+/// Its advantage is that it does not rely on Task, but its use is not recommended.<br/>
+/// <br/>
+/// Client side: Set SendValue and call the NetService.<br/>
+/// Server side: Read SendValue and set ReceiveValue.<br/>
+/// If asynchronous processing is required, do not use NetUnion; define a normal NetService method instead.
+/// </summary>
+/// <typeparam name="TSend"></typeparam>
+/// <typeparam name="TReceive"></typeparam>
 [TinyhandObject]
 public sealed partial record class NetUnion<TSend, TReceive> : ITinyhandSerializable<NetUnion<TSend, TReceive>>, ITinyhandCloneable<NetUnion<TSend, TReceive>>, ITinyhandReconstructable<NetUnion<TSend, TReceive>>
 {
+    /// <summary>
+    /// Gets the value sent from the client.
+    /// </summary>
     public TSend? SendValue { get; private set; }
 
+    /// <summary>
+    /// Gets or sets the value returned by the server to the client.
+    /// </summary>
     public TReceive? ReceiveValue { get; set; }
 
-    public ReceiveDelegate? ReceiveDelegate { get; private set; }
+    /// <summary>
+    /// Gets the callback invoked on the client when a response is received.
+    /// </summary>
+    public ReceiveDelegate<TReceive>? ReceiveDelegate { get; private set; }
 
-    public NetUnion(TSend value, ReceiveDelegate? receiveDelegate)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NetUnion{TSend, TReceive}"/> class with a request value and optional receive callback.
+    /// </summary>
+    /// <param name="sendValue">The value to send to the service.</param>
+    /// <param name="receiveDelegate">The optional callback to invoke when a response is received on the client.</param>
+    public NetUnion(TSend sendValue, ReceiveDelegate<TReceive>? receiveDelegate)
     {
-        this.SendValue = value;
+        this.SendValue = sendValue;
         this.ReceiveDelegate = receiveDelegate;
     }
 

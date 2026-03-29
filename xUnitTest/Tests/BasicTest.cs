@@ -63,8 +63,11 @@ public class BasicTest
             resultAndValue.Result.Is(NetResult.Completed);
             resultAndValue.Value.Is(42);
 
-            var netUnion = new NetUnion<int, int>(2, default);
+            int receivedValue = 2;
+            var netUnion = new NetUnion<int, int>(2, (result, value) => { receivedValue = value; });
             basicService.SendInt2(netUnion);
+            // await Task.Delay(10, TestContext.Current.CancellationToken);
+            receivedValue.Is(6);
         }
     }
 
