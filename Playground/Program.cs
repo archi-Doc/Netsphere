@@ -18,7 +18,7 @@ public interface ITestService : INetService
 {
     Task<int> MethodA(int x);
 
-    void MethodB(NetUnion<int, int> union);
+    void MethodB(int x, ReceiveDelegateAndValue<int> channel);
 
     public int X { get; set; }
 }
@@ -33,9 +33,9 @@ public class TestServiceImpl : ITestService
         return Task.FromResult(1);
     }
 
-    void ITestService.MethodB(NetUnion<int, int> union)
+    void ITestService.MethodB(int x, ReceiveDelegateAndValue<int> channel)
     {
-        union.SetResponse(111);
+        channel.SetResponse(x + 111);
     }
 }
 

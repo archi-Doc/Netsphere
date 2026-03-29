@@ -20,8 +20,8 @@ public class ServiceMethod
     public const string NetResultAndValueName = "Netsphere.NetResultAndValue<TValue>";
     public const string ConnectBidirectionallyName = "Netsphere.INetServiceWithConnectBidirectionally.ConnectBidirectionally(Netsphere.Crypto.CertificateToken<Netsphere.ConnectionAgreement>)";
     public const string UpdateAgreementName = "Netsphere.INetServiceWithUpdateAgreement.UpdateAgreement(Netsphere.Crypto.CertificateToken<Netsphere.ConnectionAgreement>)";
-    public const string NetUnionName = "NetUnion<";
-    public const string NetUnionFullName = "Netsphere.NetUnion<";
+    public const string ReceiveDelegateAndValueName = "ReceiveDelegateAndValue<";
+    public const string ReceiveDelegateAndValueFullName = "Netsphere.ReceiveDelegateAndValue<";
 
     public enum Type
     {
@@ -36,7 +36,7 @@ public class ServiceMethod
         ReceiveStream,
         SendStream,
         SendStreamAndReceive,
-        NetUnion,
+        ReceiveDelegateAndValue,
     }
 
     public enum MethodKind
@@ -65,9 +65,9 @@ public class ServiceMethod
             }
             else if (fullName is null &&
                 method.Method_Parameters.Length == 1 &&
-                (method.Method_Parameters[0].StartsWith(ServiceMethod.NetUnionName) ||
-                method.Method_Parameters[0].StartsWith(ServiceMethod.NetUnionFullName)))
-            {// void Method(NetUnion<A, B> x);
+                (method.Method_Parameters[0].StartsWith(ServiceMethod.ReceiveDelegateAndValueName) ||
+                method.Method_Parameters[0].StartsWith(ServiceMethod.ReceiveDelegateAndValueFullName)))
+            {// void Method(ReceiveDelegateAndValue<TReceive> x);
             }
             else
             {// Invalid return type
@@ -112,7 +112,7 @@ public class ServiceMethod
         }
         else if (returnObject.FullName == "void")
         {
-            serviceMethod.ReturnType = Type.NetUnion;
+            serviceMethod.ReturnType = Type.ReceiveDelegateAndValue;
         }
 
         if (method.Method_Parameters.Length == 1)
@@ -376,10 +376,10 @@ public class ServiceMethod
         if (name is not null &&
             result == Type.Other)
         {
-            if (name.StartsWith(NetUnionName) ||
-                name.StartsWith(NetUnionFullName))
+            if (name.StartsWith(ReceiveDelegateAndValueName) ||
+                name.StartsWith(ReceiveDelegateAndValueFullName))
             {
-                result = Type.NetUnion;
+                result = Type.ReceiveDelegateAndValue;
             }
         }
 

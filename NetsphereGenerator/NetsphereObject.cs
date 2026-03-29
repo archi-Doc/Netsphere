@@ -516,7 +516,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             asyncPrefix = string.Empty;
         }
 
-        if (method.ReturnType == ServiceMethod.Type.NetUnion)
+        if (method.ReturnType == ServiceMethod.Type.ReceiveDelegateAndValue)
         {
             using (var scopeMethod = ssb.ScopeBrace($"public void {method.SimpleName}({method.GetParameters()})"))
             {
@@ -782,7 +782,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
     {
         using (var scopeMethod = ssb.ScopeBrace($"private static async Task {method.MethodString}(object obj, TransmissionContext c0)"))
         {
-            if (method.ReturnType == ServiceMethod.Type.NetUnion)
+            if (method.ReturnType == ServiceMethod.Type.ReceiveDelegateAndValue)
             {//
                 using (var scopeDeserialize = ssb.ScopeBrace($"if (!NetHelper.Deserialize<{method.GetParameterTypes(0)}>(c0.RentMemory, out var value) || value is null)"))
                 {

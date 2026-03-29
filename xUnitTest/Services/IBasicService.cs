@@ -21,7 +21,7 @@ public interface IBasicService : INetService
 
     public Task<NetResultAndValue<int>> TestResult3(int x);
 
-    void SendInt2(Netsphere.NetUnion<int, int> union);
+    void SendInt2(Netsphere.ReceiveDelegateAndValue<int, int> union);
 
     public int TestProperty { get; protected set; }
 
@@ -60,9 +60,9 @@ public class BasicServiceImpl : IBasicService
         return new(NetResult.Completed, x);
     }
 
-    public void SendInt2(NetUnion<int, int> netUnion)
+    public void SendInt2(ReceiveDelegateAndValue<int> channel)
     {
-        netUnion.SetResponse(netUnion.SendValue + 4);
+        channel.SetResponse(netUnion.SendValue + 4);
     }
 
     public int TestProperty { get => default!; set { } }

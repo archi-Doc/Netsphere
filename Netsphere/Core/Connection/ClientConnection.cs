@@ -9,10 +9,6 @@ using Netsphere.Packet;
 
 namespace Netsphere;
 
-public delegate void ReceiveDelegate(NetResult result, ulong dataId, BytePool.RentMemory value);
-
-public delegate void ReceiveDelegate<TReceive>(NetResult result, TReceive? value);
-
 [ValueLinkObject(Isolation = IsolationLevel.Serializable, Restricted = true)]
 public sealed partial class ClientConnection : Connection, IClientConnectionInternal, IEquatable<ClientConnection>, IComparable<ClientConnection>
 {
@@ -518,7 +514,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         return new(NetResult.Success, response.DataId, response.Received);
     }
 
-    void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, INetUnionInternal netUnion)
+    void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, IReceiveDelegateAndValueInternal netUnion)
     {
         if (!this.IsActive)
         {
