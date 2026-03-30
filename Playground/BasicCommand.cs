@@ -50,14 +50,16 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         using (var connection = (await netTerminal.Connect(netNode))!)
         {
             var service = connection.GetService<ITestService>();
-            // var channel = new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); });
+            var channel = new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); });
             service.MethodB(2, new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); }));
+
+            service.MethodC(2, 3, ref channel);
 
             // await connection.WaitForReceiveCompletion();
             await Task.Delay(100);
         }
 
-        
+
 
         var length = AuthenticationToken.MaxStringLength;
         var p = new PingPacket("test56789");

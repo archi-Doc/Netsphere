@@ -1,6 +1,7 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Tinyhand.IO;
 using Tinyhand.Tree;
 using static FastExpressionCompiler.ImTools.SmallMap;
@@ -31,6 +32,9 @@ public interface IResponseChannelInternal
 [TinyhandObject]
 public partial record struct ResponseChannel<TResponse> : IResponseChannelInternal, ITinyhandSerializable<ResponseChannel<TResponse>>, ITinyhandReconstructable<ResponseChannel<TResponse>>, ITinyhandCloneable<ResponseChannel<TResponse>>
 {
+    // public readonly TResponse? Value;
+    // public readonly bool IsValueSet;
+
     /// <summary>
     /// Gets the value returned by the server to the client.
     /// </summary>
@@ -39,12 +43,11 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
     /// <summary>
     /// Gets the callback invoked on the client when a response is received.
     /// </summary>
-    public ResponseDelegate<TResponse>? ResponseDelegate { get; private set; }
+    // public ResponseDelegate<TResponse>? ResponseDelegate { get; private set; }
+    public readonly ResponseDelegate<TResponse>? ResponseDelegate;
 
     [MemberNotNull(nameof(Value))]
     public bool IsValueSet { get; private set; }
-
-    // private SendTransmission? sendTransmission;
 
     public ResponseChannel(ResponseDelegate<TResponse>? receiveDelegate)
     {
@@ -55,7 +58,14 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
     {
     }
 
-    public void SetResponse(TResponse value)
+    private ResponseChannel(TResponse? value, bool isValueSet, ResponseDelegate<TResponse>? responseDelegate)
+    {
+        this.Value = value;
+        this.IsValueSet = isValueSet;
+        this.ResponseDelegate = responseDelegate;
+    }
+
+    public unsafe void SetResponse(TResponse value)
     {
         this.Value = value;
         this.IsValueSet = true;
@@ -111,10 +121,10 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
             return;
         }
 
-        TinyhandSerializer.Serialize<TResponse>(ref writer, v.Value, options);
+        TinyhandSerializer.Serialize<TResponse>(ref writer, v.Value!, options);
     }
 
-    static void ITinyhandSerializable<ResponseChannel<TResponse>>.Deserialize(ref TinyhandReader reader, scoped ref ResponseChannel<TResponse> v, TinyhandSerializerOptions options)
+    static unsafe void ITinyhandSerializable<ResponseChannel<TResponse>>.Deserialize(ref TinyhandReader reader, scoped ref ResponseChannel<TResponse> v, TinyhandSerializerOptions options)
     {
         if (reader.TryReadNil())
         {
@@ -130,10 +140,6 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
 
     static ResponseChannel<TResponse> ITinyhandCloneable<ResponseChannel<TResponse>>.Clone(scoped ref ResponseChannel<TResponse> v, TinyhandSerializerOptions options)
     {
-        var newValue = new ResponseChannel<TResponse>();
-        newValue.Value = TinyhandSerializer.Clone(v.Value);
-        newValue.IsValueSet = v.IsValueSet;
-        newValue.ResponseDelegate = v.ResponseDelegate;
-        return newValue;
+        return new(TinyhandSerializer.Clone(v.Value), v.IsValueSet, v.ResponseDelegate);
     }
 }
