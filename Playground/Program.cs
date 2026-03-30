@@ -4,7 +4,6 @@ global using Arc.Threading;
 global using Tinyhand;
 using Arc;
 using Arc.Unit;
-using CrossChannel;
 using Microsoft.Extensions.DependencyInjection;
 using Netsphere;
 using Netsphere.Crypto;

@@ -71,10 +71,10 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
     /// A cancellation token that can be used to cancel the wait operation.
     /// </param>
     /// <returns>
-    /// A <see cref="ValueTask"/> that completes when all receive transmissions have finished processing,
+    /// A <see cref="Task"/> that completes when all receive transmissions have finished processing,
     /// or immediately if there are no pending receive transmissions.
     /// </returns>
-    public async ValueTask WaitForReceiveCompletion(CancellationToken cancellationToken = default)
+    public async Task WaitForReceiveCompletion(CancellationToken cancellationToken = default)
     {
         if (this.ReceiveTransmissionsCount == 0)
         {
