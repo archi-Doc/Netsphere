@@ -12,4 +12,9 @@
     <ProjectReference Include="..\NetsphereGenerator\NetsphereGenerator.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
   </ItemGroup>
 
+
+  <ItemGroup>
+    <Compile Remove="Generated\*" />
+  </ItemGroup>
+
 </Project>

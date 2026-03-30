@@ -21,6 +21,8 @@ public interface IBasicService : INetService
 
     public Task<NetResultAndValue<int>> TestResult3(int x);
 
+    void SendInt2(int x, ref ResponseChannel<int> channel);
+
     public int TestProperty { get; protected set; }
 
     public string TestProperty2 { get; init; }
@@ -56,6 +58,11 @@ public class BasicServiceImpl : IBasicService
     async Task<NetResultAndValue<int>> IBasicService.TestResult3(int x)
     {
         return new(NetResult.Completed, x);
+    }
+
+    public void SendInt2(int x, ref ResponseChannel<int> channel)
+    {
+        channel.SetResponse(x + 4);
     }
 
     public int TestProperty { get => default!; set { } }

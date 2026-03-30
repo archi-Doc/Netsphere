@@ -516,6 +516,26 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             asyncPrefix = string.Empty;
         }
 
+        if (method.ReturnType == ServiceMethod.Type.ResponseChannel)
+        {
+            using (var scopeMethod = ssb.ScopeBrace($"public void {method.SimpleName}({method.GetParameters()})"))
+            {
+                var channelName = $"{NetsphereBody.ArgumentName}{method.ParameterLength}";
+                using (var scopeSerialize = ssb.ScopeBrace($"if (!NetHelper.TrySerialize({method.GetParameterNames(NetsphereBody.ArgumentName, 0)}, out var owner))"))
+                {
+                    ssb.AppendLine($"(({NetsphereBody.ReceiveDelegateAndValueInternalName}){channelName}).Invoke(NetResult.SerializationFailed);");
+                    ssb.AppendLine("return;");
+                }
+
+                ssb.AppendLine();
+
+                ssb.AppendLine($"((Netsphere.Internal.IClientConnectionInternal)this.ClientConnection).RpcSendAndReceive2(owner, {method.IdString}, {channelName});");
+                ssb.AppendLine("owner.Return();");
+            }
+
+            return;
+        }
+
         using (var scopeMethod = ssb.ScopeBrace($"public {asyncPrefix}{taskString} {method.SimpleName}({method.GetParameters()})"))
         {
             if (method.Kind == ServiceMethod.MethodKind.UpdateAgreement)
@@ -763,6 +783,32 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
     {
         using (var scopeMethod = ssb.ScopeBrace($"private static async Task {method.MethodString}(object obj, TransmissionContext c0)"))
         {
+            if (method.ReturnType == ServiceMethod.Type.ResponseChannel)
+            {
+                using (var scopeDeserialize = ssb.ScopeBrace($"if (!NetHelper.Deserialize<{method.GetParameterTypes(0)}>(c0.RentMemory, out var value))"))
+                {
+                    ssb.AppendLine("c0.Result = NetResult.DeserializationFailed;");
+                    ssb.AppendLine("return;");
+                }
+
+                ssb.AppendLine();
+                ssb.AppendLine($"(({serviceInterface.FullName})obj).{method.SimpleName}({method.GetTupleNames("value", 0)});");
+
+                using (var scopeSerialize = ssb.ScopeBrace($"if (NetHelper.TrySerialize(value.Item{method.ParameterLength}, out var owner2))"))
+                {
+                    ssb.AppendLine("c0.RentMemory = c0.RentMemory.Return();");
+                    ssb.AppendLine("c0.RentMemory = owner2;");
+                }
+
+                using (var scopeElse = ssb.ScopeBrace("else"))
+                {
+                    ssb.AppendLine("c0.RentMemory = c0.RentMemory.Return();");
+                    ssb.AppendLine("c0.Result = NetResult.SerializationFailed;");
+                }
+
+                return;
+            }
+
             var methodFilters = this.GetServiceFilter(serviceInterface, method);
             var filters = ServiceFilterGroup.FromClassAndMethod(this.ClassFilters, methodFilters);
 

@@ -4,7 +4,6 @@ global using Arc.Threading;
 global using Tinyhand;
 using Arc;
 using Arc.Unit;
-using CrossChannel;
 using Microsoft.Extensions.DependencyInjection;
 using Netsphere;
 using Netsphere.Crypto;
@@ -16,6 +15,12 @@ namespace Playground;
 [NetService]
 public interface ITestService : INetService
 {
+    Task<int> MethodA(int x);
+
+    void MethodB(int x, ref ResponseChannel<int> channel);
+
+    void MethodC(in int x, ref int y, ref ResponseChannel<int> channel);
+
     public int X { get; set; }
 }
 
@@ -23,6 +28,21 @@ public interface ITestService : INetService
 public class TestServiceImpl : ITestService
 {
     public int X { get; set; }
+
+    Task<int> ITestService.MethodA(int x)
+    {
+        return Task.FromResult(1);
+    }
+
+    void ITestService.MethodB(int x, ref ResponseChannel<int> channel)
+    {
+        channel.SetResponse(x + 111);
+    }
+
+    void ITestService.MethodC(in int x, ref int y, ref ResponseChannel<int> channel)
+    {
+        channel.SetResponse(x + y);
+    }
 }
 
 public class Program

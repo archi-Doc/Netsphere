@@ -31,6 +31,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
     public const string ServiceFilterInvokeName = "Invoke";
     public const string ServiceFilterSetArgumentsName = "SetArguments";
     public const string IClientConnectionInternalName = "Netsphere.Internal.IClientConnectionInternal";
+    public const string ReceiveDelegateAndValueInternalName = "IResponseChannelInternal";
 
     public static readonly DiagnosticDescriptor Error_AttributePropertyError = new DiagnosticDescriptor(
         id: "NSG001", title: "Attribute property type error", messageFormat: "The argument specified does not match the type of the property",
@@ -86,6 +87,10 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
 
     public static readonly DiagnosticDescriptor Error_SendStreamParam = new DiagnosticDescriptor(
         id: "NSG014", title: "SendStream param", messageFormat: "Method that returns SendStream type must be declared as 'Method(long maxLength)''",
+        category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor Error_MethodForm = new DiagnosticDescriptor(
+        id: "NSG015", title: "Method form", messageFormat: "Define methods that use ResponseChannel in the following form: void Method(params, ref ResponseChannel<TResponse> channel);",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
     public NetsphereBody(SourceProductionContext context)

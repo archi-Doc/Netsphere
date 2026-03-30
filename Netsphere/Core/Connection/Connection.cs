@@ -152,6 +152,9 @@ public abstract class Connection : IDisposable
     internal int SendTransmissionsCount
         => this.sendTransmissions.Count;
 
+    internal int ReceiveTransmissionsCount
+        => this.receiveTransmissions.Count;
+
     internal bool IsEmpty
         => this.sendTransmissions.Count == 0 &&
         this.receiveTransmissions.Count == 0;
@@ -494,7 +497,7 @@ Wait:
         }
     }
 
-    internal ReceiveTransmission? TryCreateReceiveTransmission(uint transmissionId, TaskCompletionSource<NetResponse>? receivedTcs)
+    internal ReceiveTransmission? TryCreateReceiveTransmission(uint transmissionId, TaskCompletionSource<NetResponse>? receivedTcs, IResponseChannelInternal? netUnion = default)
     {
         transmissionId += this.ConnectionTerminal.ReceiveTransmissionGap;
 
@@ -512,7 +515,7 @@ Wait:
                 return default;
             }
 
-            receiveTransmission = new ReceiveTransmission(this, transmissionId, receivedTcs);
+            receiveTransmission = new ReceiveTransmission(this, transmissionId, receivedTcs, netUnion);
             receiveTransmission.ReceivedOrDisposedMics = Mics.FastSystem;
             receiveTransmission.ReceivedOrDisposedNode = this.receiveReceivedList.AddLast(receiveTransmission);
             receiveTransmission.Goshujin = this.receiveTransmissions;
@@ -936,7 +939,7 @@ Wait:
 
                 if (transmissionMode == 0 && totalGenes <= this.Agreement.MaxBlockGenes)
                 {// Block mode
-                    transmission = new(this, transmissionId, default);
+                    transmission = new(this, transmissionId, default, default);
                     transmission.SetState_Receiving(totalGenes);
                 }
                 else if (transmissionMode == 1)
@@ -950,7 +953,7 @@ Wait:
                         return;
                     }
 
-                    transmission = new(this, transmissionId, default);
+                    transmission = new(this, transmissionId, default, default);
                     transmission.SetState_ReceivingStream(maxStreamLength);
                 }
                 else

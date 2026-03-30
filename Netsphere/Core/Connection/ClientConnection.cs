@@ -64,6 +64,32 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         where TService : INetService
         => StaticNetService.CreateFrontend<TService>(this);
 
+    /// <summary>
+    /// Asynchronously waits until all pending receive transmissions on this connection have completed.
+    /// </summary>
+    /// <param name="cancellationToken">
+    /// A cancellation token that can be used to cancel the wait operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="Task"/> that completes when all receive transmissions have finished processing,
+    /// or immediately if there are no pending receive transmissions.
+    /// </returns>
+    public async Task WaitForReceiveCompletion(CancellationToken cancellationToken = default)
+    {
+        if (this.ReceiveTransmissionsCount == 0)
+        {
+            return;
+        }
+
+        while (await this.NetTerminal.Delay100ms(cancellationToken))
+        {
+            if (this.ReceiveTransmissionsCount == 0)
+            {
+                return;
+            }
+        }
+    }
+
     public async Task<NetResult> Send<TSend>(TSend data, ulong dataId = 0, CancellationToken cancellationToken = default)
     {
         if (!this.IsActive)
@@ -512,6 +538,37 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         }
 
         return new(NetResult.Success, response.DataId, response.Received);
+    }
+
+    void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, IResponseChannelInternal netUnion)
+    {
+        if (!this.IsActive)
+        {
+            netUnion.Invoke(NetResult.Closed);
+            return;
+        }
+
+        var sendTransmission = this.TryCreateSendTransmission(); // A Transmission that was not released because sending did not complete will be released when the Connection is closed or when ConnectionTerminal.Clean() is called.
+        if (sendTransmission is null)
+        {
+            netUnion.Invoke(NetResult.NoTransmission);
+            return;
+        }
+
+        // netUnion.SetSendTransmission(sendTransmission);
+        var result = sendTransmission.SendBlock(1, dataId, data, default);
+        if (result != NetResult.Success)
+        {
+            netUnion.Invoke(result);
+            return;
+        }
+
+        var receiveTransmission = this.TryCreateReceiveTransmission(sendTransmission.TransmissionId, default, netUnion);
+        if (receiveTransmission is null)
+        {
+            netUnion.Invoke(NetResult.NoTransmission);
+            return;
+        }
     }
 
     async Task<(NetResult Result, ReceiveStream? Stream)> IClientConnectionInternal.RpcSendAndReceiveStream(BytePool.RentMemory data, ulong dataId)

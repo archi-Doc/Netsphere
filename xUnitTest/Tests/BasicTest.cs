@@ -62,6 +62,12 @@ public class BasicTest
             var resultAndValue = await basicService.TestResult3(42);
             resultAndValue.Result.Is(NetResult.Completed);
             resultAndValue.Value.Is(42);
+
+            int receivedValue = 2;
+            var channel = new ResponseChannel<int>((result, value) => { receivedValue = value; });
+            basicService.SendInt2(2, ref channel);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+            receivedValue.Is(6);
         }
     }
 

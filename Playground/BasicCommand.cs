@@ -34,18 +34,37 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         options.Node = st;
         this.netUnit.NetStats.SetOwnNetNodeForTest(netAddress, this.netUnit.NetBase.NodePublicKey);*/
 
-        if (!NetAddress.TryParse(this.logger, options.Node, out var address))
+        /*if (!NetAddress.TryParse(this.logger, options.Node, out var address))
         {
             return;
-        }
+        }*/
+
+        var netNode = Alternative.NetNode;
+        var netAddress = netNode.Address;
 
         var sw = Stopwatch.StartNew();
         var netTerminal = this.netUnit.NetTerminal;
+        netTerminal.Services.EnableNetService<ITestService>();
         var packetTerminal = netTerminal.PacketTerminal;
+
+        using (var connection = (await netTerminal.Connect(netNode))!)
+        {
+            var service = connection.GetService<ITestService>();
+            var channel = new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); });
+            service.MethodB(2, ref channel);
+
+            var y = 3;
+            service.MethodC(2, ref y, ref channel);
+
+            await connection.WaitForReceiveCompletion();
+            // await Task.Delay(100);
+        }
+
+
 
         var length = AuthenticationToken.MaxStringLength;
         var p = new PingPacket("test56789");
-        var result = await packetTerminal.SendAndReceive<PingPacket, PingPacketResponse>(address, p, 0, default, EndpointResolution.NetAddress);
+        var result = await packetTerminal.SendAndReceive<PingPacket, PingPacketResponse>(netAddress, p, 0, default, EndpointResolution.NetAddress);
         Console.WriteLine(result);
 
         Mics.UpdateFastCorrected();
@@ -54,7 +73,8 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         micsId = Mics.GetMicsId();
         Console.WriteLine(micsId);
 
-        Console.WriteLine("ClockHand");
+
+        Console.WriteLine("ClockHand ->");
 
         await ThreadCore.Root.Delay(100_000);
     }
@@ -76,6 +96,6 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
 
 public record BasicCommandOptions
 {
-    [SimpleOption("Node", Description = "Node address", Required = true)]
-    public string Node { get; set; } = string.Empty;
+    // [SimpleOption("Node", Description = "Node address", Required = true)]
+    // public string Node { get; set; } = string.Empty;
 }
