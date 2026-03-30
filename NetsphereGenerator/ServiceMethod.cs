@@ -204,7 +204,7 @@ public class ServiceMethod
 
             if (methodSymbol.Parameters[i].RefKind != RefKind.None)
             {
-
+                sb.Append(VisceralHelper.RefKindToStringWithSpace(methodSymbol.Parameters[i].RefKind));
             }
 
             sb.Append(this.method.Method_Parameters[i]);
@@ -339,6 +339,12 @@ public class ServiceMethod
 
     public string GetTupleNames(string name, int decrement)
     {// value, value.Item1, value.Item2
+        var methodSymbol = this.method.TryGetMethodSymbol();
+        if (methodSymbol is null)
+        {
+            return string.Empty;
+        }
+
         var parameters = this.method.Method_Parameters;
         var length = parameters.Length - decrement;
 
@@ -358,6 +364,11 @@ public class ServiceMethod
                 if (i != 0)
                 {
                     sb.Append(", ");
+                }
+
+                if (methodSymbol.Parameters[i].RefKind != RefKind.None)
+                {
+                    sb.Append(VisceralHelper.RefKindToStringWithSpace(methodSymbol.Parameters[i].RefKind));
                 }
 
                 sb.Append(name);

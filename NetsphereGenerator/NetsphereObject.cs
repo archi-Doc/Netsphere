@@ -794,7 +794,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 ssb.AppendLine();
                 ssb.AppendLine($"(({serviceInterface.FullName})obj).{method.SimpleName}({method.GetTupleNames("value", 0)});");
 
-                using (var scopeSerialize = ssb.ScopeBrace($"if (NetHelper.TrySerialize(value, out var owner2))"))
+                using (var scopeSerialize = ssb.ScopeBrace($"if (NetHelper.TrySerialize(value.Item{method.ParameterLength}, out var owner2))"))
                 {
                     ssb.AppendLine("c0.RentMemory = c0.RentMemory.Return();");
                     ssb.AppendLine("c0.RentMemory = owner2;");

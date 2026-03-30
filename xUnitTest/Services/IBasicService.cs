@@ -21,7 +21,7 @@ public interface IBasicService : INetService
 
     public Task<NetResultAndValue<int>> TestResult3(int x);
 
-    void SendInt2(int x, ResponseChannel<int> channel);
+    void SendInt2(int x, ref ResponseChannel<int> channel);
 
     public int TestProperty { get; protected set; }
 
@@ -60,7 +60,7 @@ public class BasicServiceImpl : IBasicService
         return new(NetResult.Completed, x);
     }
 
-    public void SendInt2(int x, ResponseChannel<int> channel)
+    public void SendInt2(int x, ref ResponseChannel<int> channel)
     {
         channel.SetResponse(x + 4);
     }
