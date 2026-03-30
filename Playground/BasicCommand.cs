@@ -50,11 +50,11 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         using (var connection = (await netTerminal.Connect(netNode))!)
         {
             var service = connection.GetService<ITestService>();
-            var channel = new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); });
-            service.MethodB(2, ref channel);
+            // var channel = new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); });
+            service.MethodB(2, new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); }));
 
-            await connection.WaitForReceiveCompletion();
-            // await Task.Delay(100);
+            // await connection.WaitForReceiveCompletion();
+            await Task.Delay(100);
         }
 
         
