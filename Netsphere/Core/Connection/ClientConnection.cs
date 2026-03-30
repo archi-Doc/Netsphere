@@ -64,6 +64,11 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         where TService : INetService
         => StaticNetService.CreateFrontend<TService>(this);
 
+    public async ValueTask WaitForReceiveCompletion(CancellationToken cancellationToken = default)
+    {//
+        throw new NotImplementedException();
+    }
+
     public async Task<NetResult> Send<TSend>(TSend data, ulong dataId = 0, CancellationToken cancellationToken = default)
     {
         if (!this.IsActive)

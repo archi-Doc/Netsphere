@@ -18,7 +18,7 @@ public interface ITestService : INetService
 {
     Task<int> MethodA(int x);
 
-    void MethodB(int x, in ResponseChannel<int> channel);
+    void MethodB(int x, ref ResponseChannel<int> channel);
 
     void MethodC(in int x, ref int y, ref ResponseChannel<int> channel);
 
@@ -35,7 +35,7 @@ public class TestServiceImpl : ITestService
         return Task.FromResult(1);
     }
 
-    void ITestService.MethodB(int x, in ResponseChannel<int> channel)
+    void ITestService.MethodB(int x, ref ResponseChannel<int> channel)
     {
         channel.SetResponse(x + 111);
     }

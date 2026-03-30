@@ -116,8 +116,17 @@ public class ServiceMethod
             serviceMethod.ParameterType = NameToType(method.Method_Parameters[0]);
         }
 
-        if (returnObject.FullName == "void")
-        {
+        if (returnObject.FullName == "void" &&
+            method.TryGetMethodSymbol() is { } methodSymbol)
+        {// void Method(params, ref ResponseChannel<TResponse> channel);
+            var parameters = methodSymbol.Parameters;
+            if (parameters.Length == 0 ||
+                parameters[parameters.Length - 1].RefKind != RefKind.Ref)
+            {
+                method.Body.AddDiagnostic(NetsphereBody.Error_MethodForm, method.Location);
+                return null;
+            }
+
             serviceMethod.ReturnType = Type.ResponseChannel;
             serviceMethod.ParameterType = Type.ResponseChannel;
         }

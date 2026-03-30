@@ -51,13 +51,13 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         {
             var service = connection.GetService<ITestService>();
             var channel = new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); });
-            service.MethodB(2, new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); }));
+            service.MethodB(2, ref channel);
 
             var y = 3;
             service.MethodC(2, ref y, ref channel);
 
-            // await connection.WaitForReceiveCompletion();
-            await Task.Delay(100);
+            await connection.WaitForReceiveCompletion();
+            // await Task.Delay(100);
         }
 
 
