@@ -18,7 +18,7 @@ public interface ITestService : INetService
 {
     Task<int> MethodA(int x);
 
-    void MethodB(int x, ReceiveDelegateAndValue<int> channel);
+    void MethodB(int x, ResponseChannel<int> channel);
 
     public int X { get; set; }
 }
@@ -33,7 +33,7 @@ public class TestServiceImpl : ITestService
         return Task.FromResult(1);
     }
 
-    void ITestService.MethodB(int x, ReceiveDelegateAndValue<int> channel)
+    void ITestService.MethodB(int x, ResponseChannel<int> channel)
     {
         channel.SetResponse(x + 111);
     }

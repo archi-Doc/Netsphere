@@ -514,7 +514,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         return new(NetResult.Success, response.DataId, response.Received);
     }
 
-    void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, IReceiveDelegateAndValueInternal netUnion)
+    void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, IResponseChannelInternal netUnion)
     {
         if (!this.IsActive)
         {

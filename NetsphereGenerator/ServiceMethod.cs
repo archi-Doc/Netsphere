@@ -20,8 +20,8 @@ public class ServiceMethod
     public const string NetResultAndValueName = "Netsphere.NetResultAndValue<TValue>";
     public const string ConnectBidirectionallyName = "Netsphere.INetServiceWithConnectBidirectionally.ConnectBidirectionally(Netsphere.Crypto.CertificateToken<Netsphere.ConnectionAgreement>)";
     public const string UpdateAgreementName = "Netsphere.INetServiceWithUpdateAgreement.UpdateAgreement(Netsphere.Crypto.CertificateToken<Netsphere.ConnectionAgreement>)";
-    public const string ReceiveDelegateAndValueName = "ReceiveDelegateAndValue<";
-    public const string ReceiveDelegateAndValueFullName = "Netsphere.ReceiveDelegateAndValue<";
+    public const string ResponseChannelName = "ResponseChannel<";
+    public const string ResponseChannelFullName = "Netsphere.ResponseChannel<";
 
     public enum Type
     {
@@ -36,7 +36,7 @@ public class ServiceMethod
         ReceiveStream,
         SendStream,
         SendStreamAndReceive,
-        ReceiveDelegateAndValue,
+        ResponseChannel,
     }
 
     public enum MethodKind
@@ -65,9 +65,9 @@ public class ServiceMethod
             }
             else if (fullName is null &&
                 method.Method_Parameters.Length > 0 &&
-                (method.Method_Parameters[method.Method_Parameters.Length - 1].StartsWith(ServiceMethod.ReceiveDelegateAndValueName) ||
-                method.Method_Parameters[method.Method_Parameters.Length - 1].StartsWith(ServiceMethod.ReceiveDelegateAndValueFullName)))
-            {// void Method(int x, ReceiveDelegateAndValue<TReceive> channel);
+                (method.Method_Parameters[method.Method_Parameters.Length - 1].StartsWith(ServiceMethod.ResponseChannelName) ||
+                method.Method_Parameters[method.Method_Parameters.Length - 1].StartsWith(ServiceMethod.ResponseChannelFullName)))
+            {// void Method(int x, ResponseChannel<TReceive> channel);
             }
             else
             {// Invalid return type
@@ -118,8 +118,8 @@ public class ServiceMethod
 
         if (returnObject.FullName == "void")
         {
-            serviceMethod.ReturnType = Type.ReceiveDelegateAndValue;
-            serviceMethod.ParameterType = Type.ReceiveDelegateAndValue;
+            serviceMethod.ReturnType = Type.ResponseChannel;
+            serviceMethod.ParameterType = Type.ResponseChannel;
         }
 
         /*if (serviceMethod.ReturnType == Type.SendStream)
@@ -378,10 +378,10 @@ public class ServiceMethod
         if (name is not null &&
             result == Type.Other)
         {
-            if (name.StartsWith(ReceiveDelegateAndValueName) ||
-                name.StartsWith(ReceiveDelegateAndValueFullName))
+            if (name.StartsWith(ResponseChannelName) ||
+                name.StartsWith(ResponseChannelFullName))
             {
-                result = Type.ReceiveDelegateAndValue;
+                result = Type.ResponseChannel;
             }
         }
 

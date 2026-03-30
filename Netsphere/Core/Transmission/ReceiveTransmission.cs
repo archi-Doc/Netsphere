@@ -11,7 +11,7 @@ namespace Netsphere.Core;
 internal sealed partial class ReceiveTransmission : IDisposable
 {
     // [Link(Name = "DisposedList", Type = ChainType.QueueList, AutoLink = false)]
-    public ReceiveTransmission(Connection connection, uint transmissionId, TaskCompletionSource<NetResponse>? receivedTcs, IReceiveDelegateAndValueInternal? netUnion)
+    public ReceiveTransmission(Connection connection, uint transmissionId, TaskCompletionSource<NetResponse>? receivedTcs, IResponseChannelInternal? netUnion)
     {
         this.Connection = connection;
         this.TransmissionId = transmissionId;
@@ -59,7 +59,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
     private readonly Lock lockObject = new();
     private int totalGene;
     private TaskCompletionSource<NetResponse>? receivedTcs;
-    private IReceiveDelegateAndValueInternal? receivedNetUnion;
+    private IResponseChannelInternal? receivedNetUnion;
     private int successiveReceivedPosition;
     private ReceiveGene? gene0; // Gene 0
     private ReceiveGene? gene1; // Gene 1
@@ -366,7 +366,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
         if (completeFlag)
         {// Receive complete
             TaskCompletionSource<NetResponse>? receivedTcs;
-            IReceiveDelegateAndValueInternal? receivedNetUnion;
+            IResponseChannelInternal? receivedNetUnion;
 
             using (this.lockObject.EnterScope())
             {

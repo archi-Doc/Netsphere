@@ -5,9 +5,9 @@ using Tinyhand.IO;
 
 namespace Netsphere;
 
-public delegate void ReceiveDelegate<TReceive>(NetResult result, TReceive? value);
+public delegate void ResponseDelegate<TReceive>(NetResult result, TReceive? value);
 
-public interface IReceiveDelegateAndValueInternal
+public interface IResponseChannelInternal
 {
     void Invoke(NetResult result);
 
@@ -25,19 +25,19 @@ public interface IReceiveDelegateAndValueInternal
 /// Server side: Read SendValue and set ReceiveValue.<br/>
 /// If asynchronous processing is required, do not use NetUnion; define a normal NetService method instead.
 /// </summary>
-/// <typeparam name="TReceive"></typeparam>
+/// <typeparam name="TResponse"></typeparam>
 [TinyhandObject]
-public sealed partial record class ReceiveDelegateAndValue<TReceive> : IReceiveDelegateAndValueInternal, ITinyhandSerializable<ReceiveDelegateAndValue<TReceive>>, ITinyhandCloneable<ReceiveDelegateAndValue<TReceive>>, ITinyhandReconstructable<ReceiveDelegateAndValue<TReceive>>
+public sealed partial record class ResponseChannel<TResponse> : IResponseChannelInternal, ITinyhandSerializable<ResponseChannel<TResponse>>, ITinyhandCloneable<ResponseChannel<TResponse>>, ITinyhandReconstructable<ResponseChannel<TResponse>>
 {
     /// <summary>
     /// Gets the value returned by the server to the client.
     /// </summary>
-    public TReceive? Value { get; private set; }
+    public TResponse? Value { get; private set; }
 
     /// <summary>
     /// Gets the callback invoked on the client when a response is received.
     /// </summary>
-    public ReceiveDelegate<TReceive>? ReceiveDelegate { get; private set; }
+    public ResponseDelegate<TResponse>? ResponseDelegate { get; private set; }
 
     [MemberNotNull(nameof(Value))]
     public bool IsValueSet { get; private set; }
@@ -45,21 +45,21 @@ public sealed partial record class ReceiveDelegateAndValue<TReceive> : IReceiveD
     // private SendTransmission? sendTransmission;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ReceiveDelegateAndValue{TReceive}"/> class with a request value and optional receive callback.
+    /// Initializes a new instance of the <see cref="ResponseChannel{TReceive}"/> class with a request value and optional receive callback.
     /// </summary>
     /// <param name="receiveDelegate">The optional callback to invoke when a response is received on the client.</param>
-    public ReceiveDelegateAndValue(ReceiveDelegate<TReceive>? receiveDelegate)
+    public ResponseChannel(ResponseDelegate<TResponse>? receiveDelegate)
     {
-        this.ReceiveDelegate = receiveDelegate;
+        this.ResponseDelegate = receiveDelegate;
     }
 
-    private ReceiveDelegateAndValue()
+    private ResponseChannel()
     {
     }
 
-    public void SetResponse(TReceive receiveValue)
+    public void SetResponse(TResponse value)
     {
-        this.Value = receiveValue;
+        this.Value = value;
         this.IsValueSet = true;
     }
 
@@ -68,29 +68,29 @@ public sealed partial record class ReceiveDelegateAndValue<TReceive> : IReceiveD
         this.sendTransmission = sendTransmission;
     }*/
 
-    void IReceiveDelegateAndValueInternal.Invoke(NetResponse response)
+    void IResponseChannelInternal.Invoke(NetResponse response)
     {
         if (response.Result != NetResult.Success ||
             response.Received.IsEmpty)
         {
-            this.ReceiveDelegate?.Invoke(response.Result, default);
+            this.ResponseDelegate?.Invoke(response.Result, default);
             return;
         }
 
         if (response.DataId != 0)
         {
-            this.ReceiveDelegate?.Invoke((NetResult)response.DataId, default);
+            this.ResponseDelegate?.Invoke((NetResult)response.DataId, default);
             return;
         }
 
         var span = response.Received.Span;
-        TReceive? receiveValue = default;
+        TResponse? receiveValue = default;
         try
         {
             var reader = new TinyhandReader(span);
             if (reader.TryReadNil())
             {
-                this.ReceiveDelegate?.Invoke(NetResult.DeserializationFailed, default);
+                this.ResponseDelegate?.Invoke(NetResult.DeserializationFailed, default);
                 return;
             }
 
@@ -108,13 +108,13 @@ public sealed partial record class ReceiveDelegateAndValue<TReceive> : IReceiveD
                 }
                 else
                 {// ReceiveValue
-                    receiveValue = TinyhandSerializer.Deserialize<TReceive>(ref reader, TinyhandSerializerOptions.Standard);
+                    receiveValue = TinyhandSerializer.Deserialize<TResponse>(ref reader, TinyhandSerializerOptions.Standard);
                 }
             }
         }
         catch
         {
-            this.ReceiveDelegate?.Invoke(NetResult.DeserializationFailed, default);
+            this.ResponseDelegate?.Invoke(NetResult.DeserializationFailed, default);
             return;
         }
 
@@ -127,10 +127,10 @@ public sealed partial record class ReceiveDelegateAndValue<TReceive> : IReceiveD
             this.sendTransmission = default;
         }*/
 
-        this.ReceiveDelegate?.Invoke(response.Result, receiveValue);
+        this.ResponseDelegate?.Invoke(response.Result, receiveValue);
     }
 
-    void IReceiveDelegateAndValueInternal.Invoke(NetResult result)
+    void IResponseChannelInternal.Invoke(NetResult result)
     {
         // this.IsResponded = true;
 
@@ -140,10 +140,10 @@ public sealed partial record class ReceiveDelegateAndValue<TReceive> : IReceiveD
             this.sendTransmission = default;
         }*/
 
-        this.ReceiveDelegate?.Invoke(result, default);
+        this.ResponseDelegate?.Invoke(result, default);
     }
 
-    static void ITinyhandSerializable<ReceiveDelegateAndValue<TReceive>>.Serialize(ref TinyhandWriter writer, scoped ref ReceiveDelegateAndValue<TReceive>? value, TinyhandSerializerOptions options)
+    static void ITinyhandSerializable<ResponseChannel<TResponse>>.Serialize(ref TinyhandWriter writer, scoped ref ResponseChannel<TResponse>? value, TinyhandSerializerOptions options)
     {
         if (value is null ||
             !value.IsValueSet)
@@ -152,10 +152,10 @@ public sealed partial record class ReceiveDelegateAndValue<TReceive> : IReceiveD
             return;
         }
 
-        TinyhandSerializer.Serialize<TReceive>(ref writer, value.Value, options);
+        TinyhandSerializer.Serialize<TResponse>(ref writer, value.Value, options);
     }
 
-    static void ITinyhandSerializable<ReceiveDelegateAndValue<TReceive>>.Deserialize(ref TinyhandReader reader, scoped ref ReceiveDelegateAndValue<TReceive>? value, TinyhandSerializerOptions options)
+    static void ITinyhandSerializable<ResponseChannel<TResponse>>.Deserialize(ref TinyhandReader reader, scoped ref ResponseChannel<TResponse>? value, TinyhandSerializerOptions options)
     {
         value ??= new();
         if (reader.TryReadNil())
@@ -163,24 +163,24 @@ public sealed partial record class ReceiveDelegateAndValue<TReceive> : IReceiveD
             return;
         }
 
-        value.Value = TinyhandSerializer.Deserialize<TReceive>(ref reader, options);
+        value.Value = TinyhandSerializer.Deserialize<TResponse>(ref reader, options);
     }
 
-    static void ITinyhandReconstructable<ReceiveDelegateAndValue<TReceive>>.Reconstruct([NotNull] scoped ref ReceiveDelegateAndValue<TReceive>? value, TinyhandSerializerOptions options)
+    static void ITinyhandReconstructable<ResponseChannel<TResponse>>.Reconstruct([NotNull] scoped ref ResponseChannel<TResponse>? value, TinyhandSerializerOptions options)
     {
         value ??= new();
     }
 
-    static ReceiveDelegateAndValue<TReceive>? ITinyhandCloneable<ReceiveDelegateAndValue<TReceive>>.Clone(scoped ref ReceiveDelegateAndValue<TReceive>? value, TinyhandSerializerOptions options)
+    static ResponseChannel<TResponse>? ITinyhandCloneable<ResponseChannel<TResponse>>.Clone(scoped ref ResponseChannel<TResponse>? value, TinyhandSerializerOptions options)
     {
         if (value is null)
         {
             return null;
         }
 
-        var newValue = new ReceiveDelegateAndValue<TReceive>();
+        var newValue = new ResponseChannel<TResponse>();
         newValue.Value = TinyhandSerializer.Clone(value.Value);
-        newValue.ReceiveDelegate = value.ReceiveDelegate;
+        newValue.ResponseDelegate = value.ResponseDelegate;
         return newValue;
     }
 }

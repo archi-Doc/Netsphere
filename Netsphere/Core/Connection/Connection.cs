@@ -494,7 +494,7 @@ Wait:
         }
     }
 
-    internal ReceiveTransmission? TryCreateReceiveTransmission(uint transmissionId, TaskCompletionSource<NetResponse>? receivedTcs, IReceiveDelegateAndValueInternal? netUnion = default)
+    internal ReceiveTransmission? TryCreateReceiveTransmission(uint transmissionId, TaskCompletionSource<NetResponse>? receivedTcs, IResponseChannelInternal? netUnion = default)
     {
         transmissionId += this.ConnectionTerminal.ReceiveTransmissionGap;
 

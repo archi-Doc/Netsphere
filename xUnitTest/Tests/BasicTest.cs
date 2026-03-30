@@ -64,8 +64,8 @@ public class BasicTest
             resultAndValue.Value.Is(42);
 
             int receivedValue = 2;
-            var netUnion = new ReceiveDelegateAndValue<int>((result, value) => { receivedValue = value; });
-            basicService.SendInt2(2, netUnion);
+            var channel = new ResponseChannel<int>((result, value) => { receivedValue = value; });
+            basicService.SendInt2(2, channel);
             await Task.Delay(10, TestContext.Current.CancellationToken);
             receivedValue.Is(6);
         }

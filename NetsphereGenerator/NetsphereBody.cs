@@ -31,7 +31,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
     public const string ServiceFilterInvokeName = "Invoke";
     public const string ServiceFilterSetArgumentsName = "SetArguments";
     public const string IClientConnectionInternalName = "Netsphere.Internal.IClientConnectionInternal";
-    public const string ReceiveDelegateAndValueInternalName = "IReceiveDelegateAndValueInternal";
+    public const string ReceiveDelegateAndValueInternalName = "IResponseChannelInternal";
 
     public static readonly DiagnosticDescriptor Error_AttributePropertyError = new DiagnosticDescriptor(
         id: "NSG001", title: "Attribute property type error", messageFormat: "The argument specified does not match the type of the property",
