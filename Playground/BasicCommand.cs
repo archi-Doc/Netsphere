@@ -53,7 +53,8 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
             var channel = new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); });
             service.MethodB(2, new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); }));
 
-            service.MethodC(2, 3, ref channel);
+            var y = 3;
+            service.MethodC(2, ref y, ref channel);
 
             // await connection.WaitForReceiveCompletion();
             await Task.Delay(100);
@@ -73,7 +74,7 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         Console.WriteLine(micsId);
 
 
-        Console.WriteLine("ClockHand");
+        Console.WriteLine("ClockHand ->");
 
         await ThreadCore.Root.Delay(100_000);
     }

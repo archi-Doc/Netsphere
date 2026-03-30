@@ -20,7 +20,7 @@ public interface ITestService : INetService
 
     void MethodB(int x, in ResponseChannel<int> channel);
 
-    void MethodC(int x, int y, ref ResponseChannel<int> channel);
+    void MethodC(in int x, ref int y, ref ResponseChannel<int> channel);
 
     public int X { get; set; }
 }
@@ -40,7 +40,7 @@ public class TestServiceImpl : ITestService
         channel.SetResponse(x + 111);
     }
 
-    void ITestService.MethodC(int x, int y, ref ResponseChannel<int> channel)
+    void ITestService.MethodC(in int x, ref int y, ref ResponseChannel<int> channel)
     {
         channel.SetResponse(x + y);
     }
