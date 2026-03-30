@@ -2,6 +2,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Tinyhand.IO;
+using Tinyhand.Tree;
+using static FastExpressionCompiler.ImTools.SmallMap;
 
 namespace Netsphere;
 
@@ -27,7 +29,7 @@ public interface IResponseChannelInternal
 /// </summary>
 /// <typeparam name="TResponse"></typeparam>
 [TinyhandObject]
-public sealed partial record class ResponseChannel<TResponse> : IResponseChannelInternal, ITinyhandSerializable<ResponseChannel<TResponse>>, ITinyhandCloneable<ResponseChannel<TResponse>>, ITinyhandReconstructable<ResponseChannel<TResponse>>
+public partial record struct ResponseChannel<TResponse> : IResponseChannelInternal, ITinyhandSerializable<ResponseChannel<TResponse>>, ITinyhandReconstructable<ResponseChannel<TResponse>>, ITinyhandCloneable<ResponseChannel<TResponse>>
 {
     /// <summary>
     /// Gets the value returned by the server to the client.
@@ -44,16 +46,12 @@ public sealed partial record class ResponseChannel<TResponse> : IResponseChannel
 
     // private SendTransmission? sendTransmission;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ResponseChannel{TReceive}"/> class with a request value and optional receive callback.
-    /// </summary>
-    /// <param name="receiveDelegate">The optional callback to invoke when a response is received on the client.</param>
     public ResponseChannel(ResponseDelegate<TResponse>? receiveDelegate)
     {
         this.ResponseDelegate = receiveDelegate;
     }
 
-    private ResponseChannel()
+    public ResponseChannel()
     {
     }
 
@@ -143,44 +141,37 @@ public sealed partial record class ResponseChannel<TResponse> : IResponseChannel
         this.ResponseDelegate?.Invoke(result, default);
     }
 
-    static void ITinyhandSerializable<ResponseChannel<TResponse>>.Serialize(ref TinyhandWriter writer, scoped ref ResponseChannel<TResponse>? value, TinyhandSerializerOptions options)
+    static void ITinyhandSerializable<ResponseChannel<TResponse>>.Serialize(ref TinyhandWriter writer, scoped ref ResponseChannel<TResponse> v, TinyhandSerializerOptions options)
     {
-        if (value is null ||
-            !value.IsValueSet)
+        if (!v.IsValueSet)
         {
             writer.WriteNil();
             return;
         }
 
-        TinyhandSerializer.Serialize<TResponse>(ref writer, value.Value, options);
+        TinyhandSerializer.Serialize<TResponse>(ref writer, v.Value, options);
     }
 
-    static void ITinyhandSerializable<ResponseChannel<TResponse>>.Deserialize(ref TinyhandReader reader, scoped ref ResponseChannel<TResponse>? value, TinyhandSerializerOptions options)
+    static void ITinyhandSerializable<ResponseChannel<TResponse>>.Deserialize(ref TinyhandReader reader, scoped ref ResponseChannel<TResponse> v, TinyhandSerializerOptions options)
     {
-        value ??= new();
         if (reader.TryReadNil())
         {
             return;
         }
 
-        value.Value = TinyhandSerializer.Deserialize<TResponse>(ref reader, options);
+        v.Value = TinyhandSerializer.Deserialize<TResponse>(ref reader, options);
     }
 
-    static void ITinyhandReconstructable<ResponseChannel<TResponse>>.Reconstruct([NotNull] scoped ref ResponseChannel<TResponse>? value, TinyhandSerializerOptions options)
+    static void ITinyhandReconstructable<ResponseChannel<TResponse>>.Reconstruct([NotNull] scoped ref ResponseChannel<TResponse> v, TinyhandSerializerOptions options)
     {
-        value ??= new();
     }
 
-    static ResponseChannel<TResponse>? ITinyhandCloneable<ResponseChannel<TResponse>>.Clone(scoped ref ResponseChannel<TResponse>? value, TinyhandSerializerOptions options)
+    static ResponseChannel<TResponse> ITinyhandCloneable<ResponseChannel<TResponse>>.Clone(scoped ref ResponseChannel<TResponse> v, TinyhandSerializerOptions options)
     {
-        if (value is null)
-        {
-            return null;
-        }
-
         var newValue = new ResponseChannel<TResponse>();
-        newValue.Value = TinyhandSerializer.Clone(value.Value);
-        newValue.ResponseDelegate = value.ResponseDelegate;
+        newValue.Value = TinyhandSerializer.Clone(v.Value);
+        newValue.IsValueSet = v.IsValueSet;
+        newValue.ResponseDelegate = v.ResponseDelegate;
         return newValue;
     }
 }
