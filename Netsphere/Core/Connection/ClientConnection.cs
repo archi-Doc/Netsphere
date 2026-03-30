@@ -64,9 +64,30 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         where TService : INetService
         => StaticNetService.CreateFrontend<TService>(this);
 
+    /// <summary>
+    /// Asynchronously waits until all pending receive transmissions on this connection have completed.
+    /// </summary>
+    /// <param name="cancellationToken">
+    /// A cancellation token that can be used to cancel the wait operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that completes when all receive transmissions have finished processing,
+    /// or immediately if there are no pending receive transmissions.
+    /// </returns>
     public async ValueTask WaitForReceiveCompletion(CancellationToken cancellationToken = default)
-    {//
-        throw new NotImplementedException();
+    {
+        if (this.ReceiveTransmissionsCount == 0)
+        {
+            return;
+        }
+
+        while (await this.NetTerminal.Delay100ms(cancellationToken))
+        {
+            if (this.ReceiveTransmissionsCount == 0)
+            {
+                return;
+            }
+        }
     }
 
     public async Task<NetResult> Send<TSend>(TSend data, ulong dataId = 0, CancellationToken cancellationToken = default)

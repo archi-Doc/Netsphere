@@ -16,6 +16,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
     public NetTerminal(UnitContext unitContext, LogUnit logUnit, NetBase netBase, NetStats netStats, IRelayControl relayControl)
         : base(unitContext)
     {
+        this.Core = new ThreadCoreGroup(unitContext.Core);
         this.LogUnit = logUnit;
         this.NetBase = netBase;
         this.NetStats = netStats;
@@ -32,6 +33,8 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
     }
 
     #region FieldAndProperty
+
+    public ThreadCoreBase Core { get; }
 
     public UnitState State { get; private set; }
 
@@ -76,6 +79,9 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
     internal ConnectionTerminal ConnectionTerminal { get; private set; }
 
     #endregion
+
+    public Task<bool> Delay100ms(CancellationToken cancellationToken = default)
+        => this.Core.Delay(100, cancellationToken);
 
     public bool TryCreateEndpoint(ref NetAddress address, EndpointResolution endpointResolution, out NetEndpoint endPoint)
         => this.NetStats.TryCreateEndpoint(ref address, endpointResolution, out endPoint);
@@ -173,6 +179,8 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         await this.ConnectionTerminal.Terminate(cancellationToken).ConfigureAwait(false);
 
         this.NetSender.Stop();
+
+        this.Core.Terminate();
     }
 
     internal void Initialize(ResponderControl responders, ServiceControl services, bool isAlternative)

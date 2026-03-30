@@ -152,6 +152,9 @@ public abstract class Connection : IDisposable
     internal int SendTransmissionsCount
         => this.sendTransmissions.Count;
 
+    internal int ReceiveTransmissionsCount
+        => this.receiveTransmissions.Count;
+
     internal bool IsEmpty
         => this.sendTransmissions.Count == 0 &&
         this.receiveTransmissions.Count == 0;
