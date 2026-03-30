@@ -34,17 +34,20 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         options.Node = st;
         this.netUnit.NetStats.SetOwnNetNodeForTest(netAddress, this.netUnit.NetBase.NodePublicKey);*/
 
-        if (!NetAddress.TryParse(this.logger, options.Node, out var address))
+        /*if (!NetAddress.TryParse(this.logger, options.Node, out var address))
         {
             return;
-        }
+        }*/
+
+        var netNode = Alternative.NetNode;
+        var netAddress = netNode.Address;
 
         var sw = Stopwatch.StartNew();
         var netTerminal = this.netUnit.NetTerminal;
         netTerminal.Services.EnableNetService<ITestService>();
         var packetTerminal = netTerminal.PacketTerminal;
 
-        using (var connection = (await netTerminal.Connect(Alternative.NetNode))!)
+        using (var connection = (await netTerminal.Connect(netNode))!)
         {
             var service = connection.GetService<ITestService>();
             service.MethodB(2, new(static (result, value) => { Console.WriteLine(value); }));
@@ -52,9 +55,11 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
             await Task.Delay(100);
         }
 
+        
+
         var length = AuthenticationToken.MaxStringLength;
         var p = new PingPacket("test56789");
-        var result = await packetTerminal.SendAndReceive<PingPacket, PingPacketResponse>(address, p, 0, default, EndpointResolution.NetAddress);
+        var result = await packetTerminal.SendAndReceive<PingPacket, PingPacketResponse>(netAddress, p, 0, default, EndpointResolution.NetAddress);
         Console.WriteLine(result);
 
         Mics.UpdateFastCorrected();
@@ -86,6 +91,6 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
 
 public record BasicCommandOptions
 {
-    [SimpleOption("Node", Description = "Node address", Required = true)]
-    public string Node { get; set; } = string.Empty;
+    // [SimpleOption("Node", Description = "Node address", Required = true)]
+    // public string Node { get; set; } = string.Empty;
 }

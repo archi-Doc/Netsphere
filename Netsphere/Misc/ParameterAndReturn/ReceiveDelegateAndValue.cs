@@ -39,6 +39,9 @@ public sealed partial record class ReceiveDelegateAndValue<TReceive> : IReceiveD
     /// </summary>
     public ReceiveDelegate<TReceive>? ReceiveDelegate { get; private set; }
 
+    [MemberNotNull(nameof(Value))]
+    public bool IsValueSet { get; private set; }
+
     // private SendTransmission? sendTransmission;
 
     /// <summary>
@@ -57,6 +60,7 @@ public sealed partial record class ReceiveDelegateAndValue<TReceive> : IReceiveD
     public void SetResponse(TReceive receiveValue)
     {
         this.Value = receiveValue;
+        this.IsValueSet = true;
     }
 
     /*void INetUnionInternal.SetSendTransmission(SendTransmission sendTransmission)
@@ -142,7 +146,7 @@ public sealed partial record class ReceiveDelegateAndValue<TReceive> : IReceiveD
     static void ITinyhandSerializable<ReceiveDelegateAndValue<TReceive>>.Serialize(ref TinyhandWriter writer, scoped ref ReceiveDelegateAndValue<TReceive>? value, TinyhandSerializerOptions options)
     {
         if (value is null ||
-            value.Value is null)
+            !value.IsValueSet)
         {
             writer.WriteNil();
             return;
