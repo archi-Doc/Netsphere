@@ -53,7 +53,8 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
             var channel = new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); });
             service.MethodB(2, ref channel);
 
-            await Task.Delay(100);
+            await connection.WaitForReceiveCompletion();
+            // await Task.Delay(100);
         }
 
         
