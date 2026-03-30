@@ -23,9 +23,9 @@ public interface IResponseChannelInternal
 /// On the client side, a delegate is invoked when data is received.<br/>
 /// Its advantage is that it does not rely on Task, but its use is not recommended.<br/>
 /// <br/>
-/// Client side: Set SendValue and call the NetService.<br/>
+/// Client side: Set SendValue and call the NetService method.<br/>
 /// Server side: Read SendValue and set ReceiveValue.<br/>
-/// If asynchronous processing is required, do not use NetUnion; define a normal NetService method instead.
+/// If asynchronous processing is required, do not use ResponseChannel; define a normal NetService method instead.
 /// </summary>
 /// <typeparam name="TResponse"></typeparam>
 [TinyhandObject]
@@ -61,11 +61,6 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
         this.IsValueSet = true;
     }
 
-    /*void INetUnionInternal.SetSendTransmission(SendTransmission sendTransmission)
-    {
-        this.sendTransmission = sendTransmission;
-    }*/
-
     void IResponseChannelInternal.Invoke(NetResponse response)
     {
         if (response.Result != NetResult.Success ||
@@ -92,23 +87,7 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
                 return;
             }
 
-            var numberOfData = reader.ReadArrayHeader();
-            byte b = 0;
-            if (numberOfData-- > 0 && !reader.TryReadNil())
-            {
-                b = reader.ReadUInt8();
-            }
-
-            if (numberOfData-- > 0 && !reader.TryReadNil())
-            {
-                if (b == 0)
-                {// SendValue
-                }
-                else
-                {// ReceiveValue
-                    receiveValue = TinyhandSerializer.Deserialize<TResponse>(ref reader, TinyhandSerializerOptions.Standard);
-                }
-            }
+            receiveValue = TinyhandSerializer.Deserialize<TResponse>(ref reader, TinyhandSerializerOptions.Standard);
         }
         catch
         {
@@ -116,28 +95,11 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
             return;
         }
 
-        // this.IsResponded = true;
-        // this.ReceiveValue = receiveValue;
-
-        /*if (this.sendTransmission is not null)
-        {
-            this.sendTransmission.Dispose();
-            this.sendTransmission = default;
-        }*/
-
         this.ResponseDelegate?.Invoke(response.Result, receiveValue);
     }
 
     void IResponseChannelInternal.Invoke(NetResult result)
     {
-        // this.IsResponded = true;
-
-        /*if (this.sendTransmission is not null)
-        {
-            this.sendTransmission.Dispose();
-            this.sendTransmission = default;
-        }*/
-
         this.ResponseDelegate?.Invoke(result, default);
     }
 

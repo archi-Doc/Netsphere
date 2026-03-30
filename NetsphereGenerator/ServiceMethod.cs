@@ -188,15 +188,23 @@ public class ServiceMethod
 
     public string GetParameters()
     {// int a1, string a2
-        var methodSymbol = (IMethodSymbol)this.method.symbol;
-        var ps = methodSymbol.Parameters[9];
-        ps.RefKind = RefKind.
+        var methodSymbol = this.method.TryGetMethodSymbol();
+        if (methodSymbol is null)
+        {
+            return string.Empty;
+        }
+
         var sb = new StringBuilder();
         for (var i = 0; i < this.method.Method_Parameters.Length; i++)
         {
             if (i != 0)
             {
                 sb.Append(", ");
+            }
+
+            if (methodSymbol.Parameters[i].RefKind != RefKind.None)
+            {
+
             }
 
             sb.Append(this.method.Method_Parameters[i]);
