@@ -15,12 +15,14 @@ namespace Netsphere;
 public interface IClockHandTarget : IRadioService
 {
     /// <summary>
-    /// Invoked once every second.
+    /// Invoked once every second.<br/>
+    /// Keep handlers lightweight and non-blocking to avoid delaying other targets.
     /// </summary>
     void OnEverySecond();
 
     /// <summary>
-    /// Invoked once every minute.
+    /// Invoked once every minute.<br/>
+    /// Keep handlers lightweight and non-blocking to avoid delaying other targets.
     /// </summary>
     void OnEveryMinute();
 }
