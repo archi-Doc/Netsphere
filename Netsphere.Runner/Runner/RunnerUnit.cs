@@ -4,8 +4,6 @@ using Arc.Threading;
 using Arc.Unit;
 using BigMachines;
 using Microsoft.Extensions.DependencyInjection;
-using Netsphere;
-using Netsphere.Interfaces;
 using SimpleCommandLine;
 using Tinyhand;
 
@@ -21,10 +19,9 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
             // Configuration for Unit.
             this.Configure(context =>
             {
-                context.AddSingleton<RunnerUnit>();
+                context.AddSingletonUnit<RunnerUnit>();
                 context.AddSingleton<RunOptions>();
                 context.AddSingleton<RestartOptions>();
-                context.RegisterInstanceCreation<RunnerUnit>();
                 context.AddSingleton<BigMachine>();
 
                 // Command
