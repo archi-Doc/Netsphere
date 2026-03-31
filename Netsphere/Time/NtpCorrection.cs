@@ -61,7 +61,7 @@ public sealed partial class NtpCorrection : UnitBase, IUnitPreparable
         this.ResetHostnames();
     }
 
-    public async Task Prepare(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitPreparable.Prepare(UnitContext unitContext, CancellationToken cancellationToken)
     {
         Time.SetNtpCorrection(this);
     }
@@ -247,6 +247,8 @@ Retry:
                         item.TimeoffsetMilliseconds = (long)packet.TimeOffset.TotalMilliseconds;
                         item.RoundtripMillisecondsValue = (int)packet.RoundtripTime.TotalMilliseconds;
                         this.UpdateTimeoffset();
+
+                        this.logger?.GetWriter(LogLevel.Information)?.Write($"{hostname} {item.RoundtripMillisecondsValue}ms");
                     }
                 }
             }
