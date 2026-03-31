@@ -8,6 +8,7 @@ using CrystalData;
 using Microsoft.Extensions.DependencyInjection;
 using Netsphere;
 using Netsphere.Crypto;
+using Netsphere.Misc;
 using Netsphere.Relay;
 using SimpleCommandLine;
 
@@ -116,6 +117,7 @@ public class Program
         {
             context.AddCrystal<Netsphere.Misc.NtpCorrection>(new CrystalConfiguration() with
             {
+                SaveFormat = SaveFormat.Utf8,
                 NumberOfFileHistories = 0,
                 FileConfiguration = new GlobalFileConfiguration(Netsphere.Misc.NtpCorrection.Filename),
             });

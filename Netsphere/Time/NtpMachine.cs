@@ -68,7 +68,7 @@ public partial class NtpMachine : Machine
         this.logger?.GetWriter(LogLevel.Warning)?.Write($"Safe-hold mode");
         if (await this.ntpCorrection.CheckConnection(this.CancellationToken).ConfigureAwait(false))
         {
-            this.ntpCorrection.ResetHostnames();
+            this.ntpCorrection.ADdHostnames();
             this.ChangeState(State.Initial);
             return StateResult.Continue;
         }

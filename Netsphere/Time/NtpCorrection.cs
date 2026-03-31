@@ -53,12 +53,36 @@ public sealed partial class NtpCorrection : UnitBase, IUnitPreparable
         private int roundtripMilliseconds = MaxRoundtripMilliseconds;
     }
 
+    #region FieldAndProperty
+
+    private ILogger<NtpCorrection>? logger;
+
+    private Lock lockObject = new();
+
+    [Key(0)]
+    public long LastCorrectedMics { get; set; }
+
+    [Key(1)]
+    private Item.GoshujinClass goshujin = new();
+
+    [Key(2)]
+    private int timeoffsetCount;
+
+    [Key(3)]
+    private long meanTimeoffset;
+
+    #endregion
+
     public NtpCorrection(UnitContext context, ILogger<NtpCorrection> logger)
         : base(context)
     {
         this.logger = logger;
+    }
 
-        this.ResetHostnames();
+    [TinyhandOnDeserialized]
+    public void OnDeserialized()
+    {
+        this.ADdHostnames();
     }
 
     async Task IUnitPreparable.Prepare(UnitContext unitContext, CancellationToken cancellationToken)
@@ -183,7 +207,7 @@ Retry:
         }
     }
 
-    public void ResetHostnames()
+    public void ADdHostnames()
     {
         using (this.lockObject.EnterScope())
         {
@@ -289,20 +313,4 @@ Retry:
             this.meanTimeoffset = 0;
         }
     }
-
-    private ILogger<NtpCorrection>? logger;
-
-    private Lock lockObject = new();
-
-    [Key(0)]
-    public long LastCorrectedMics { get; set; }
-
-    [Key(1)]
-    private Item.GoshujinClass goshujin = new();
-
-    [Key(2)]
-    private int timeoffsetCount;
-
-    [Key(3)]
-    private long meanTimeoffset;
 }
