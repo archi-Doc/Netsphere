@@ -17,4 +17,9 @@
     <Compile Remove="Generated\*" />
   </ItemGroup>
 
+
+  <ItemGroup>
+    <PackageReference Include="CrystalData" Version="0.39.2" />
+  </ItemGroup>
+
 </Project>

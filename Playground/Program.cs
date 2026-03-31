@@ -4,9 +4,11 @@ global using Arc.Threading;
 global using Tinyhand;
 using Arc;
 using Arc.Unit;
+using CrystalData;
 using Microsoft.Extensions.DependencyInjection;
 using Netsphere;
 using Netsphere.Crypto;
+using Netsphere.Misc;
 using Netsphere.Relay;
 using SimpleCommandLine;
 
@@ -65,9 +67,11 @@ public class Program
             .Configure(context =>
             {
                 context.AddSingleton<IRelayControl, CertificateRelayControl>();
+                context.AddSingleton<BigMachine>();
 
                 // Command
                 context.AddCommand(typeof(BasicCommand));
+                context.AddCommand(typeof(NtpCommand));
 
                 context.AddLoggerResolver(context =>
                 {// Logger
@@ -108,6 +112,19 @@ public class Program
                  });
              });
 
+        var crystalBuilder = new CrystalUnit.Builder();
+        crystalBuilder.ConfigureCrystal(context =>
+        {
+            context.AddCrystal<Netsphere.Misc.NtpCorrection>(new CrystalConfiguration() with
+            {
+                SaveFormat = SaveFormat.Utf8,
+                NumberOfFileHistories = 0,
+                FileConfiguration = new GlobalFileConfiguration(Netsphere.Misc.NtpCorrection.Filename),
+            });
+        });
+
+        builder.AddBuilder(crystalBuilder);
+
         // Netsphere
         var unit = builder.Build();
         var options = unit.Context.ServiceProvider.GetRequiredService<NetOptions>();
@@ -121,6 +138,10 @@ public class Program
 
         await unit.Run(options, true);
 
+        TinyhandSerializer.ServiceProvider = unit.Context.ServiceProvider;
+        var crystalControl = unit.Context.ServiceProvider.GetRequiredService<CrystalControl>();
+        await crystalControl.PrepareAndLoad(false);
+
         var parserOptions = SimpleParserOptions.Standard with
         {
             ServiceProvider = unit.Context.ServiceProvider,
@@ -130,6 +151,7 @@ public class Program
 
         await SimpleParser.ParseAndRunAsync(unit.Context.Commands, SimpleParserHelper.GetCommandLineArguments(), parserOptions); // Main process
 
+        await crystalControl.StoreAndRip();
         await unit.Terminate();
 
         ThreadCore.Root.Terminate();
