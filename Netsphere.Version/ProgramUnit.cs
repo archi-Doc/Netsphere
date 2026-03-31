@@ -22,10 +22,10 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
             // Configuration for Unit.
             this.Configure(context =>
             {
-                context.AddSingleton<ProgramUnit>();
+                context.AddSingletonUnit<ProgramUnit>();
                 context.AddSingleton<Product>();
                 context.AddSingleton<GetOptions>();
-                context.RegisterInstanceCreation<ProgramUnit>();
+                // context.RegisterInstanceCreation<ProgramUnit>();
                 // context.AddSingleton<BigMachine>();
 
                 // Command
