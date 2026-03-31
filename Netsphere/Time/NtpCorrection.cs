@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 namespace Netsphere.Misc;
 
 [TinyhandObject(LockObject = "lockObject", ExplicitKeysOnly = true, UseServiceProvider = true)]
-public sealed partial class NtpCorrection : UnitBase, IUnitPreparable
+public sealed partial class NtpCorrection
 {
     public const string Filename = "NtpCorrection.tinyhand";
 
@@ -71,10 +71,11 @@ public sealed partial class NtpCorrection : UnitBase, IUnitPreparable
     [Key(3)]
     private long meanTimeoffset;
 
+    private bool setNtpCorrection;
+
     #endregion
 
-    public NtpCorrection(UnitContext context, ILogger<NtpCorrection> logger)
-        : base(context)
+    public NtpCorrection(ILogger<NtpCorrection> logger)
     {
         this.logger = logger;
     }
@@ -82,12 +83,7 @@ public sealed partial class NtpCorrection : UnitBase, IUnitPreparable
     [TinyhandOnDeserialized]
     public void OnDeserialized()
     {
-        this.ADdHostnames();
-    }
-
-    async Task IUnitPreparable.Prepare(UnitContext unitContext, CancellationToken cancellationToken)
-    {
-        Time.SetNtpCorrection(this);
+        this.AddHostnames();
     }
 
     public async Task Correct(CancellationToken cancellationToken)
@@ -207,7 +203,7 @@ Retry:
         }
     }
 
-    public void ADdHostnames()
+    public void AddHostnames()
     {
         using (this.lockObject.EnterScope())
         {
@@ -307,6 +303,11 @@ Retry:
         if (count != 0)
         {
             this.meanTimeoffset = timeoffset / count;
+            if (!this.setNtpCorrection)
+            {
+                this.setNtpCorrection = true;
+                Time.SetNtpCorrection(this);
+            }
         }
         else
         {
