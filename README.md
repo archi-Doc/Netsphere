@@ -16,7 +16,10 @@
 
 - [Requirements](#requirements)
 - [Quick Start](#quick-start)
-- [Configuration](#configuration)
+- [Instance management](#instance-management)
+- [Adding NetService](#adding-netservice)
+- [Checklist for NetService](#checklist-for-netservice)
+- [ResponseChannel](#responsechannel)
 
 
 
@@ -238,6 +241,16 @@ Normally, you define **NetService** methods that return **Task** to communicate 
 
 Only when the server-side processing is simple and does not require asynchronous work, you can use methods that take a **ResponseChannel** (delegate).
 
+```csharp
+[NetService]
+public interface IServiceA : INetService
+{
+    Task<int> MethodA(int x, int y); // A standard method that uses Task.
+
+    void MethodB(int x, int y, ref ResponseChannel<int> channel); // A method that uses ResponseChannel.
+}
+```
+
  The characteristics are as follows:
 
 - The method return type is **void**. You can have multiple parameters, but the last parameter must be `ref ResponseChannel<TResponse>`.
@@ -247,14 +260,6 @@ Only when the server-side processing is simple and does not require asynchronous
 Below is an implementation example.
 
 ```csharp
-[NetService]
-public interface IServiceA : INetService
-{
-    Task<int> MethodA(int x, int y); // A standard method that uses Task.
-
-    void MethodB(int x, int y, ref ResponseChannel<int> channel); // A method that uses ResponseChannel.
-}
-
 [NetObject]
 public class ServiceAImpl : IServiceA
 {
