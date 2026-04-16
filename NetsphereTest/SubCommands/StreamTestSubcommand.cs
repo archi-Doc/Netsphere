@@ -8,7 +8,7 @@ using SimpleCommandLine;
 namespace NetsphereTest;
 
 [SimpleCommand("stream")]
-public class StreamTestSubcommand : ISimpleCommandAsync<StreamTestOptions>
+public class StreamTestSubcommand : ISimpleCommand<StreamTestOptions>
 {
     public StreamTestSubcommand(ILogger<StreamTestSubcommand> logger, NetTerminal netTerminal)
     {
@@ -16,7 +16,7 @@ public class StreamTestSubcommand : ISimpleCommandAsync<StreamTestOptions>
         this.netTerminal = netTerminal;
     }
 
-    public async Task RunAsync(StreamTestOptions options, string[] args)
+    public async Task Execute(StreamTestOptions options, string[] args, CancellationToken cancellationToken)
     {
         var data = new byte[10_000_000];
         RandomVault.Xoshiro.NextBytes(data);

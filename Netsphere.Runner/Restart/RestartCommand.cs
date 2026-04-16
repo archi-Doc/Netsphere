@@ -7,14 +7,14 @@ using SimpleCommandLine;
 namespace Netsphere.Runner;
 
 [SimpleCommand("restart")]
-public class RestartCommand : RunnerCommand, ISimpleCommandAsync<RestartOptions>
+public class RestartCommand : RunnerCommand, ISimpleCommand<RestartOptions>
 {
     public RestartCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Product unit, BigMachine bigMachine)
         : base(serviceProvider, unitContext, unit, bigMachine)
     {
     }
 
-    public async Task RunAsync(RestartOptions options, string[] args)
+    public async Task Execute(RestartOptions options, string[] args, CancellationToken cancellationToken)
     {
         await this.Run(options);
 

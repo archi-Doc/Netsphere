@@ -94,7 +94,7 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
             this.Context.CreateInstances();
 
             var args = SimpleParserHelper.GetCommandLineArguments();
-            await SimpleParser.ParseAndRunAsync([typeof(RunCommand), typeof(RestartCommand),], args, parserOptions);
+            await SimpleParser.ParseAndExecute([typeof(RunCommand), typeof(RestartCommand),], args, parserOptions);
         }
     }
 

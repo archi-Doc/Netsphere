@@ -11,7 +11,7 @@ using SimpleCommandLine;
 namespace NetsphereTest;
 
 [SimpleCommand("remotebench")]
-public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
+public class RemoteBenchSubcommand : ISimpleCommand<RemoteBenchOptions>
 {
     public RemoteBenchSubcommand(ILogger<RemoteBenchSubcommand> logger, NetUnit netUnit, NtpCorrection ntpCorrection)
     {
@@ -20,7 +20,7 @@ public class RemoteBenchSubcommand : ISimpleCommandAsync<RemoteBenchOptions>
         this.ntpCorrection = ntpCorrection;
     }
 
-    public async Task RunAsync(RemoteBenchOptions options, string[] args)
+    public async Task Execute(RemoteBenchOptions options, string[] args, CancellationToken cancellationToken)
     {
         if (!NetNode.TryParse(options.Node, out var node, out _))
         {// NetNode.TryParseNetNode(this.logger, options.Node, out var node)

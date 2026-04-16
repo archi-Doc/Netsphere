@@ -11,7 +11,7 @@ using Tinyhand;
 namespace Netsphere.Version;
 
 [SimpleCommand("server", Default = true)]
-internal class ServerCommand : ISimpleCommandAsync<ServerOptions>
+internal class ServerCommand : ISimpleCommand<ServerOptions>
 {
     private const int DelayMilliseconds = 1_000; // 1 second
     private const int NtpCorrectionCount = 3600; // 3600 x 1000ms = 1 hour
@@ -27,7 +27,7 @@ internal class ServerCommand : ISimpleCommandAsync<ServerOptions>
         this.versionData = VersionData.Load();
     }
 
-    public async Task RunAsync(ServerOptions options, string[] args)
+    public async Task Execute(ServerOptions options, string[] args, CancellationToken cancellationToken)
     {
         this.logger.GetWriter()?.Write($"{options.ToString()}");
 

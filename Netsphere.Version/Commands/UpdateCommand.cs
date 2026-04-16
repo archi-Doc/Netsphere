@@ -7,7 +7,7 @@ using Netsphere.Relay;
 namespace Netsphere.Version;
 
 [SimpleCommand("update")]
-internal class UpdateCommand : ISimpleCommandAsync<UpdateOptions>
+internal class UpdateCommand : ISimpleCommand<UpdateOptions>
 {
     public UpdateCommand(ILogger<UpdateCommand> logger, NetTerminal netTerminal, NtpCorrection ntpCorrection)
     {
@@ -16,7 +16,7 @@ internal class UpdateCommand : ISimpleCommandAsync<UpdateOptions>
         this.ntpCorrection = ntpCorrection;
     }
 
-    public async Task RunAsync(UpdateOptions options, string[] args)
+    public async Task Execute(UpdateOptions options, string[] args, CancellationToken cancellationToken)
     {
         options.Prepare();
         this.logger.GetWriter()?.Write($"{options.ToString()}");
@@ -52,7 +52,7 @@ internal class UpdateCommand : ISimpleCommandAsync<UpdateOptions>
         }
     }
 
-    /*public async Task RunAsync(GetOptions options, string[] args)
+    /*public async Task Execute(GetOptions options, string[] args)
     {
         this.logger.GetWriter()?.Write($"{options.ToString()}");
 

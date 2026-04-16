@@ -12,7 +12,7 @@ using SimpleCommandLine;
 namespace Playground;
 
 [SimpleCommand("basic")]
-public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHandTarget
+public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarget
 {
     public BasicCommand(ILogger<BasicCommand> logger, NetUnit netUnit, IRelayControl relayControl, IChannel<IClockHandTarget> clockHandChannel, ClockHand clockHand)
     {
@@ -25,7 +25,7 @@ public class BasicCommand : ISimpleCommandAsync<BasicCommandOptions>, IClockHand
         clockHandChannel.Open(this, true);
     }
 
-    public async Task RunAsync(BasicCommandOptions options, string[] args)
+    public async Task Execute(BasicCommandOptions options, string[] args, CancellationToken cancellationToken)
     {
         /*var r = await NetStatsHelper.GetIcanhazipIPv4();
         var netAddress = new NetAddress(r.Address!, (ushort)this.netUnit.NetBase.NetOptions.Port);

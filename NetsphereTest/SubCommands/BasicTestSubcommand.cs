@@ -7,7 +7,7 @@ using SimpleCommandLine;
 namespace NetsphereTest;
 
 [SimpleCommand("basic")]
-public class BasicTestSubcommand : ISimpleCommandAsync<BasicTestOptions>
+public class BasicTestSubcommand : ISimpleCommand<BasicTestOptions>
 {
     public BasicTestSubcommand(ILogger<BasicTestSubcommand> logger, NetUnit netUnit)
     {
@@ -15,7 +15,7 @@ public class BasicTestSubcommand : ISimpleCommandAsync<BasicTestOptions>
         this.NetUnit = netUnit;
     }
 
-    public async Task RunAsync(BasicTestOptions options, string[] args)
+    public async Task Execute(BasicTestOptions options, string[] args, CancellationToken cancellationToken)
     {
         if (!NetAddress.TryParse(this.logger, options.NetNode, out var address))
         {

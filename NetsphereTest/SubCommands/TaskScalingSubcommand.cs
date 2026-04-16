@@ -234,7 +234,7 @@ public partial class TaskParent
 }*/
 
 [SimpleCommand("task")]
-public class TaskScalingSubcommand : ISimpleCommandAsync<TaskScalingOptions>
+public class TaskScalingSubcommand : ISimpleCommand<TaskScalingOptions>
 {
     public TaskScalingSubcommand(ILogger<TaskScalingSubcommand> logger, NetUnit netUnit)
     {
@@ -242,7 +242,7 @@ public class TaskScalingSubcommand : ISimpleCommandAsync<TaskScalingOptions>
         this.NetUnit = netUnit;
     }
 
-    public async Task RunAsync(TaskScalingOptions options, string[] args)
+    public async Task Execute(TaskScalingOptions options, string[] args, CancellationToken cancellationToken)
     {
         await Console.Out.WriteLineAsync("Task scaling test");
         await Console.Out.WriteLineAsync();

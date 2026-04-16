@@ -7,7 +7,7 @@ using Netsphere.Packet;
 namespace Lp.Subcommands;
 
 [SimpleCommand("restart")]
-public class RestartCommand : ISimpleCommandAsync<RestartOptions>
+public class RestartCommand : ISimpleCommand<RestartOptions>
 {
     private const int WaitIntervalInSeconds = 20;
     private const int PingIntervalInSeconds = 1;
@@ -19,7 +19,7 @@ public class RestartCommand : ISimpleCommandAsync<RestartOptions>
         this.netTerminal = terminal;
     }
 
-    public async Task RunAsync(RestartOptions options, string[] args)
+    public async Task Execute(RestartOptions options, string[] args, CancellationToken cancellationToken)
     {
         options.Prepare();
         this.logger.GetWriter()?.Write($"{options.ToString()}");

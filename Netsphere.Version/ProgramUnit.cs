@@ -129,7 +129,7 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 RequireStrictCommandName = false,
                 RequireStrictOptionName = false,
             };
-            await SimpleParser.ParseAndRunAsync(this.Context.Commands, args, parserOptions);
+            await SimpleParser.ParseAndExecute(this.Context.Commands, args, parserOptions);
 
             await this.Terminate();
         }

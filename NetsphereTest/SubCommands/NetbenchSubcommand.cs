@@ -9,7 +9,7 @@ using SimpleCommandLine;
 namespace NetsphereTest;
 
 [SimpleCommand("bench")]
-public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
+public class NetbenchSubcommand : ISimpleCommand<NetbenchOptions>
 {
     public NetbenchSubcommand(ILogger<NetbenchSubcommand> logger, NetUnit netUnit)
     {
@@ -17,7 +17,7 @@ public class NetbenchSubcommand : ISimpleCommandAsync<NetbenchOptions>
         this.NetUnit = netUnit;
     }
 
-    public async Task RunAsync(NetbenchOptions options, string[] args)
+    public async Task Execute(NetbenchOptions options, string[] args, CancellationToken cancellationToken)
     {
         NetNode? node = Alternative.NetNode;
         if (!string.IsNullOrEmpty(options.Node))

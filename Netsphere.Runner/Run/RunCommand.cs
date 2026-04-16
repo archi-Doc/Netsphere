@@ -10,14 +10,14 @@ using SimpleCommandLine;
 namespace Netsphere.Runner;
 
 [SimpleCommand("run")]
-public class RunCommand : RunnerCommand, ISimpleCommandAsync<RunOptions>
+public class RunCommand : RunnerCommand, ISimpleCommand<RunOptions>
 {
     public RunCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Product unit, BigMachine bigMachine)
         : base(serviceProvider, unitContext, unit, bigMachine)
     {
     }
 
-    public async Task RunAsync(RunOptions options, string[] args)
+    public async Task Execute(RunOptions options, string[] args, CancellationToken cancellationToken)
     {
         await this.Run(options);
 
