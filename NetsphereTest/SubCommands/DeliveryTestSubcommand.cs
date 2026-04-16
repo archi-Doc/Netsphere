@@ -10,7 +10,7 @@ using SimpleCommandLine;
 namespace NetsphereTest;
 
 [SimpleCommand("delivery")]
-public class DeliveryTestSubcommand : ISimpleCommandAsync<DeliveryTestOptions>
+public class DeliveryTestSubcommand : ISimpleCommand<DeliveryTestOptions>
 {
     private const int Count = 1_000;
 
@@ -20,7 +20,7 @@ public class DeliveryTestSubcommand : ISimpleCommandAsync<DeliveryTestOptions>
         this.NetUnit = netUnit;
     }
 
-    public async Task RunAsync(DeliveryTestOptions options, string[] args)
+    public async Task Execute(DeliveryTestOptions options, string[] args, CancellationToken cancellationToken)
     {
         var nodeString = options.Node;
         if (string.IsNullOrEmpty(nodeString))

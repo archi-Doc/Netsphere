@@ -12,7 +12,7 @@ using SimpleCommandLine;
 namespace RemoteDataServer;
 
 [SimpleCommand("default", Default = true)]
-public class DefaultCommand : ISimpleCommandAsync<DefaultCommandOptions>
+public class DefaultCommand : ISimpleCommand<DefaultCommandOptions>
 {
     public DefaultCommand(NetUnit.Product unit, ILogger<DefaultCommandOptions> logger, NetUnit netUnit, RemoteDataControl remoteDataBroker)
     {
@@ -22,7 +22,7 @@ public class DefaultCommand : ISimpleCommandAsync<DefaultCommandOptions>
         this.remoteData = remoteDataBroker;
     }
 
-    public async Task RunAsync(DefaultCommandOptions options, string[] args)
+    public async Task Execute(DefaultCommandOptions options, string[] args, CancellationToken cancellationToken)
     {
         var netOptions = this.unit.Context.ServiceProvider.GetRequiredService<NetOptions>();
         netOptions.Port = options.Port;

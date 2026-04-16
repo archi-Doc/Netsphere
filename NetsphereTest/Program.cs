@@ -203,7 +203,7 @@ public class Program
             RequireStrictOptionName = false,
         };
 
-        await SimpleParser.ParseAndRunAsync(unit.Context.Commands, args, parserOptions); // Main process
+        await SimpleParser.ParseAndExecute(unit.Context.Commands, args, parserOptions); // Main process
 
         ThreadCore.Root.Terminate();
         await ThreadCore.Root.WaitForTerminationAsync(-1); // Wait for the termination infinitely.

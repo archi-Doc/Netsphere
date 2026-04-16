@@ -8,7 +8,7 @@ using SimpleCommandLine;
 namespace NetsphereTest;
 
 [SimpleCommand("stress")]
-public class StressSubcommand : ISimpleCommandAsync<StressOptions>
+public class StressSubcommand : ISimpleCommand<StressOptions>
 {
     public StressSubcommand(ILogger<StressSubcommand> logger, NetUnit netUnit)
     {
@@ -16,7 +16,7 @@ public class StressSubcommand : ISimpleCommandAsync<StressOptions>
         this.NetUnit = netUnit;
     }
 
-    public async Task RunAsync(StressOptions options, string[] args)
+    public async Task Execute(StressOptions options, string[] args, CancellationToken cancellationToken)
     {
         NetNode? node = Alternative.NetNode;
         if (!string.IsNullOrEmpty(options.Node))

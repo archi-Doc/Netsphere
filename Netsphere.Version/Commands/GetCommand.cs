@@ -6,7 +6,7 @@ using Netsphere.Relay;
 namespace Netsphere.Version;
 
 [SimpleCommand("get")]
-internal class GetCommand : ISimpleCommandAsync<GetOptions>
+internal class GetCommand : ISimpleCommand<GetOptions>
 {
     public GetCommand(ILogger<GetCommand> logger, NetTerminal netTerminal)
     {
@@ -15,7 +15,7 @@ internal class GetCommand : ISimpleCommandAsync<GetOptions>
         this.netTerminal = netTerminal;
     }
 
-    public async Task RunAsync(GetOptions options, string[] args)
+    public async Task Execute(GetOptions options, string[] args, CancellationToken cancellationToken)
     {
         this.logger.GetWriter()?.Write($"{options.ToString()}");
 
@@ -48,7 +48,7 @@ internal class GetCommand : ISimpleCommandAsync<GetOptions>
         }
     }
 
-    /*public async Task RunAsync(GetOptions options, string[] args)
+    /*public async Task Execute(GetOptions options, string[] args)
     {
         this.logger.GetWriter()?.Write($"{options.ToString()}");
 

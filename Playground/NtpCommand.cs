@@ -9,7 +9,7 @@ using SimpleCommandLine;
 namespace Playground;
 
 [SimpleCommand("ntp")]
-public class NtpCommand : ISimpleCommandAsync<NtpCommandOptions>
+public class NtpCommand : ISimpleCommand<NtpCommandOptions>
 {
     public NtpCommand(ILogger<NtpCommand> logger, NetUnit netUnit, BigMachine bigMachine)
     {
@@ -20,7 +20,7 @@ public class NtpCommand : ISimpleCommandAsync<NtpCommandOptions>
         _ = this.bigMachine.NtpMachine.GetOrCreate().RunAsync();
     }
 
-    public async Task RunAsync(NtpCommandOptions options, string[] args)
+    public async Task Execute(NtpCommandOptions options, string[] args, CancellationToken cancellationToken)
     {
         Console.WriteLine("Ntp test");
 
