@@ -19,20 +19,8 @@ public partial class TaskParent
 
             Task.Run(async () =>
             {
-                while (true)
+                while (await this.pulseEvent.WaitAsync(ThreadCore.Root.CancellationToken).ConfigureAwait(false))
                 {
-                    try
-                    {
-                        var ct = ThreadCore.Root.CancellationToken;
-                        // await Task.WhenAny(this.pulseEvent.WaitAsync(ct), Task.Delay(100)).ConfigureAwait(false);
-
-                        // await this.pulseEvent.WaitAsync(TimeSpan.FromMilliseconds(1000), ct).ConfigureAwait(false);
-                        await this.pulseEvent.WaitAsync(ct).ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                    }
-
                     if (this.close)
                     {
                         this.taskParent.Delete(id);

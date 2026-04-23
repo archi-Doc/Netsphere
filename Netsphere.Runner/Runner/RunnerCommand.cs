@@ -62,7 +62,7 @@ public abstract class RunnerCommand
             else
             {
                 // await runner.Command.Restart();
-                await ((IBigMachine)this.bigMachine).Core.WaitForTerminationAsync(1000);
+                await ((IBigMachine)this.bigMachine).Core.WaitForTermination(1000);
             }
         }
 
