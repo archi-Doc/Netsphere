@@ -17,7 +17,7 @@ namespace Playground;
 [NetService]
 public interface ITestService : INetService
 {
-    Task<int> MethodA(int x);
+    Task<NetResultAndValue<int>> MethodA(int x, CancellationToken cancellationToken);
 
     void MethodB(int x, ref ResponseChannel<int> channel);
 
@@ -31,9 +31,9 @@ public class TestServiceImpl : ITestService
 {
     public int X { get; set; }
 
-    Task<int> ITestService.MethodA(int x)
+    Task<NetResultAndValue<int>> ITestService.MethodA(int x, CancellationToken cancellationToken)
     {
-        return Task.FromResult(1);
+        return Task.FromResult(new NetResultAndValue<int>(x + 1));
     }
 
     void ITestService.MethodB(int x, ref ResponseChannel<int> channel)

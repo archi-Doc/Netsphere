@@ -6,7 +6,7 @@ namespace Netsphere.Internal;
 
 public interface IClientConnectionInternal
 {
-    Task<(NetResult Result, ulong DataId, BytePool.RentMemory Value)> RpcSendAndReceive(BytePool.RentMemory data, ulong dataId);
+    Task<(NetResult Result, ulong DataId, BytePool.RentMemory Value)> RpcSendAndReceive(BytePool.RentMemory data, ulong dataId, CancellationToken cancellationToken = default);
 
     void RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, IResponseChannelInternal channel);
 

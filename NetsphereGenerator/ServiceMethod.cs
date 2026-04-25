@@ -161,6 +161,24 @@ public class ServiceMethod
             serviceMethod.Kind = MethodKind.ConnectBidirectionally;
         }
 
+        if (method.Method_Parameters.Length > 0)
+        {
+            for (var i = 0; i < method.Method_Parameters.Length; i++)
+            {
+                if (method.Method_Parameters[i] == NetsphereBody.CancellationTokenFullName)
+                {
+                    if (i == method.Method_Parameters.Length - 1)
+                    {
+                        serviceMethod.HasCancellationTokenParameter = true;
+                    }
+                    else
+                    {
+                        method.Body.AddDiagnostic(NetsphereBody.Error_CancellationToken, method.Location);
+                    }
+                }
+            }
+        }
+
         return serviceMethod;
     }
 
@@ -194,6 +212,8 @@ public class ServiceMethod
     public string GenericsType { get; private set; } = string.Empty;
 
     public MethodKind Kind { get; private set; }
+
+    public bool HasCancellationTokenParameter { get; private set; }
 
     public string GetParameters()
     {// int a1, string a2
@@ -346,7 +366,7 @@ public class ServiceMethod
         }
     }
 
-    public string GetTupleNames(string name, int decrement)
+    public string GetTupleNames(string name, int decrement, bool hasCancellationTokenParameter)
     {// value, value.Item1, value.Item2
         var methodSymbol = this.method.TryGetMethodSymbol();
         if (methodSymbol is null)
@@ -359,11 +379,25 @@ public class ServiceMethod
 
         if (length <= 0)
         {
-            return string.Empty;
+            if (hasCancellationTokenParameter)
+            {
+                return "default";
+            }
+            else
+            {
+                return string.Empty;
+            }
         }
         else if (length == 1)
         {
-            return name;
+            if (hasCancellationTokenParameter)
+            {
+                return $"{name}, default";
+            }
+            else
+            {
+                return name;
+            }
         }
         else
         {
@@ -383,6 +417,11 @@ public class ServiceMethod
                 sb.Append(name);
                 sb.Append(".Item");
                 sb.Append(i + 1);
+            }
+
+            if (hasCancellationTokenParameter)
+            {
+                sb.Append(", default");
             }
 
             return sb.ToString();
