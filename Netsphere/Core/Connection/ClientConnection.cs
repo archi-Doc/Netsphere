@@ -488,7 +488,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         return r.Result;
     }
 
-    async Task<(NetResult Result, ulong DataId, BytePool.RentMemory Value)> IClientConnectionInternal.RpcSendAndReceive(BytePool.RentMemory data, ulong dataId)
+    async Task<(NetResult Result, ulong DataId, BytePool.RentMemory Value)> IClientConnectionInternal.RpcSendAndReceive(BytePool.RentMemory data, ulong dataId, CancellationToken cancellationToken)
     {
         if (!this.IsActive)
         {
@@ -497,7 +497,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
 
         NetResponse response;
         var timeout = this.NetBase.DefaultTransmissionTimeout;
-        using (var transmissionAndTimeout = await this.TryCreateSendTransmission(timeout, default).ConfigureAwait(false))
+        using (var transmissionAndTimeout = await this.TryCreateSendTransmission(timeout, cancellationToken).ConfigureAwait(false))
         {
             if (transmissionAndTimeout.Transmission is null)
             {
@@ -520,7 +520,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
 
                 try
                 {
-                    response = await tcs.Task.WaitAsync(transmissionAndTimeout.Timeout).ConfigureAwait(false);
+                    response = await tcs.Task.WaitAsync(transmissionAndTimeout.Timeout, cancellationToken).ConfigureAwait(false);
                     if (response.IsFailure)
                     {
                         return new(response.Result, 0, default);
