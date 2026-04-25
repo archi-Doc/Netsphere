@@ -392,7 +392,7 @@ public class ServiceMethod
         {
             if (hasCancellationTokenParameter)
             {
-                return $"({name}, default)";
+                return $"{name}, default";
             }
             else
             {

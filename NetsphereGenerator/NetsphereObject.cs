@@ -622,7 +622,8 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             }
             else
             {
-                ssb.AppendLine($"var response = await (({NetsphereBody.IClientConnectionInternalName})this.ClientConnection).RpcSendAndReceive(owner, {method.IdString}).ConfigureAwait(false);");
+                var cancellationToken = method.HasCancellationTokenParameter ? $", {NetsphereBody.ArgumentName}{method.ParameterLength}" : string.Empty;
+                ssb.AppendLine($"var response = await (({NetsphereBody.IClientConnectionInternalName})this.ClientConnection).RpcSendAndReceive(owner, {method.IdString}{cancellationToken}).ConfigureAwait(false);");
                 ssb.AppendLine("owner.Return();");
                 using (var scopeNoNetService = ssb.ScopeBrace("if (response.Result == NetResult.Success && response.Value.IsEmpty)"))
                 {
