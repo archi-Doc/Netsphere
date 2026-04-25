@@ -161,6 +161,24 @@ public class ServiceMethod
             serviceMethod.Kind = MethodKind.ConnectBidirectionally;
         }
 
+        if (method.Method_Parameters.Length > 0)
+        {
+            for (var i = 0; i < method.Method_Parameters.Length; i++)
+            {
+                if (method.Method_Parameters[i] == NetsphereBody.CancellationTokenFullName)
+                {
+                    if (i == method.Method_Parameters.Length - 1)
+                    {
+                        serviceMethod.HasCancellationTokenParameter = true;
+                    }
+                    else
+                    {
+                        method.Body.AddDiagnostic(NetsphereBody.Error_CancellationToken, method.Location);
+                    }
+                }
+            }
+        }
+
         return serviceMethod;
     }
 
@@ -194,6 +212,8 @@ public class ServiceMethod
     public string GenericsType { get; private set; } = string.Empty;
 
     public MethodKind Kind { get; private set; }
+
+    public bool HasCancellationTokenParameter { get; private set; }
 
     public string GetParameters()
     {// int a1, string a2

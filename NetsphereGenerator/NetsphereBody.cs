@@ -14,6 +14,7 @@ namespace Netsphere.Generator;
 
 public class NetsphereBody : VisceralBody<NetsphereObject>
 {
+    public const string CancellationTokenFullName = "System.Threading.CancellationToken";
     public const string TaskFullName = "System.Threading.Tasks.Task";
     public const string TaskFullName2 = "System.Threading.Tasks.Task<TResult>";
     public const string GeneratorName = "NetsphereGenerator";
@@ -91,6 +92,10 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
 
     public static readonly DiagnosticDescriptor Error_MethodForm = new DiagnosticDescriptor(
         id: "NSG015", title: "Method form", messageFormat: "Define methods that use ResponseChannel in the following form: void Method(params, ref ResponseChannel<TResponse> channel);",
+        category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor Error_CancellationToken = new DiagnosticDescriptor(
+        id: "NSG016", title: "CancellationToken", messageFormat: "CancellationToken parameters must come last",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
     public NetsphereBody(SourceProductionContext context)

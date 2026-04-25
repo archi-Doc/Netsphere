@@ -508,6 +508,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         var genericString = method.ReturnObject == null ? string.Empty : $"<{method.ReturnObject.FullNameWithNullable}>";
         var taskString = $"Task{genericString}";
         var deserializeString = method.ReturnObject == null ? "NetResult" : method.ReturnObject.FullNameWithNullable;
+        var decrement = method.HasCancellationTokenParameter ? 1 : 0;
 
         var asyncPrefix = "async ";
         if (method.Kind == ServiceMethod.MethodKind.UpdateAgreement ||
@@ -521,7 +522,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             using (var scopeMethod = ssb.ScopeBrace($"public void {method.SimpleName}({method.GetParameters()})"))
             {
                 var channelName = $"{NetsphereBody.ArgumentName}{method.ParameterLength}";
-                using (var scopeSerialize = ssb.ScopeBrace($"if (!NetHelper.TrySerialize({method.GetParameterNames(NetsphereBody.ArgumentName, 0)}, out var owner))"))
+                using (var scopeSerialize = ssb.ScopeBrace($"if (!NetHelper.TrySerialize({method.GetParameterNames(NetsphereBody.ArgumentName, decrement)}, out var owner))"))
                 {
                     ssb.AppendLine($"(({NetsphereBody.ReceiveDelegateAndValueInternalName}){channelName}).Invoke(NetResult.SerializationFailed);");
                     ssb.AppendLine("return;");
@@ -606,7 +607,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             }
             else
             {
-                using (var scopeSerialize = ssb.ScopeBrace($"if (!NetHelper.TrySerialize({method.GetParameterNames(NetsphereBody.ArgumentName, 0)}, out var owner))"))
+                using (var scopeSerialize = ssb.ScopeBrace($"if (!NetHelper.TrySerialize({method.GetParameterNames(NetsphereBody.ArgumentName, decrement)}, out var owner))"))
                 {
                     AppendReturn("NetResult.SerializationFailed");
                 }
