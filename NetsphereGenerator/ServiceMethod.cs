@@ -366,7 +366,7 @@ public class ServiceMethod
         }
     }
 
-    public string GetTupleNames(string name, int decrement)
+    public string GetTupleNames(string name, int decrement, bool hasCancellationTokenParameter)
     {// value, value.Item1, value.Item2
         var methodSymbol = this.method.TryGetMethodSymbol();
         if (methodSymbol is null)
@@ -379,11 +379,25 @@ public class ServiceMethod
 
         if (length <= 0)
         {
-            return string.Empty;
+            if (hasCancellationTokenParameter)
+            {
+                return "default";
+            }
+            else
+            {
+                return string.Empty;
+            }
         }
         else if (length == 1)
         {
-            return name;
+            if (hasCancellationTokenParameter)
+            {
+                return $"({name}, default)";
+            }
+            else
+            {
+                return name;
+            }
         }
         else
         {
@@ -403,6 +417,11 @@ public class ServiceMethod
                 sb.Append(name);
                 sb.Append(".Item");
                 sb.Append(i + 1);
+            }
+
+            if (hasCancellationTokenParameter)
+            {
+                sb.Append(", default");
             }
 
             return sb.ToString();

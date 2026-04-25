@@ -782,18 +782,19 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
     internal void GenerateBackend_Method(ScopingStringBuilder ssb, GeneratorInformation info, NetsphereObject serviceInterface, ServiceMethod method)
     {
+        var decrement = method.HasCancellationTokenParameter ? 1 : 0;
         using (var scopeMethod = ssb.ScopeBrace($"private static async Task {method.MethodString}(object obj, TransmissionContext c0)"))
         {
             if (method.ReturnType == ServiceMethod.Type.ResponseChannel)
             {
-                using (var scopeDeserialize = ssb.ScopeBrace($"if (!NetHelper.Deserialize<{method.GetParameterTypes(0)}>(c0.RentMemory, out var value))"))
+                using (var scopeDeserialize = ssb.ScopeBrace($"if (!NetHelper.Deserialize<{method.GetParameterTypes(decrement)}>(c0.RentMemory, out var value))"))
                 {
                     ssb.AppendLine("c0.Result = NetResult.DeserializationFailed;");
                     ssb.AppendLine("return;");
                 }
 
                 ssb.AppendLine();
-                ssb.AppendLine($"(({serviceInterface.FullName})obj).{method.SimpleName}({method.GetTupleNames("value", 0)});");
+                ssb.AppendLine($"(({serviceInterface.FullName})obj).{method.SimpleName}({method.GetTupleNames("value", decrement, method.HasCancellationTokenParameter)});");
 
                 using (var scopeSerialize = ssb.ScopeBrace($"if (NetHelper.TrySerialize(value.Item{method.ParameterLength}, out var owner2))"))
                 {
@@ -862,7 +863,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 // ssb.AppendLine("var rent = context.RentMemory;");
                 // using (var scopeTry = ssb.ScopeBrace("try"))
                 {
-                    this.GenerateBackend_MethodCore(ssb, info, serviceInterface, method);
+                    this.GenerateBackend_MethodCore(ssb, info, serviceInterface, method, decrement);
                 }
 
                 // using (var scopeFinally = ssb.ScopeBrace("finally"))
@@ -873,7 +874,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         }
     }
 
-    internal void GenerateBackend_MethodCore(ScopingStringBuilder ssb, GeneratorInformation info, NetsphereObject serviceInterface, ServiceMethod method)
+    internal void GenerateBackend_MethodCore(ScopingStringBuilder ssb, GeneratorInformation info, NetsphereObject serviceInterface, ServiceMethod method, int decrement)
     {
         if (method.ParameterType == ServiceMethod.Type.NetResult)
         {
@@ -917,7 +918,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 ssb.AppendLine("return;");
             }*/
 
-            using (var scopeDeserialize = ssb.ScopeBrace($"if (!NetHelper.Deserialize<{method.GetParameterTypes(0)}>(context.RentMemory, out var value))"))
+            using (var scopeDeserialize = ssb.ScopeBrace($"if (!NetHelper.Deserialize<{method.GetParameterTypes(decrement)}>(context.RentMemory, out var value))"))
             {
                 ssb.AppendLine("context.Result = NetResult.DeserializationFailed;");
                 ssb.AppendLine("return;");
@@ -967,7 +968,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                     ssb.AppendLine("return;");
                 }
 
-                ssb.AppendLine($"{prefix}await agent.{method.SimpleName}({method.GetTupleNames("rr.Value!", 1)}, context.GetReceiveStream().MaxStreamLength).ConfigureAwait(false);");
+                ssb.AppendLine($"{prefix}await agent.{method.SimpleName}({method.GetTupleNames("rr.Value!", decrement + 1, method.HasCancellationTokenParameter)}, context.GetReceiveStream().MaxStreamLength).ConfigureAwait(false);");
             }
             else
             {
@@ -976,7 +977,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         }
         else
         {
-            ssb.AppendLine($"{prefix}await agent.{method.SimpleName}({method.GetTupleNames("value", 0)}).ConfigureAwait(false);");
+            ssb.AppendLine($"{prefix}await agent.{method.SimpleName}({method.GetTupleNames("value", decrement, method.HasCancellationTokenParameter)}).ConfigureAwait(false);");
         }
 
         // ssb.AppendLine("context.Return();"); -> try-finally
