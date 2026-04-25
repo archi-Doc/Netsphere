@@ -50,6 +50,7 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
         using (var connection = (await netTerminal.Connect(netNode))!)
         {
             var service = connection.GetService<ITestService>();
+            var re = await service.MethodA(3, default);
             var channel = new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); });
             service.MethodB(2, ref channel);
 
