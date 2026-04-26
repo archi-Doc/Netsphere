@@ -23,6 +23,8 @@ public interface ITestService : INetService
 
     void MethodC(in int x, ref int y, ref ResponseChannel<int> channel);
 
+    Task MethodD(CancellationToken cancellationToken);
+
     public int X { get; set; }
 }
 
@@ -44,6 +46,11 @@ public class TestServiceImpl : ITestService
     void ITestService.MethodC(in int x, ref int y, ref ResponseChannel<int> channel)
     {
         channel.SetResponse(x + y);
+    }
+
+    Task ITestService.MethodD(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
     }
 }
 
