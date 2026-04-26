@@ -23,6 +23,10 @@ public interface IBasicService : INetService
 
     void SendInt2(int x, ref ResponseChannel<int> channel);
 
+    Task<NetResultAndValue<int>> MethodA(int x, CancellationToken cancellationToken);
+
+    Task MethodD(CancellationToken cancellationToken);
+
     public int TestProperty { get; protected set; }
 
     public string TestProperty2 { get; init; }
@@ -63,6 +67,16 @@ public class BasicServiceImpl : IBasicService
     public void SendInt2(int x, ref ResponseChannel<int> channel)
     {
         channel.SetResponse(x + 4);
+    }
+
+    Task<NetResultAndValue<int>> IBasicService.MethodA(int x, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(new NetResultAndValue<int>(x + 1));
+    }
+
+    Task IBasicService.MethodD(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
     }
 
     public int TestProperty { get => default!; set { } }

@@ -601,7 +601,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             {
                 ssb.AppendLine("var owner = a1.IncrementAndShare().UnsafeMemory;");
             }
-            else if (method.ParameterLength == 0)
+            else if ((method.ParameterLength - decrement) == 0)
             {
                 ssb.AppendLine($"var owner = {ServiceMethod.RentMemoryName}.Empty;");
             }
@@ -903,7 +903,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         {// BytePool.RentReadOnlyMemory
             ssb.AppendLine("var value = context.RentMemory.ReadOnly;");
         }
-        else if (method.ParameterLength == 0)
+        else if ((method.ParameterLength - decrement) == 0)
         {// No parameter
             ssb.AppendLine($"var owner = {ServiceMethod.RentMemoryName}.Empty;");
         }
