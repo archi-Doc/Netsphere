@@ -51,7 +51,7 @@ public class NetFixture : IDisposable
         this.unit.Run(options, true).Wait();
 
         this.NetUnit = this.unit.Context.ServiceProvider.GetRequiredService<NetUnit>();
-        this.NetUnit.NetBase.DefaultTransmissionTimeout = TimeSpan.FromSeconds(1_000);
+        this.NetUnit.NetBase.DefaultAgreement.TransmissionTimeout = TimeSpan.FromSeconds(1_000);
         this.NetUnit.NetBase.DefaultAgreement.MaxBlockSize = MaxBlockSize;
         this.NetUnit.NetBase.DefaultAgreement.MaxStreamLength = MaxStreamLength;
         this.NetUnit.NetBase.DefaultAgreement.StreamBufferSize = StreamBufferSize;
