@@ -13,10 +13,13 @@ namespace Netsphere;
 
 public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 {
+    public const string GroupName = "Netsphere";
+
     public NetTerminal(UnitContext unitContext, LogUnit logUnit, NetBase netBase, NetStats netStats, IRelayControl relayControl)
         : base(unitContext)
     {
-        this.Core = new ThreadCoreGroup(unitContext.Core);
+        this.root = unitContext.Root;
+        this.ExecutionGroup = new(this.root, false, GroupName);
         this.LogUnit = logUnit;
         this.NetBase = netBase;
         this.NetStats = netStats;
@@ -34,11 +37,13 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 
     #region FieldAndProperty
 
-    public ThreadCoreBase Core { get; }
+    private readonly ExecutionRoot root;
+
+    public ExecutionGroup ExecutionGroup { get; }
 
     public UnitState State { get; private set; }
 
-    public bool IsActive => !ThreadCore.Root.IsTerminated && this.State == UnitState.Active;
+    public bool IsActive => this.ExecutionGroup.CanContinue && this.State == UnitState.Active;
 
     public NetBase NetBase { get; }
 
@@ -81,7 +86,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
     #endregion
 
     public Task<bool> Delay100ms(CancellationToken cancellationToken = default)
-        => this.Core.Delay(100, cancellationToken);
+        => this.ExecutionGroup.Delay(100, cancellationToken);
 
     public bool TryCreateEndpoint(ref NetAddress address, EndpointResolution endpointResolution, out NetEndpoint endPoint)
         => this.NetStats.TryCreateEndpoint(ref address, endpointResolution, out endPoint);
@@ -164,7 +169,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
     {
         this.State = UnitState.Active;
 
-        await this.NetSender.StartAsync(unitContext.Core);
+        await this.NetSender.StartAsync(this.ExecutionGroup);
     }
 
     async Task IUnitExecutable.Stop(UnitContext unitContext, CancellationToken cancellationToken)
@@ -180,7 +185,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 
         this.NetSender.Stop();
 
-        this.Core.Terminate();
+        this.ExecutionGroup.RequestTermination();
     }
 
     internal void Initialize(ResponderControl responders, ServiceControl services, bool isAlternative)

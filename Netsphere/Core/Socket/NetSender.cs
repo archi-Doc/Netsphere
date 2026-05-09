@@ -51,8 +51,8 @@ internal class NetSender
             }
         }
 
-        public SendCore(ThreadCoreBase parent, NetSender sender)
-                : base(parent, Process, false)
+        public SendCore(ExecutionGroup parent, NetSender sender)
+                : base(parent, Process, ExecutionCoreOptions.DelayedStart)
         {
             this.Thread.Priority = ThreadPriority.AboveNormal;
             this.sender = sender;
@@ -102,7 +102,7 @@ internal class NetSender
         }
     }
 
-    public async Task<bool> StartAsync(ThreadCoreBase parent)
+    public async Task<bool> StartAsync(ExecutionGroup group)
     {
         var port = this.netTerminal.Port;
         int retry;
@@ -110,7 +110,7 @@ internal class NetSender
         retry = 0;
         while (true)
         {
-            if (this.netSocketIpv4.Start(parent, port, false))
+            if (this.netSocketIpv4.Start(group, port, false))
             {
                 break;
             }
@@ -130,7 +130,7 @@ internal class NetSender
         retry = 0;
         while (true)
         {
-            if (this.netSocketIpv6.Start(parent, port, true))
+            if (this.netSocketIpv6.Start(group, port, true))
             {
                 break;
             }
@@ -147,8 +147,8 @@ internal class NetSender
             }
         }
 
-        this.sendCore ??= new SendCore(parent, this);
-        this.sendCore.Start();
+        this.sendCore ??= new SendCore(group, this);
+        this.sendCore.SendSignal(ExecutionSignal.Start);
         return true;
     }
 

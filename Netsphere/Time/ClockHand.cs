@@ -11,7 +11,7 @@ namespace Netsphere;
 /// <see cref="IClockHandTarget.OnEverySecond"/> once per second, and emits
 /// <see cref="IClockHandTarget.OnEveryMinute"/> at each minute boundary.
 /// </remarks>
-public class ClockHand : TaskCore
+public class ClockHand : TaskCore<ClockHand>
 {
     /// <summary>
     /// Poll interval for the internal timing loop.
@@ -20,13 +20,8 @@ public class ClockHand : TaskCore
 
     private readonly IClockHandTarget broker;
 
-    private static async Task Process(object? obj)
+    private static async Task Process(ClockHand clockHand)
     {
-        if (obj is not ClockHand clockHand)
-        {
-            return;
-        }
-
         long lastSeconds = 0;
         while (await clockHand.Delay(MillisecondsToWait))
         {
@@ -37,11 +32,6 @@ public class ClockHand : TaskCore
             }
 
             lastSeconds = currentSeconds;
-            if (clockHand.IsPaused)
-            {
-                continue;
-            }
-
             clockHand.broker.OnEverySecond();
 
             if (currentSeconds % 60 == 0)
@@ -51,8 +41,8 @@ public class ClockHand : TaskCore
         }
     }
 
-    public ClockHand(UnitContext unitContext)
-        : base(unitContext.Core, Process, false)
+    public ClockHand(UnitContext unitContext, ExecutionGroup parent)
+        : base(parent, Process, ExecutionCoreOptions.DelayedStart)
     {
         this.broker = unitContext.Radio.GetChannel<IClockHandTarget>().GetBroker();
     }
