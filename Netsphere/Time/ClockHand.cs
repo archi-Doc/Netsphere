@@ -41,8 +41,8 @@ public class ClockHand : TaskCore<ClockHand>
         }
     }
 
-    public ClockHand(UnitContext unitContext, ExecutionGroup parent)
-        : base(parent, Process, ExecutionCoreOptions.DelayedStart)
+    public ClockHand(UnitContext unitContext)
+        : base(unitContext.Root, Process, ExecutionCoreOptions.DelayedStart)
     {
         this.broker = unitContext.Radio.GetChannel<IClockHandTarget>().GetBroker();
     }
