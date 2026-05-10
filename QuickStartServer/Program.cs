@@ -1,6 +1,7 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Net;
+using Arc;
 using Arc.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Netsphere;
@@ -9,18 +10,20 @@ namespace QuickStart;
 
 public class Program
 {
+    private static ExecutionRoot? root;
+
     public static async Task Main()
     {
-        AppDomain.CurrentDomain.ProcessExit += (s, e) =>
-        {// Console window closing or process terminated.
-            ThreadCore.Root.Terminate(); // Send a termination signal to the root.
-            ThreadCore.Root.TerminationEvent.WaitOne(2_000); // Wait until the termination process is complete (#1).
-        };
+        AppCloseHandler.Set(() =>
+        {// Closing the console window or terminating the process.
+            root?.RequestTermination(); // Send a termination signal to the root.
+            root?.WaitForTermination(TimeSpan.FromSeconds(2)).Wait();
+        });
 
         Console.CancelKeyPress += (s, e) =>
-        {// Ctrl+C pressed
+        {// Ctrl+C pressed.
             e.Cancel = true;
-            ThreadCore.Root.Terminate(); // Send a termination signal to the root.
+            root?.RequestTermination(); // Send a termination signal to the root.
         };
 
         // Create a NetUnit builder.
@@ -41,6 +44,7 @@ public class Program
             });
 
         var unit = builder.Build(); // Create a unit that provides network functionality.
+        root = unit.Context.Root;
         var options = unit.Context.ServiceProvider.GetRequiredService<NetOptions>();
         await unit.Run(options, true); // Execute the created unit with the specified options.
 
@@ -54,11 +58,10 @@ public class Program
 
         await Console.Out.WriteLineAsync($"{options.NodeName}: {node.ToString()}");
         await Console.Out.WriteLineAsync("Ctrl+C to exit");
-        await ThreadCore.Root.Delay(Timeout.InfiniteTimeSpan); // Wait until the server shuts down.
+        await root.Delay(Timeout.InfiniteTimeSpan); // Wait until the server shuts down.
         await unit.Terminate(); // Perform the termination process for the unit.
 
-        ThreadCore.Root.Terminate();
-        await ThreadCore.Root.WaitForTermination(); // Wait for the termination infinitely.
-        ThreadCore.Root.TerminationEvent.Set(); // The termination process is complete (#1).
+        root.RequestTermination();
+        await root.WaitForTermination(); // Wait for the termination infinitely.
     }
 }

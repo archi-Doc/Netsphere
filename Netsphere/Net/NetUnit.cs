@@ -137,18 +137,16 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
     #endregion
 
-    private class IntervalTask : TaskCore
+    private class IntervalTask : TaskCore<IntervalTask>
     {
-        public IntervalTask(ThreadCoreBase? core, NetUnit netUnit)
-            : base(core, Process, false)
+        public IntervalTask(ExecutionGroup parent, NetUnit netUnit)
+            : base(parent, Process, ExecutionCoreOptions.DelayedStart)
         {
             this.unit = netUnit;
         }
 
-        private static async Task Process(object? parameter)
+        private static async Task Process(IntervalTask core)
         {
-            var core = (IntervalTask)parameter!;
-
             while (await core.Delay(1_000).ConfigureAwait(false))
             {
                 await core.unit.NetTerminal.IntervalTask(core.CancellationToken);
@@ -245,8 +243,8 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
     async Task IUnitExecutable.Start(UnitContext unitContext, CancellationToken cancellationToken)
     {
-        this.intervalTask ??= new(unitContext.Core, this);
-        this.intervalTask.Start();
+        this.intervalTask ??= new(this.NetTerminal.ExecutionGroup, this);
+        this.intervalTask.SendSignal(ExecutionSignal.Start);
     }
 
     async Task IUnitExecutable.Stop(UnitContext unitContext, CancellationToken cancellationToken)
@@ -255,6 +253,6 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
     async Task IUnitExecutable.Terminate(UnitContext unitContext, CancellationToken cancellationToken)
     {
-        this.intervalTask?.Terminate();
+        this.intervalTask?.RequestTermination();
     }
 }

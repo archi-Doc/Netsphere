@@ -78,10 +78,11 @@ public sealed class NetSocket
             }
         }
 
-        public RecvCore(ThreadCoreBase parent, NetSocket socket)
-                : base(parent, Process, false)
+        public RecvCore(ExecutionGroup parent, NetSocket socket)
+                : base(parent, Process, ExecutionCoreOptions.DelayedStart)
         {
             // this.Thread.Priority = ThreadPriority.AboveNormal;
+            this.Thread.IsBackground = true;
             this.socket = socket;
         }
 
@@ -104,7 +105,7 @@ public sealed class NetSocket
 
     #endregion
 
-    public bool Start(ThreadCoreBase parent, int port, bool ipv6)
+    public bool Start(ExecutionGroup parent, int port, bool ipv6)
     {
         this.recvCore ??= new RecvCore(parent, this);
 
@@ -117,7 +118,7 @@ public sealed class NetSocket
             return false;
         }
 
-        this.recvCore.Start();
+        this.recvCore.SendSignal(ExecutionSignal.Start);
 
         return true;
     }

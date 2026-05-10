@@ -14,12 +14,15 @@ public abstract class RunnerCommand
     private readonly UnitContext unitContext;
     private readonly RunnerUnit.Product unit;
 
+    protected ExecutionRoot root { get; }
+
     protected IServiceProvider serviceProvider { get; }
 
     protected BigMachine bigMachine { get; }
 
     public RunnerCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Product unit, BigMachine bigMachine)
     {
+        this.root = unitContext.Root;
         this.serviceProvider = serviceProvider;
         this.unitContext = unitContext;
         this.unit = unit;

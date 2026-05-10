@@ -9,12 +9,12 @@ public static class NetStatsHelper
     private const string DynDnsUri = "http://checkip.dyndns.org";
     private static readonly TimeSpan GetTimeout = TimeSpan.FromSeconds(1);
 
-    public static async Task<NetAddress> GetOwnAddress(ushort port)
+    public static async Task<NetAddress> GetOwnAddress(ushort port, CancellationToken cancellationToken = default)
     {
         var tasks = new Task<AddressQueryResult>[]
         {
-            NetStatsHelper.GetIcanhazipIPv4(ThreadCore.Root.CancellationToken),
-            NetStatsHelper.GetIcanhazipIPv6(ThreadCore.Root.CancellationToken),
+            NetStatsHelper.GetIcanhazipIPv4(cancellationToken),
+            NetStatsHelper.GetIcanhazipIPv6(cancellationToken),
         };
 
         var results = await Task.WhenAll(tasks);

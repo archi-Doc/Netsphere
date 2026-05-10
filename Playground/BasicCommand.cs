@@ -20,7 +20,7 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
         this.netUnit = netUnit;
         this.relayControl = relayControl;
         // Radio.Open<IClockHandService>(default);
-        clockHand.Start();
+        clockHand.SendSignal(ExecutionSignal.Start);
         // clockHand.Pause();
         clockHandChannel.Open(this, true);
     }
@@ -47,11 +47,19 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
         netTerminal.Services.EnableNetService<ITestService>();
         var packetTerminal = netTerminal.PacketTerminal;
 
-        using (var connection = (await netTerminal.Connect(netNode))!)
+        using (var connection = (await netTerminal.Connect(netNode)))
         {
+            if (connection is null)
+            {
+                return;
+            }
+
             var service = connection.GetService<ITestService>();
             var re = await service.MethodA(3, default);
-            var channel = new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); });
+            var channel = new ResponseChannel<int>(static (result, value) =>
+            {
+                Console.WriteLine($"ResponseChannel: {value}");
+            });
             service.MethodB(2, ref channel);
 
             var y = 3;
@@ -60,8 +68,6 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
             await connection.WaitForReceiveCompletion();
             // await Task.Delay(100);
         }
-
-
 
         var length = AuthenticationToken.MaxStringLength;
         var p = new PingPacket("test56789");
@@ -77,7 +83,13 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
 
         Console.WriteLine("ClockHand ->");
 
-        await ThreadCore.Root.Delay(100_000);
+        try
+        {
+            await Task.Delay(100_000, cancellationToken);
+        }
+        catch
+        {
+        }
     }
 
     void IClockHandTarget.OnEverySecond()

@@ -5,7 +5,7 @@ namespace Netsphere.Logging;
 public class IdFileLogger<TOption> : BufferedLogOutput
     where TOption : IdFileLoggerOptions
 {
-    public IdFileLogger(UnitCore core, LogUnit logUnit, ILogService logService, TOption options)
+    public IdFileLogger(ExecutionGroup parent, LogUnit logUnit, ILogService logService, TOption options)
         : base(logUnit)
     {
         if (string.IsNullOrEmpty(Path.GetDirectoryName(options.Path)))
@@ -16,9 +16,9 @@ public class IdFileLogger<TOption> : BufferedLogOutput
             };
         }
 
-        this.worker = new(core, logService, options);
+        this.worker = new(parent, logService, options);
         this.options = options;
-        this.worker.Start();
+        this.worker.SendSignal(ExecutionSignal.Start);
     }
 
     public override void Output(LogEvent logEvent)

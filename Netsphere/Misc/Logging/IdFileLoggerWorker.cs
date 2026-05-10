@@ -71,8 +71,8 @@ internal partial class IdFileLoggerWorker : TaskCore
         private Queue<IdFileLoggerWork> queue = new();
     }
 
-    public IdFileLoggerWorker(UnitCore core, ILogService logService, IdFileLoggerOptions options)
-        : base(core, Process, false)
+    public IdFileLoggerWorker(ExecutionGroup parent, ILogService logService, IdFileLoggerOptions options)
+        : base(parent, Process, ExecutionCoreOptions.DelayedStart)
     {
         this.logger = logService.GetLogger<IdFileLoggerWorker>();
         this.options = options;
@@ -101,7 +101,7 @@ internal partial class IdFileLoggerWorker : TaskCore
         var worker = (IdFileLoggerWorker)obj!;
 
         await worker.Sync().ConfigureAwait(false);
-        while (worker.Sleep(1000))
+        while (await worker.Delay(1_000).ConfigureAwait(false))
         {
             await worker.Flush(false).ConfigureAwait(false);
         }
@@ -189,7 +189,7 @@ internal partial class IdFileLoggerWorker : TaskCore
 
             if (terminate)
             {
-                this.Terminate();
+                this.RequestTermination();
             }
             else
             {// Limit log capacity

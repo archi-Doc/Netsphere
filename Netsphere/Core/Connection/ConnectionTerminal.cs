@@ -690,6 +690,15 @@ public class ConnectionTerminal
 
                         x.Goshujin = null;
                     }
+                    else
+                    {
+                        if (x.IsClosed)
+                        {
+                            x.ChangeStateInternal(Connection.State.Disposed);
+                        }
+
+                        x.Goshujin = null;
+                    }
                 }
             }
 
@@ -722,6 +731,15 @@ public class ConnectionTerminal
 
                         x.Goshujin = null;
                     }
+                    else
+                    {
+                        if (x.IsClosed)
+                        {
+                            x.ChangeStateInternal(Connection.State.Disposed);
+                        }
+
+                        x.Goshujin = null;
+                    }
                 }
             }
 
@@ -734,7 +752,7 @@ public class ConnectionTerminal
             {
                 try
                 {
-                    Console.WriteLine("ConnectionTerminal:Terminate delay");//
+                    // Console.WriteLine("ConnectionTerminal:Terminate delay");
                     await Task.Delay(NetConstants.TerminateTerminalDelayMilliseconds, cancellationToken);
                     delayInMilliseconds += NetConstants.TerminateTerminalDelayMilliseconds;
                 }
