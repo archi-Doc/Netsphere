@@ -752,7 +752,7 @@ public class ConnectionTerminal
             {
                 try
                 {
-                    Console.WriteLine("ConnectionTerminal:Terminate delay");//
+                    // Console.WriteLine("ConnectionTerminal:Terminate delay");
                     await Task.Delay(NetConstants.TerminateTerminalDelayMilliseconds, cancellationToken);
                     delayInMilliseconds += NetConstants.TerminateTerminalDelayMilliseconds;
                 }
