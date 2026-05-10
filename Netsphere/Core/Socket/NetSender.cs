@@ -55,6 +55,7 @@ internal class NetSender
                 : base(parent, Process, ExecutionCoreOptions.DelayedStart)
         {
             this.Thread.Priority = ThreadPriority.AboveNormal;
+            this.Thread.IsBackground = true;
             this.sender = sender;
             // this.timer = MultimediaTimer.TryCreate(NetConstants.SendIntervalMilliseconds, this.sender.Process); // Use multimedia timer if available.
         }

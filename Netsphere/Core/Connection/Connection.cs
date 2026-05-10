@@ -153,11 +153,11 @@ public abstract class Connection : IDisposable
         => this.sendTransmissions.Count;
 
     internal int ReceiveTransmissionsCount
-        => this.receiveTransmissions.Count;
+        => this.receiveReceivedList.Count;
 
     internal bool IsEmpty
         => this.sendTransmissions.Count == 0 &&
-        this.receiveTransmissions.Count == 0;
+        this.receiveReceivedList.Count == 0;
 
     internal bool CloseIfTransmissionHasTimedOut()
     {
@@ -597,11 +597,13 @@ Wait:
                 if (transmission.ReceivedOrDisposedNode is { } node)
                 {// ReceivedList -> DisposedList
                     node.List.Remove(node);
+                    Console.WriteLine("aaa");
                     transmission.ReceivedOrDisposedNode = this.receiveDisposedList.AddLast(transmission);
                     Debug.Assert(transmission.ReceivedOrDisposedNode.List != null);
                 }
                 else
                 {// -> DisposedList
+                    Console.WriteLine("bbb");
                     transmission.ReceivedOrDisposedNode = this.receiveDisposedList.AddLast(transmission);
                 }
 

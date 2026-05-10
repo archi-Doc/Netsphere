@@ -82,6 +82,7 @@ public sealed class NetSocket
                 : base(parent, Process, ExecutionCoreOptions.DelayedStart)
         {
             // this.Thread.Priority = ThreadPriority.AboveNormal;
+            this.Thread.IsBackground = true;
             this.socket = socket;
         }
 

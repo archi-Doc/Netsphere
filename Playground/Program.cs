@@ -40,11 +40,13 @@ public class TestServiceImpl : ITestService
 
     void ITestService.MethodB(int x, ref ResponseChannel<int> channel)
     {
+        Thread.Sleep(1);
         channel.SetResponse(x + 111);
     }
 
     void ITestService.MethodC(in int x, ref int y, ref ResponseChannel<int> channel)
     {
+        Thread.Sleep(1);
         channel.SetResponse(x + y);
     }
 

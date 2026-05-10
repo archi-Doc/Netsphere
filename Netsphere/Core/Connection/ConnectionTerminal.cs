@@ -690,6 +690,17 @@ public class ConnectionTerminal
 
                         x.Goshujin = null;
                     }
+                    else
+                    {
+                        /*if (x.IsClosed)
+                        {
+                            x.ChangeStateInternal(Connection.State.Disposed);
+                        }
+
+                        x.Goshujin = null;*/
+
+                        x.CleanReceiveTransmission();
+                    }
                 }
             }
 
@@ -715,6 +726,15 @@ public class ConnectionTerminal
                             x.ChangeStateInternal(Connection.State.Closed);
                         }
 
+                        if (x.IsClosed)
+                        {
+                            x.ChangeStateInternal(Connection.State.Disposed);
+                        }
+
+                        x.Goshujin = null;
+                    }
+                    else
+                    {
                         if (x.IsClosed)
                         {
                             x.ChangeStateInternal(Connection.State.Disposed);
