@@ -11,8 +11,15 @@ namespace NetsphereTest;
 [SimpleCommand("bench")]
 public class NetbenchSubcommand : ISimpleCommand<NetbenchOptions>
 {
-    public NetbenchSubcommand(ILogger<NetbenchSubcommand> logger, NetUnit netUnit)
+    private readonly ExecutionRoot root;
+    private readonly ILogger<NetbenchSubcommand> logger;
+
+    public NetUnit NetUnit { get; set; }
+
+
+    public NetbenchSubcommand(ExecutionRoot root, ILogger<NetbenchSubcommand> logger, NetUnit netUnit)
     {
+        this.root = root;
         this.logger = logger;
         this.NetUnit = netUnit;
     }
@@ -81,8 +88,6 @@ public class NetbenchSubcommand : ISimpleCommand<NetbenchOptions>
         // await this.MassiveSmallData(node); // 1000 ms
     }
 
-    public NetUnit NetUnit { get; set; }
-
     private async Task TestStreamData(ClientConnection connection)
     {
         const int N = 50_000_000;
@@ -105,6 +110,7 @@ public class NetbenchSubcommand : ISimpleCommand<NetbenchOptions>
         Console.WriteLine(sw.ElapsedMilliseconds.ToString());
         Console.WriteLine($"{FarmHash.Hash64(data) == response.Value} Send/Resend {connection.SendCount}/{connection.ResendCount}");
     }
+
     private async Task TestLargeData(ClientConnection connection)
     {
         const int N = 4_000_000;
@@ -132,7 +138,7 @@ public class NetbenchSubcommand : ISimpleCommand<NetbenchOptions>
         var count = 0;
         for (var i = 0; i < N; i++)
         {
-            if (ThreadCore.Root.IsTerminated)
+            if (this.root.IsTerminated)
             {
                 break;
             }
@@ -239,8 +245,6 @@ public class NetbenchSubcommand : ISimpleCommand<NetbenchOptions>
         Console.WriteLine($"MassiveSmallData {count}/{Concurrent}, {sw.ElapsedMilliseconds.ToString()} ms");
         Console.WriteLine();
     }
-
-    private ILogger<NetbenchSubcommand> logger;
 }
 
 public record NetbenchOptions

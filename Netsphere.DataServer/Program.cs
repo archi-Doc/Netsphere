@@ -9,6 +9,7 @@ global using BigMachines;
 global using Netsphere;
 global using Tinyhand;
 global using ValueLink;
+using Arc;
 using Microsoft.Extensions.DependencyInjection;
 using SimpleCommandLine;
 
@@ -16,18 +17,20 @@ namespace RemoteDataServer;
 
 public class Program
 {
+    private static ExecutionRoot? root;
+
     public static async Task Main()
     {
-        AppDomain.CurrentDomain.ProcessExit += (s, e) =>
-        {// Console window closing or process terminated.
-            ThreadCore.Root.Terminate(); // Send a termination signal to the root.
-            ThreadCore.Root.TerminationEvent.WaitOne(2_000); // Wait until the termination process is complete (#1).
-        };
+        AppCloseHandler.Set(() =>
+        {// Closing the console window or terminating the process.
+            root?.RequestTermination(); // Send a termination signal to the root.
+            root?.WaitForTermination(TimeSpan.FromSeconds(2)).Wait();
+        });
 
         Console.CancelKeyPress += (s, e) =>
-        {// Ctrl+C pressed
+        {// Ctrl+C pressed.
             e.Cancel = true;
-            ThreadCore.Root.Terminate(); // Send a termination signal to the root.
+            root?.RequestTermination(); // Send a termination signal to the root.
         };
 
         var builder = new NetUnit.Builder() // Create a NetUnit builder.
@@ -84,6 +87,7 @@ public class Program
             });
 
         var unit = builder.Build(); // Create a unit that provides network functionality.
+        root = unit.Context.Root;
 
         var parserOptions = SimpleParserOptions.Standard with
         {
@@ -95,8 +99,7 @@ public class Program
         await SimpleParser.ParseAndExecute(unit.Context.Commands, SimpleParserHelper.GetCommandLineArguments(), parserOptions); // Main process
 
         await unit.Terminate(); // Perform the termination process for the unit.
-        ThreadCore.Root.Terminate();
-        await ThreadCore.Root.WaitForTermination(); // Wait for the termination infinitely.
-        ThreadCore.Root.TerminationEvent.Set(); // The termination process is complete (#1).
+        root.RequestTermination();
+        await root.WaitForTermination(); // Wait for the termination infinitely.
     }
 }

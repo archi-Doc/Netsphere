@@ -43,15 +43,24 @@ internal class ServerCommand : ISimpleCommand<ServerOptions>
         // Console.WriteLine($"{Mics.ToDateTime(Mics.GetCorrected())}");
 
         this.netUnit.NetBase.SetRespondPacketFunc(RespondPacketFunc);
-        var address = await NetStatsHelper.GetOwnAddress((ushort)options.Port);
+        var address = await NetStatsHelper.GetOwnAddress((ushort)options.Port, cancellationToken);
 
         this.logger.GetWriter()?.Write($"{address.ToString()}");
         this.versionData.Log(this.logger);
         this.logger.GetWriter()?.Write("Press Ctrl+C to exit");
 
         var ntpCorrectionCount = 0;
-        while (await ThreadCore.Root.Delay(1_000))
+        while (true)
         {
+            try
+            {
+                await Task.Delay(1_000, cancellationToken);
+            }
+            catch
+            {
+                return;
+            }
+
             /*var keyInfo = Console.ReadKey(true);
             if (keyInfo.Key == ConsoleKey.R && keyInfo.Modifiers == ConsoleModifiers.Control)
             {// Restart

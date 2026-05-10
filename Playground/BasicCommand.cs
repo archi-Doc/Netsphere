@@ -20,7 +20,7 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
         this.netUnit = netUnit;
         this.relayControl = relayControl;
         // Radio.Open<IClockHandService>(default);
-        clockHand.Start();
+        clockHand.SendSignal(ExecutionSignal.Start);
         // clockHand.Pause();
         clockHandChannel.Open(this, true);
     }
@@ -77,7 +77,13 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
 
         Console.WriteLine("ClockHand ->");
 
-        await ThreadCore.Root.Delay(100_000);
+        try
+        {
+            await Task.Delay(100_000, cancellationToken);
+        }
+        catch
+        {
+        }
     }
 
     void IClockHandTarget.OnEverySecond()

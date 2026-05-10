@@ -56,18 +56,20 @@ public class TestServiceImpl : ITestService
 
 public class Program
 {
+    private static ExecutionRoot? root;
+
     public static async Task Main()
     {
-        AppDomain.CurrentDomain.ProcessExit += (s, e) =>
-        {// Console window closing or process terminated.
-            ThreadCore.Root.Terminate(); // Send a termination signal to the root.
-            ThreadCore.Root.TerminationEvent.WaitOne(2000); // Wait until the termination process is complete (#1).
-        };
+        AppCloseHandler.Set(() =>
+        {// Closing the console window or terminating the process.
+            root?.RequestTermination(); // Send a termination signal to the root.
+            root?.WaitForTermination(TimeSpan.FromSeconds(2)).Wait();
+        });
 
         Console.CancelKeyPress += (s, e) =>
-        {// Ctrl+C pressed
+        {// Ctrl+C pressed.
             e.Cancel = true;
-            ThreadCore.Root.Terminate(); // Send a termination signal to the root.
+            root?.RequestTermination(); // Send a termination signal to the root.
         };
 
         var builder = new NetUnit.Builder()
@@ -134,6 +136,7 @@ public class Program
 
         // Netsphere
         var unit = builder.Build();
+        root = unit.Context.Root;
         var options = unit.Context.ServiceProvider.GetRequiredService<NetOptions>();
         await Console.Out.WriteLineAsync($"Port: {options.Port.ToString()}");
 
@@ -161,13 +164,12 @@ public class Program
         await crystalControl.StoreAndRip();
         await unit.Terminate();
 
-        ThreadCore.Root.Terminate();
-        await ThreadCore.Root.WaitForTermination(); // Wait for the termination infinitely.
-        if (unit.Context.ServiceProvider.GetService<LogUnit>() is { } logunit)
+        root.RequestTermination();
+        if (unit.Context.ServiceProvider.GetService<LogUnit>() is { } unitLogger)
         {
-            await logunit.FlushAndTerminate();
+            await unitLogger.FlushAndTerminate();
         }
 
-        ThreadCore.Root.TerminationEvent.Set(); // The termination process is complete (#1).
+        await root.WaitForTermination(); // Wait for the termination infinitely.
     }
 }

@@ -28,7 +28,7 @@ public class DefaultCommand : ISimpleCommand<DefaultCommandOptions>
         netOptions.Port = options.Port;
         await this.unit.Run(netOptions, false); // Execute the created unit with the specified options.
 
-        var address = await NetStatsHelper.GetOwnAddress((ushort)options.Port);
+        var address = await NetStatsHelper.GetOwnAddress((ushort)options.Port, cancellationToken);
 
         // NtpCorrection
         var ntpCorrection = this.unit.Context.ServiceProvider.GetRequiredService<Netsphere.Misc.NtpCorrection>();
@@ -51,7 +51,13 @@ public class DefaultCommand : ISimpleCommand<DefaultCommandOptions>
         await Console.Out.WriteLineAsync("Ctrl+C to exit");
         await Console.Out.WriteLineAsync();
 
-        await ThreadCore.Root.Delay(Timeout.InfiniteTimeSpan); // Wait until the server shuts down.
+        try
+        {
+            await this.unit.Context.Root.Delay(Timeout.InfiniteTimeSpan, cancellationToken); // Wait until the server shuts down.
+        }
+        catch
+        {
+        }
     }
 
     [MemberNotNull(nameof(remoteSeedKey))]

@@ -4,7 +4,7 @@ namespace Netsphere;
 
 /// <summary>
 /// Runs a lightweight background clock loop and publishes second/minute ticks to <see cref="IClockHandTarget"/>.<br/>
-/// Do not forget to call ClockHand.Start() before using it.
+/// Do not forget to call ClockHand.SendSignal(ExecutionSignal.Start) before using it.
 /// </summary>
 /// <remarks>
 /// The loop checks time every <see cref="MillisecondsToWait"/> milliseconds, emits
