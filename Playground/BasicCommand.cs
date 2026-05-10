@@ -55,7 +55,7 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
             }
 
             var service = connection.GetService<ITestService>();
-            // var re = await service.MethodA(3, default);
+            var re = await service.MethodA(3, default);
             var channel = new ResponseChannel<int>(static (result, value) =>
             {
                 Console.WriteLine($"ResponseChannel: {value}");
@@ -65,11 +65,9 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
             var y = 3;
             service.MethodC(2, ref y, ref channel);
 
-            // await connection.WaitForReceiveCompletion();
+            await connection.WaitForReceiveCompletion();
             // await Task.Delay(100);
         }
-
-
 
         var length = AuthenticationToken.MaxStringLength;
         var p = new PingPacket("test56789");

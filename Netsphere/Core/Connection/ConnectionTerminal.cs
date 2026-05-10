@@ -692,14 +692,12 @@ public class ConnectionTerminal
                     }
                     else
                     {
-                        /*if (x.IsClosed)
+                        if (x.IsClosed)
                         {
                             x.ChangeStateInternal(Connection.State.Disposed);
                         }
 
-                        x.Goshujin = null;*/
-
-                        x.CleanReceiveTransmission();
+                        x.Goshujin = null;
                     }
                 }
             }

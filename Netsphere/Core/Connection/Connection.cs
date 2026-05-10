@@ -595,16 +595,17 @@ Wait:
             {
                 transmission.ReceivedOrDisposedMics = Mics.FastSystem; // Disposed mics
                 if (transmission.ReceivedOrDisposedNode is { } node)
-                {// ReceivedList -> DisposedList
-                    node.List.Remove(node);
-                    Console.WriteLine("aaa");
-                    transmission.ReceivedOrDisposedNode = this.receiveDisposedList.AddLast(transmission);
-                    Debug.Assert(transmission.ReceivedOrDisposedNode.List != null);
-                }
-                else
-                {// -> DisposedList
-                    Console.WriteLine("bbb");
-                    transmission.ReceivedOrDisposedNode = this.receiveDisposedList.AddLast(transmission);
+                {
+                    if (node.List == this.receiveReceivedList)
+                    {// ReceivedList -> DisposedList
+                        node.List.Remove(node);
+                        transmission.ReceivedOrDisposedNode = this.receiveDisposedList.AddLast(transmission);
+                        Debug.Assert(transmission.ReceivedOrDisposedNode.List != null);
+                    }
+                    else
+                    {// -> DisposedList
+                        // transmission.ReceivedOrDisposedNode = this.receiveDisposedList.AddLast(transmission);
+                    }
                 }
 
                 // transmission.Goshujin = null; // Delay the release to return ACK even after the receive transmission has ended.
@@ -1346,6 +1347,11 @@ Wait:
             {
                 while (receiveQueue.TryDequeue(out var t))
                 {
+                    if (t.ReceivedOrDisposedNode is { } node)
+                    {
+                        node.List.Remove(node);
+                    }
+
                     t.Goshujin = default;
                 }
             }
