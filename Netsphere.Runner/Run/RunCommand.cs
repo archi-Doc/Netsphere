@@ -22,11 +22,11 @@ public class RunCommand : RunnerCommand, ISimpleCommand<RunOptions>
         await this.Run(options);
 
         var runner = this.bigMachine.RunMachine.GetOrCreate(options);
-        this.bigMachine.Start(ThreadCore.Root);
+        this.bigMachine.Start();
 
         _ = Task.Run(async () =>
         {
-            while (!ThreadCore.Root.IsTerminated)
+            while (!this.root.IsTerminated)
             {
                 var keyInfo = Console.ReadKey(true);
                 if (keyInfo.Key == ConsoleKey.R && keyInfo.Modifiers == ConsoleModifiers.Control)

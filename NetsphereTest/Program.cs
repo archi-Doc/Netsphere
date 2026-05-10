@@ -106,7 +106,6 @@ public class Program
                 context.AddCommand(typeof(DeliveryTestSubcommand));
                 context.AddCommand(typeof(BasicTestSubcommand));
                 context.AddCommand(typeof(NetbenchSubcommand));
-                context.AddCommand(typeof(TaskScalingSubcommand));
                 context.AddCommand(typeof(StressSubcommand));
                 context.AddCommand(typeof(RemoteBenchSubcommand));
                 context.AddCommand(typeof(StreamTestSubcommand));
@@ -188,6 +187,7 @@ public class Program
 
         Console.WriteLine(string.Join(' ', args));
         var unit = builder.Build(args);
+        root = unit.Context.Root;
 
         var options = unit.Context.ServiceProvider.GetRequiredService<NetOptions>();
         options.EnableServer = true;

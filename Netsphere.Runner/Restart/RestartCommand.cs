@@ -19,11 +19,11 @@ public class RestartCommand : RunnerCommand, ISimpleCommand<RestartOptions>
         await this.Run(options);
 
         var machine = this.bigMachine.RestartMachine.GetOrCreate(options);
-        this.bigMachine.Start(ThreadCore.Root);
+        this.bigMachine.Start();
 
         _ = Task.Run(async () =>
         {
-            while (!ThreadCore.Root.IsTerminated)
+            while (!this.root.IsTerminated)
             {
                 var keyInfo = Console.ReadKey(true);
                 if (keyInfo.Key == ConsoleKey.R && keyInfo.Modifiers == ConsoleModifiers.Control)

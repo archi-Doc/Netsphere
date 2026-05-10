@@ -87,7 +87,8 @@ public class RemoteBenchSubcommand : ISimpleCommand<RemoteBenchOptions>
 
         try
         {
-            await ThreadCore.Root.Delay(TimeSpan.FromMinutes(5)).WaitAsync(connection.CancellationToken);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, connection.CancellationToken);
+            await Task.Delay(TimeSpan.FromMinutes(5)).WaitAsync(cts.Token);
         }
         catch
         {
