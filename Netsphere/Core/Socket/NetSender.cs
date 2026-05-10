@@ -36,7 +36,7 @@ internal class NetSender
         public static void Process(object? parameter)
         {
             var core = (SendCore)parameter!;
-            while (!core.IsTerminated)
+            while (core.CanContinue)
             {
                 var prev = Mics.GetSystem();
                 core.sender.Process();

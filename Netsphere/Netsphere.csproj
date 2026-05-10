@@ -32,7 +32,7 @@
     <PackageReference Include="Arc.Unit" Version="0.40.0" />
     <PackageReference Include="BigMachines" Version="0.55.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.7" />
-    <PackageReference Include="SimpleCommandLine" Version="0.40.4" />
+    <PackageReference Include="SimpleCommandLine" Version="0.41.0" />
     <PackageReference Include="Tinyhand" Version="0.137.0" />
     <PackageReference Include="ValueLink" Version="0.115.2" />
   </ItemGroup>

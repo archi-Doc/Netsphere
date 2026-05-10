@@ -159,7 +159,7 @@ public class Program
             RequireStrictOptionName = false,
         };
 
-        await SimpleParser.ParseAndExecute(unit.Context.Commands, SimpleParserHelper.GetCommandLineArguments(), parserOptions); // Main process
+        await SimpleParser.ParseAndExecute(unit.Context.Commands, SimpleParserHelper.GetCommandLineArguments(), parserOptions, root.CancellationToken); // Main process
 
         await crystalControl.StoreAndRip();
         await unit.Terminate();

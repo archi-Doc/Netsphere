@@ -47,8 +47,13 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
         netTerminal.Services.EnableNetService<ITestService>();
         var packetTerminal = netTerminal.PacketTerminal;
 
-        using (var connection = (await netTerminal.Connect(netNode))!)
+        using (var connection = (await netTerminal.Connect(netNode)))
         {
+            if (connection is null)
+            {
+                return;
+            }
+
             var service = connection.GetService<ITestService>();
             var re = await service.MethodA(3, default);
             var channel = new ResponseChannel<int>(static (result, value) => { Console.WriteLine(value); });
