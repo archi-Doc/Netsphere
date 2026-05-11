@@ -30,7 +30,7 @@ public interface IResponseChannelInternal
 /// </summary>
 /// <typeparam name="TResponse"></typeparam>
 [TinyhandObject]
-public partial record struct ResponseChannel<TResponse> : IResponseChannelInternal, ITinyhandSerializable<ResponseChannel<TResponse>>, ITinyhandReconstructable<ResponseChannel<TResponse>>, ITinyhandCloneable<ResponseChannel<TResponse>>
+public partial record struct ResponseChannel<TResponse> : IResponseChannelInternal, ITinyhandSerializable<ResponseChannel<TResponse>>, ITinyhandReconstructable<ResponseChannel<TResponse>>, ITinyhandCloneable<ResponseChannel<TResponse>>, ITinyhandSingleLayoutSerializable
 {
     // public readonly TResponse? Value;
     // public readonly bool IsValueSet;
