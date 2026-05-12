@@ -93,8 +93,8 @@ public class Program
                 {// Logger
                     if (context.LogLevel == LogLevel.Debug)
                     {
-                        //context.SetOutput<FileLogger<FileLoggerOptions>>();
-                        context.SetOutput<ConsoleAndFileLogger>();
+                        context.SetOutput<FileLogger<FileLoggerOptions>>();
+                        // context.SetOutput<ConsoleAndFileLogger>();
                         return;
                     }
 

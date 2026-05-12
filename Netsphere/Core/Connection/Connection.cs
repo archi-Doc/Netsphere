@@ -161,7 +161,7 @@ public abstract class Connection : IDisposable
 
     internal bool CloseIfTransmissionHasTimedOut()
     {
-        if (this.LastEventMics + NetConstants.TransmissionTimeoutMics < Mics.FastSystem)
+        if (this.LastEventMics + Mics.FromTimeSpan(this.Agreement.TransmissionTimeout) < Mics.FastSystem)
         {// Timeout
             this.ConnectionTerminal.CloseInternal(this, true);
             return true;
@@ -705,7 +705,7 @@ Wait:
         var transmission = node.Value;
         Debug.Assert(transmission.SendNode == node);
 
-        if (this.LastEventMics + NetConstants.TransmissionTimeoutMics < Mics.FastSystem)
+        if (this.LastEventMics + Mics.FromTimeSpan(this.Agreement.TransmissionTimeout) < Mics.FastSystem)
         {// Timeout
             this.ConnectionTerminal.CloseInternal(this, true);
             return ProcessSendResult.Complete;
