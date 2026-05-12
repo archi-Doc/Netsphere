@@ -147,17 +147,59 @@ public static class Mics
         return mics;
     }
 
+    /// <summary>
+    /// Converts a number of days to <see cref="Mics"/> (microseconds).
+    /// </summary>
+    /// <param name="days">The number of days to convert.</param>
+    /// <returns>The equivalent duration in microseconds.</returns>
     public static long FromDays(double days) => (long)(days * MicsPerDay);
 
+    /// <summary>
+    /// Converts a number of hours to <see cref="Mics"/> (microseconds).
+    /// </summary>
+    /// <param name="hours">The number of hours to convert.</param>
+    /// <returns>The equivalent duration in microseconds.</returns>
     public static long FromHours(double hours) => (long)(hours * MicsPerHour);
 
+    /// <summary>
+    /// Converts a number of minutes to <see cref="Mics"/> (microseconds).
+    /// </summary>
+    /// <param name="minutes">The number of minutes to convert.</param>
+    /// <returns>The equivalent duration in microseconds.</returns>
     public static long FromMinutes(double minutes) => (long)(minutes * MicsPerMinute);
 
+    /// <summary>
+    /// Converts a number of seconds to <see cref="Mics"/> (microseconds).
+    /// </summary>
+    /// <param name="seconds">The number of seconds to convert.</param>
+    /// <returns>The equivalent duration in microseconds.</returns>
     public static long FromSeconds(double seconds) => (long)(seconds * MicsPerSecond);
 
+    /// <summary>
+    /// Converts a number of milliseconds to <see cref="Mics"/> (microseconds).
+    /// </summary>
+    /// <param name="milliseconds">The number of milliseconds to convert.</param>
+    /// <returns>The equivalent duration in microseconds.</returns>
     public static long FromMilliseconds(double milliseconds) => (long)(milliseconds * MicsPerMillisecond);
 
+    /// <summary>
+    /// Converts a number of microseconds to <see cref="Mics"/>.
+    /// </summary>
+    /// <param name="microseconds">The number of microseconds to convert.</param>
+    /// <returns>The input value represented as microseconds.</returns>
     public static long FromMicroseconds(double microseconds) => (long)microseconds;
 
+    /// <summary>
+    /// Converts a number of nanoseconds to <see cref="Mics"/> (microseconds).
+    /// </summary>
+    /// <param name="nanoseconds">The number of nanoseconds to convert.</param>
+    /// <returns>The equivalent duration in microseconds.</returns>
     public static long FromNanoseconds(double nanoseconds) => (long)(nanoseconds * MicsPerNanosecond);
+
+    /// <summary>
+    /// Converts a <see cref="TimeSpan"/> value to <see cref="Mics"/> (microseconds).
+    /// </summary>
+    /// <param name="timespan">The <see cref="TimeSpan"/> to convert.</param>
+    /// <returns>The equivalent duration in microseconds.</returns>
+    public static long FromTimeSpan(TimeSpan timespan) => (long)(timespan.Ticks / Time.MicsToTicks);
 }
