@@ -57,7 +57,7 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
             var agreement = new ConnectionAgreement();
             agreement.MinimumConnectionRetentionMics = Mics.FromMinutes(1);
             agreement.TransmissionTimeout = TimeSpan.FromMinutes(1);
-            connection.Agreement.AcceptAll(agreement);
+            //connection.Agreement.AcceptAll(agreement);
 
             var service = connection.GetService<ITestService>();
             var re = await service.MethodA(3, default);
@@ -67,7 +67,7 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
             }
 
             Console.WriteLine(re.Value);
-            await Task.Delay(11000, cancellationToken);
+            await Task.Delay(11_000, cancellationToken);
 
             re = await service.MethodA(13, default);
             if (re.IsFailure)

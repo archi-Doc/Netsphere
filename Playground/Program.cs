@@ -38,7 +38,7 @@ public class TestServiceImpl : ITestService
         var agreement = new ConnectionAgreement();
         agreement.MinimumConnectionRetentionMics = Mics.FromMinutes(1);
         agreement.TransmissionTimeout = TimeSpan.FromMinutes(1);
-        TransmissionContext.Current.ServerConnection.Agreement.AcceptAll(agreement);
+        //TransmissionContext.Current.ServerConnection.Agreement.AcceptAll(agreement);
 
         return Task.FromResult(new NetResultAndValue<int>(x + 1));
     }
@@ -93,7 +93,8 @@ public class Program
                 {// Logger
                     if (context.LogLevel == LogLevel.Debug)
                     {
-                        context.SetOutput<FileLogger<FileLoggerOptions>>();
+                        //context.SetOutput<FileLogger<FileLoggerOptions>>();
+                        context.SetOutput<ConsoleAndFileLogger>();
                         return;
                     }
 
