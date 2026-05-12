@@ -54,8 +54,27 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
                 return;
             }
 
+            var agreement = new ConnectionAgreement();
+            agreement.MinimumConnectionRetentionMics = Mics.FromMinutes(1);
+            agreement.TransmissionTimeout = TimeSpan.FromMinutes(1);
+            connection.Agreement.AcceptAll(agreement);
+
             var service = connection.GetService<ITestService>();
             var re = await service.MethodA(3, default);
+            if (re.IsFailure)
+            {
+                return;
+            }
+
+            Console.WriteLine(re.Value);
+            await Task.Delay(11000, cancellationToken);
+
+            re = await service.MethodA(13, default);
+            if (re.IsFailure)
+            {
+                return;
+            }
+
             var channel = new ResponseChannel<int>(static (result, value) =>
             {
                 Console.WriteLine($"ResponseChannel: {value}");
