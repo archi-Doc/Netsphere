@@ -1,7 +1,6 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Runtime.CompilerServices;
-using System.Threading;
 using Netsphere.Core;
 using Netsphere.Crypto;
 using Netsphere.Internal;
@@ -12,21 +11,6 @@ namespace Netsphere;
 [ValueLinkObject(Isolation = IsolationLevel.Serializable, Restricted = true)]
 public sealed partial class ClientConnection : Connection, IClientConnectionInternal, IEquatable<ClientConnection>, IComparable<ClientConnection>
 {
-    [Link(Primary = true, Type = ChainType.Unordered, TargetMember = "ConnectionId")]
-    [Link(Type = ChainType.Unordered, Name = "DestinationEndpoint", TargetMember = "DestinationEndpoint")]
-    internal ClientConnection(PacketTerminal packetTerminal, ConnectionTerminal connectionTerminal, ulong connectionId, NetNode node, NetEndpoint endPoint)
-        : base(packetTerminal, connectionTerminal, connectionId, node, endPoint)
-    {
-        this.context = this.NetBase.NewClientConnectionContext(this);
-    }
-
-    internal ClientConnection(ServerConnection serverConnection)
-        : base(serverConnection)
-    {
-        this.context = this.NetBase.NewClientConnectionContext(this);
-        this.BidirectionalConnection = serverConnection;
-    }
-
     #region FieldAndProperty
 
     public override bool IsClient => true;
@@ -44,6 +28,21 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
     private ClientConnectionContext context;
 
     #endregion
+
+    [Link(Primary = true, Type = ChainType.Unordered, TargetMember = "ConnectionId")]
+    [Link(Type = ChainType.Unordered, Name = "DestinationEndpoint", TargetMember = "DestinationEndpoint")]
+    internal ClientConnection(PacketTerminal packetTerminal, ConnectionTerminal connectionTerminal, ulong connectionId, NetNode node, NetEndpoint endPoint)
+        : base(packetTerminal, connectionTerminal, connectionId, node, endPoint)
+    {
+        this.context = this.NetBase.NewClientConnectionContext(this);
+    }
+
+    internal ClientConnection(ServerConnection serverConnection)
+        : base(serverConnection)
+    {
+        this.context = this.NetBase.NewClientConnectionContext(this);
+        this.BidirectionalConnection = serverConnection;
+    }
 
     public override void Dispose()
     {
@@ -766,6 +765,14 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
     internal void SetOpenCount(int count)
     {
         Volatile.Write(ref this.openCount, count);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal override void UpdateLastEventMics()
+    {
+        var mics = Mics.FastSystem;
+        this.LastEventMics = mics;
+        this.BidirectionalConnection?.LastEventMics = mics;
     }
 
     internal override void OnStateChanged()
