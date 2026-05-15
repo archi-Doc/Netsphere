@@ -1,5 +1,6 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System.Runtime.CompilerServices;
 using Netsphere.Packet;
 
 namespace Netsphere;
@@ -7,6 +8,20 @@ namespace Netsphere;
 [ValueLinkObject(Isolation = IsolationLevel.Serializable, Restricted = true)]
 public sealed partial class ServerConnection : Connection, IEquatable<ServerConnection>, IComparable<ServerConnection>
 {
+    #region FieldAndProperty
+
+    public override bool IsClient => false;
+
+    public override bool IsServer => true;
+
+    public ClientConnection? BidirectionalConnection { get; internal set; } // lock (this.ConnectionTerminal.clientConnections.SyncObject)
+
+    internal ushort InnerRelayId { get; set; }
+
+    private ServerConnectionContext context;
+
+    #endregion
+
     [Link(Primary = true, Type = ChainType.Unordered, TargetMember = "ConnectionId")]
     [Link(Type = ChainType.Unordered, Name = "DestinationEndpoint", TargetMember = "DestinationEndpoint")]
     internal ServerConnection(PacketTerminal packetTerminal, ConnectionTerminal connectionTerminal, ulong connectionId, NetNode node, NetEndpoint endPoint)
@@ -21,20 +36,6 @@ public sealed partial class ServerConnection : Connection, IEquatable<ServerConn
         this.BidirectionalConnection = clientConnection;
         this.context = this.NetBase.NewServerConnectionContext(this);
     }
-
-    #region FieldAndProperty
-
-    public override bool IsClient => false;
-
-    public override bool IsServer => true;
-
-    public ClientConnection? BidirectionalConnection { get; internal set; } // lock (this.ConnectionTerminal.clientConnections.SyncObject)
-
-    internal ushort InnerRelayId { get; set; }
-
-    private ServerConnectionContext context;
-
-    #endregion
 
     public ServerConnectionContext GetContext()
         => this.context;
@@ -91,6 +92,14 @@ public sealed partial class ServerConnection : Connection, IEquatable<ServerConn
 
     public void Close()
         => this.Dispose();
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal override void UpdateLastEventMics()
+    {
+        var mics = Mics.FastSystem;
+        this.LastEventMics = mics;
+        this.BidirectionalConnection?.LastEventMics = mics;
+    }
 
     internal override void OnStateChanged()
     {

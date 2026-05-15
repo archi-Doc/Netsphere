@@ -1,12 +1,8 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using Arc.Collections;
 using Netsphere.Core;
 using Netsphere.Crypto;
 using Netsphere.Packet;
@@ -40,27 +36,6 @@ public abstract class Connection : IDisposable
         Open,
         Closed,
         Disposed,
-    }
-
-    public Connection(PacketTerminal packetTerminal, ConnectionTerminal connectionTerminal, ulong connectionId, NetNode node, NetEndpoint endPoint)
-    {
-        this.NetBase = connectionTerminal.NetBase;
-        this.Logger = this.NetBase.LogService.GetLogger(this.GetType());
-        this.PacketTerminal = packetTerminal;
-        this.ConnectionTerminal = connectionTerminal;
-        this.ConnectionId = connectionId;
-        this.DestinationNode = node;
-        this.DestinationEndpoint = endPoint;
-
-        this.smoothedRtt = DefaultRtt;
-        this.minimumRtt = 0;
-        this.UpdateLastEventMics();
-    }
-
-    public Connection(Connection connection)
-        : this(connection.PacketTerminal, connection.ConnectionTerminal, connection.ConnectionId, connection.DestinationNode, connection.DestinationEndpoint)
-    {
-        this.Initialize(connection.Agreement, connection.embryo);
     }
 
     #region FieldAndProperty
@@ -172,7 +147,7 @@ public abstract class Connection : IDisposable
         }
     }
 
-    internal long LastEventMics { get; private set; } // When any packet, including an Ack, is received, it's updated to the latest time.
+    internal long LastEventMics { get; set; } // When any packet, including an Ack, is received, it's updated to the latest time.
 
     internal ICongestionControl? CongestionControl; // ConnectionTerminal.SyncSend
     internal UnorderedLinkedList<SendTransmission> SendList = new(); // lock (this.ConnectionTerminal.SyncSend)
@@ -221,8 +196,26 @@ public abstract class Connection : IDisposable
 
     #endregion
 
-    /*internal Embryo UnsafeGetEmbryo()
-        => this.embryo;*/
+    public Connection(PacketTerminal packetTerminal, ConnectionTerminal connectionTerminal, ulong connectionId, NetNode node, NetEndpoint endPoint)
+    {
+        this.NetBase = connectionTerminal.NetBase;
+        this.Logger = this.NetBase.LogService.GetLogger(this.GetType());
+        this.PacketTerminal = packetTerminal;
+        this.ConnectionTerminal = connectionTerminal;
+        this.ConnectionId = connectionId;
+        this.DestinationNode = node;
+        this.DestinationEndpoint = endPoint;
+
+        this.smoothedRtt = DefaultRtt;
+        this.minimumRtt = 0;
+        this.UpdateLastEventMics();
+    }
+
+    public Connection(Connection connection)
+        : this(connection.PacketTerminal, connection.ConnectionTerminal, connection.ConnectionId, connection.DestinationNode, connection.DestinationEndpoint)
+    {
+        this.Initialize(connection.Agreement, connection.embryo);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void UpdateAckedNode(SendTransmission sendTransmission)
@@ -290,8 +283,10 @@ public abstract class Connection : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void UpdateLastEventMics()
-        => this.LastEventMics = Mics.FastSystem;
+    internal virtual void UpdateLastEventMics()
+    {
+        this.LastEventMics = Mics.FastSystem;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ICongestionControl GetCongestionControl()
