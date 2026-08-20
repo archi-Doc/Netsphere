@@ -206,7 +206,7 @@ public class RelayTest
             }
 
             var r2 = await stream.CompleteSendAndReceive();
-            r2.Value.Is(FarmHash.Hash64(this.dataArray[i]));
+            r2.Value.Is(XxHash3.Hash64(this.dataArray[i]));
         }
     }
 }

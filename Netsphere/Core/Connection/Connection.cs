@@ -471,7 +471,7 @@ Wait:
                 break;
             }
 
-            node.List.Remove(node);
+            node.List?.Remove(node);
             transmission.ReceivedOrDisposedNode = null;
             transmission.Goshujin = null;
         }
@@ -485,7 +485,7 @@ Wait:
                 break;
             }
 
-            node.List.Remove(node);
+            node.List?.Remove(node);
             transmission.DisposeTransmission();
             transmission.ReceivedOrDisposedNode = null;
             transmission.Goshujin = null;
@@ -1252,7 +1252,7 @@ Wait:
 
                 if (x.ReceivedOrDisposedNode is { } node)
                 {
-                    node.List.Remove(node);
+                    node.List?.Remove(node);
                     x.ReceivedOrDisposedNode = null;
                 }
 
@@ -1344,7 +1344,7 @@ Wait:
                 {
                     if (t.ReceivedOrDisposedNode is { } node)
                     {
-                        node.List.Remove(node);
+                        node.List?.Remove(node);
                     }
 
                     t.Goshujin = default;
