@@ -62,8 +62,7 @@ public class StreamServiceImpl : IStreamService
         var stream = transmissionContext.GetReceiveStream<ulong>();
 
         var buffer = new byte[100_000];
-        var hash = new FarmHash();
-        hash.HashInitialize();
+        var hash = new XxHash3();
         long total = 0;
 
         while (true)
@@ -72,7 +71,7 @@ public class StreamServiceImpl : IStreamService
             if (r.Result == NetResult.Success ||
                 r.Result == NetResult.Completed)
             {
-                hash.HashUpdate(buffer.AsMemory(0, r.Written).Span);
+                hash.Append(buffer.AsMemory(0, r.Written).Span);
                 total += r.Written;
             }
             else
@@ -82,7 +81,7 @@ public class StreamServiceImpl : IStreamService
 
             if (r.Result == NetResult.Completed)
             {
-                stream.SendAndDispose(BitConverter.ToUInt64(hash.HashFinal()));
+                stream.SendAndDispose(hash.GetCurrentHashAsUInt64());
                 // transmissionContext.SendAndForget(BitConverter.ToUInt64(hash.HashFinal()));
                 break;
             }
@@ -102,8 +101,7 @@ public class StreamServiceImpl : IStreamService
         // return default;
 
         var buffer = new byte[100];
-        var farmHash = new FarmHash();
-        farmHash.HashInitialize();
+        var xhash = new XxHash3();
         long total = 0;
 
         while (true)
@@ -112,7 +110,7 @@ public class StreamServiceImpl : IStreamService
             if (r.Result == NetResult.Success ||
                 r.Result == NetResult.Completed)
             {
-                farmHash.HashUpdate(buffer.AsMemory(0, r.Written).Span);
+                xhash.Append(buffer.AsMemory(0, r.Written).Span);
                 total += r.Written;
             }
             else
@@ -126,7 +124,7 @@ public class StreamServiceImpl : IStreamService
             }
         }
 
-        var hash2 = BitConverter.ToUInt64(farmHash.HashFinal());
+        var hash2 = xhash.GetCurrentHashAsUInt64();
         if (hash == hash2)
         {
             transmissionContext.Result = NetResult.Success;
