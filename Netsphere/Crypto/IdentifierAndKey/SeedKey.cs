@@ -114,21 +114,37 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
             return false;
         }
 
-        var seedSpan = Base64.Url.FromStringToByteArray(span.Slice(0, bracketPosition)).AsSpan();
-        if (seedSpan.Length != (SeedKeyHelper.SeedSize + SeedKeyHelper.ChecksumSize))
+        var span2 = span.Slice(0, bracketPosition);
+        var decodedLength = Base64Url.GetDecodedLength(span2);
+        var spanowner = new SpanOwner<byte>(stackalloc byte[BaseHelper.StackallocThreshold], decodedLength);
+        try
         {
+            var seedSpan = spanowner.Span;
+            if (!Base64Url.TryDecode(span2, seedSpan, out _))
+            {
+                return false;
+            }
+
+            if (seedSpan.Length != (SeedKeyHelper.SeedSize + SeedKeyHelper.ChecksumSize))
+            {
+                seedSpan.Clear();
+                return false;
+            }
+
+            if (!SeedKeyHelper.ValidateChecksum(seedSpan))
+            {
+                seedSpan.Clear();
+                return false;
+            }
+
+            seedSpan.Slice(0, SeedKeyHelper.SeedSize).CopyTo(seed);
             seedSpan.Clear();
-            return false;
+        }
+        finally
+        {
+            spanowner.Dispose();
         }
 
-        if (!SeedKeyHelper.ValidateChecksum(seedSpan))
-        {
-            seedSpan.Clear();
-            return false;
-        }
-
-        seedSpan.Slice(0, SeedKeyHelper.SeedSize).CopyTo(seed);
-        seedSpan.Clear();
         span = span.Slice(bracketPosition + SeedKeyHelper.PrivateKeyBracket.Length);
         if (span.Length == 0 || span[0] != SeedKeyHelper.PublicKeyOpenBracket)
         {
@@ -358,7 +374,8 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
         SeedKeyHelper.PrivateKeyBracket.CopyTo(span);
         span = span.Slice(SeedKeyHelper.PrivateKeyBracket.Length);
 
-        Base64.Url.FromByteArrayToSpan(seedSpan, span, out var w);
+        // Base64.Url.FromByteArrayToSpan(seedSpan, span, out var w);
+        var w = Base64Url.Encode(seedSpan, span);
         span = span.Slice(w);
 
         SeedKeyHelper.PrivateKeyBracket.CopyTo(span);

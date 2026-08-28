@@ -39,8 +39,8 @@ public static class SeedKeyHelper
 
     static SeedKeyHelper()
     {
-        SeedLengthInBase64 = Base64.Url.GetEncodedLength(SeedSize + ChecksumSize) + 6; // "!!!!!!"
-        RawPublicKeyLengthInBase64 = Base64.Url.GetEncodedLength(PublicKeySize + ChecksumSize); // "key"
+        SeedLengthInBase64 = Base64Url.GetEncodedLength(SeedSize + ChecksumSize) + 6; // "!!!!!!"
+        RawPublicKeyLengthInBase64 = Base64Url.GetEncodedLength(PublicKeySize + ChecksumSize); // "key"
         PublicKeyLengthInBase64 = RawPublicKeyLengthInBase64 + 4; // "(s:key)"
         PublicKeyLengthInBase64B = RawPublicKeyLengthInBase64 + 2; // "(key)"
         MaxPrivateKeyLengthInBase64 = SeedLengthInBase64 + PublicKeyLengthInBase64; // !!!seed!!!(s:key)
@@ -93,7 +93,7 @@ public static class SeedKeyHelper
                 return false;
             }
 
-            if (Base64.Url.FromStringToSpan(source.Slice(3, RawPublicKeyLengthInBase64), keyAndChecksum, out _) &&
+            if (Base64Url.TryDecode(source.Slice(3, RawPublicKeyLengthInBase64), keyAndChecksum, out _) &&
                 ValidateChecksum(keyAndChecksum))
             {
                 return true;
@@ -101,7 +101,7 @@ public static class SeedKeyHelper
         }
         else if (read == PublicKeyLengthInBase64B)
         {// (key)
-            if (Base64.Url.FromStringToSpan(source.Slice(1, RawPublicKeyLengthInBase64), keyAndChecksum, out _) &&
+            if (Base64Url.TryDecode(source.Slice(1, RawPublicKeyLengthInBase64), keyAndChecksum, out _) &&
                 ValidateChecksum(keyAndChecksum))
             {
                 return true;
@@ -109,7 +109,7 @@ public static class SeedKeyHelper
         }
         else if (read == RawPublicKeyLengthInBase64)
         {// key
-            if (Base64.Url.FromStringToSpan(source.Slice(0, RawPublicKeyLengthInBase64), keyAndChecksum, out _) &&
+            if (Base64Url.TryDecode(source.Slice(0, RawPublicKeyLengthInBase64), keyAndChecksum, out _) &&
                 ValidateChecksum(keyAndChecksum))
             {
                 return true;
@@ -182,7 +182,8 @@ public static class SeedKeyHelper
         Span<byte> span = stackalloc byte[PublicKeySize + ChecksumSize];
         publicKey.CopyTo(span);
         SetChecksum(span);
-        return Base64.Url.FromByteArrayToSpan(span, destination, out written);
+        written = Base64Url.Encode(span, destination);
+        return true;
     }
 
     [SkipLocalsInit]
@@ -210,7 +211,7 @@ public static class SeedKeyHelper
         Span<byte> span = stackalloc byte[SeedKeyHelper.PublicKeySize + SeedKeyHelper.ChecksumSize];
         publicKey.CopyTo(span);
         SetChecksum(span);
-        Base64.Url.FromByteArrayToSpan(span, b, out written);
+        written = Base64Url.Encode(span, b);
         b = b.Slice(written);
 
         b[0] = SeedKeyHelper.PublicKeyCloseBracket;
