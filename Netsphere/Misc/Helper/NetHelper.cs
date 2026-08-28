@@ -479,7 +479,7 @@ public static class NetHelper
     public static string ToBase64<T>(this T value)
         where T : ITinyhandSerializable<T>
     {
-        return Base64.Url.FromByteArrayToString(TinyhandSerializer.SerializeObject(value));
+        return Base64Url.EncodeToString(TinyhandSerializer.SerializeObject(value));
     }
 
     public static string To4Hex(this ulong gene) => $"{(ushort)gene:x4}";
