@@ -358,7 +358,8 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
         SeedKeyHelper.PrivateKeyBracket.CopyTo(span);
         span = span.Slice(SeedKeyHelper.PrivateKeyBracket.Length);
 
-        Base64.Url.FromByteArrayToSpan(seedSpan, span, out var w);
+        // Base64.Url.FromByteArrayToSpan(seedSpan, span, out var w);
+        var w = Base64Url.Encode(seedSpan, span);
         span = span.Slice(w);
 
         SeedKeyHelper.PrivateKeyBracket.CopyTo(span);

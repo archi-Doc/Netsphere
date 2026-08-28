@@ -2,6 +2,7 @@
 
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Netsphere.Misc;
 
@@ -19,6 +20,7 @@ public static class TokenHelper
         return length;
     }
 
+    [SkipLocalsInit]
     public static bool TryParse<T>(char identifier, ReadOnlySpan<char> source, [MaybeNullWhen(false)] out T instance, out int read, IConversionOptions? conversionOptions = default)
         where T : ITinyhandSerializable<T>
     {
@@ -41,16 +43,12 @@ public static class TokenHelper
         }
 
         source = source.Slice(2, last - 2);
-        var decodedLength = Base64Url.GetMaxDecodedLength(source.Length);
-
-        byte[]? rent = null;
-        Span<byte> span = decodedLength <= 4096 ?
-            stackalloc byte[decodedLength] : (rent = ArrayPool<byte>.Shared.Rent(decodedLength));
-
-        var result = Base64Url.Decode(source, span);
+        var length = Base64Url.GetDecodedLength(source);
+        var spanowner = new SpanOwner<byte>(stackalloc byte[BaseHelper.StackallocThreshold], length);
         try
         {
-            if (!result)
+            var span = spanowner.Span;
+            if (!Base64Url.TryDecode(source, span, out _))
             {
                 return false;
             }
@@ -66,10 +64,7 @@ public static class TokenHelper
         }
         finally
         {
-            if (rent != null)
-            {
-                ArrayPool<byte>.Shared.Return(rent);
-            }
+            spanowner.Dispose();
         }
     }
 
@@ -86,10 +81,7 @@ public static class TokenHelper
         }
 
         var span = destination.Slice(2);
-        if (!Base64.Url.FromByteArrayToSpan(b, span, out var w))
-        {
-            return false;
-        }
+        var w = Base64Url.Encode(b, span);
 
         destination[0] = StartChar;
         destination[1] = identifier;
@@ -103,6 +95,6 @@ public static class TokenHelper
     public static string ToBase64<T>(T value, char identifier)
         where T : ITinyhandSerializable<T>
     {
-        return "{" + identifier + Base64.Url.FromByteArrayToString(TinyhandSerializer.SerializeObject(value)) + "}";
+        return "{" + identifier + Base64Url.EncodeToString(TinyhandSerializer.SerializeObject(value)) + "}";
     }
 }
