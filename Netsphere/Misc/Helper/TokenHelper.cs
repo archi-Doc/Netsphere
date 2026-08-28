@@ -14,7 +14,7 @@ public static class TokenHelper
         where T : ITinyhandSerializable<T>
     {
         var rentMemory = TinyhandSerializer.SerializeObjectToRentMemory(value);
-        var length = 3 + Base64.Url.GetEncodedLength(rentMemory.Length); // {identifier+base64}
+        var length = 3 + Base64Url.GetEncodedLength(rentMemory.Length); // {identifier+base64}
         rentMemory.Return();
         return length;
     }
@@ -41,13 +41,13 @@ public static class TokenHelper
         }
 
         source = source.Slice(2, last - 2);
-        var decodedLength = Base64.Url.GetMaxDecodedLength(source.Length);
+        var decodedLength = Base64Url.GetMaxDecodedLength(source.Length);
 
         byte[]? rent = null;
         Span<byte> span = decodedLength <= 4096 ?
             stackalloc byte[decodedLength] : (rent = ArrayPool<byte>.Shared.Rent(decodedLength));
 
-        var result = Base64.Url.FromStringToSpan(source, span, out var written);
+        var result = Base64Url.Decode(source, span);
         try
         {
             if (!result)
@@ -78,7 +78,7 @@ public static class TokenHelper
     {
         written = 0;
         var b = TinyhandSerializer.SerializeObject(value);
-        var length = 3 + Base64.Url.GetEncodedLength(b.Length);
+        var length = 3 + Base64Url.GetEncodedLength(b.Length);
 
         if (destination.Length < length)
         {
