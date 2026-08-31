@@ -72,7 +72,7 @@ public class Program
         };
 
         var args = SimpleParserHelper.GetCommandLineArguments();
-        SimpleParserHelper.AddEnvironmentVariable(ref args, "lpargs");
+        SimpleParserHelper.AppendEnvironmentVariable(ref args, "lpargs");
         if (args.Length == 0)
         {
             Console.Write("Arguments: ");
@@ -94,7 +94,7 @@ public class Program
                 NetOptions? options = default;
                 if (context.Arguments.TryGetOptionValue("ns", out var nsArg))
                 {
-                    SimpleParser.TryParseOptions(nsArg.UnwrapBracket(), out options, originalOptions);
+                    SimpleParser.TryParseOptions(nsArg.UnwrapBraces(), out options, originalOptions);
                 }
 
                 options ??= originalOptions;
