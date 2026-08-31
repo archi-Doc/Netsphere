@@ -10,7 +10,7 @@ using Tinyhand;
 
 namespace Netsphere.Version;
 
-[SimpleCommand("server", Default = true)]
+[SimpleCommand("server", IsDefault = true)]
 internal class ServerCommand : ISimpleCommand<ServerOptions>
 {
     private const int DelayMilliseconds = 1_000; // 1 second

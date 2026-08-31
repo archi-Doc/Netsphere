@@ -11,7 +11,7 @@ using SimpleCommandLine;
 
 namespace RemoteDataServer;
 
-[SimpleCommand("default", Default = true)]
+[SimpleCommand("default", IsDefault = true)]
 public class DefaultCommand : ISimpleCommand<DefaultCommandOptions>
 {
     public DefaultCommand(NetUnit.Product unit, ILogger<DefaultCommandOptions> logger, NetUnit netUnit, RemoteDataControl remoteDataBroker)
