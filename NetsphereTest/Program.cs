@@ -168,7 +168,7 @@ public class Program
                 {
                     Path = Path.Combine(context.DataDirectory, logfile),
                     MaxLogCapacity = 10,
-                    Formatter = fileLoggerOptions.Formatter with { TimestampFormat = "mm:ss.ffffff K", },// "yyyy-MM-dd HH:mm:ss.ffffff K";
+                    FormatterOptions = fileLoggerOptions.FormatterOptions with { TimestampFormat = "mm:ss.ffffff K", },// "yyyy-MM-dd HH:mm:ss.ffffff K";
                     ClearLogsAtStartup = true,
                     MaxQueue = 100_000,
                 });
@@ -187,7 +187,7 @@ public class Program
 
         Console.WriteLine(string.Join(' ', args));
         var unit = builder.Build(args);
-        root = unit.Context.Root;
+        root = unit.Context.ExecutionRoot;
 
         var options = unit.Context.ServiceProvider.GetRequiredService<NetOptions>();
         options.EnableServer = true;

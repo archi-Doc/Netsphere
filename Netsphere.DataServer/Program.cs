@@ -71,7 +71,7 @@ public class Program
                 {
                     Path = Path.Combine(context.DataDirectory, logfile),
                     MaxLogCapacity = 100,
-                    Formatter = fileLoggerOptions.Formatter with { TimestampFormat = "mm:ss.ffffff K", },
+                    FormatterOptions = fileLoggerOptions.FormatterOptions with { TimestampFormat = "mm:ss.ffffff K", },
                     ClearLogsAtStartup = true,
                     MaxQueue = 100_000,
                 });
@@ -87,7 +87,7 @@ public class Program
             });
 
         var unit = builder.Build(); // Create a unit that provides network functionality.
-        root = unit.Context.Root;
+        root = unit.Context.ExecutionRoot;
 
         var parserOptions = SimpleParserOptions.Standard with
         {

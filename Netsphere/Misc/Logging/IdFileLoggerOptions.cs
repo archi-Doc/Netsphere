@@ -6,7 +6,7 @@ public record class IdFileLoggerOptions : FileLoggerOptions
 {
     public IdFileLoggerOptions()
     {
-        this.Formatter = new SimpleLogFormatterOptions(true) with
+        this.FormatterOptions = new SimpleLogFormatterOptions(true) with
         {
             EventIdFormat = "X4",
         };

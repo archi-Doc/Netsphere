@@ -18,7 +18,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
     public NetTerminal(UnitContext unitContext, LogUnit logUnit, NetBase netBase, NetStats netStats, IRelayControl relayControl)
         : base(unitContext)
     {
-        this.root = unitContext.Root;
+        this.root = unitContext.ExecutionRoot;
         this.ExecutionGroup = new(this.root, false, GroupName);
         this.LogUnit = logUnit;
         this.NetBase = netBase;
@@ -179,7 +179,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
     async Task IUnitExecutable.Terminate(UnitContext unitContext, CancellationToken cancellationToken)
     {
         // Close all connections
-        this.State = UnitState.Rip;
+        this.State = UnitState.Disposed;
 
         await this.ConnectionTerminal.Terminate(cancellationToken).ConfigureAwait(false);
 
