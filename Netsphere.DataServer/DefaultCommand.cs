@@ -53,7 +53,7 @@ public class DefaultCommand : ISimpleCommand<DefaultCommandOptions>
 
         try
         {
-            await this.unit.Context.Root.Delay(Timeout.InfiniteTimeSpan, cancellationToken); // Wait until the server shuts down.
+            await this.unit.Context.ExecutionRoot.Delay(Timeout.InfiniteTimeSpan, cancellationToken); // Wait until the server shuts down.
         }
         catch
         {

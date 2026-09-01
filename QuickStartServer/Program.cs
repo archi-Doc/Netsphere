@@ -44,7 +44,7 @@ public class Program
             });
 
         var unit = builder.Build(); // Create a unit that provides network functionality.
-        root = unit.Context.Root;
+        root = unit.Context.ExecutionRoot;
         var options = unit.Context.ServiceProvider.GetRequiredService<NetOptions>();
         await unit.Run(options, true); // Execute the created unit with the specified options.
 

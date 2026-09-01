@@ -22,7 +22,7 @@ public abstract class RunnerCommand
 
     public RunnerCommand(IServiceProvider serviceProvider, UnitContext unitContext, RunnerUnit.Product unit, BigMachine bigMachine)
     {
-        this.root = unitContext.Root;
+        this.root = unitContext.ExecutionRoot;
         this.serviceProvider = serviceProvider;
         this.unitContext = unitContext;
         this.unit = unit;

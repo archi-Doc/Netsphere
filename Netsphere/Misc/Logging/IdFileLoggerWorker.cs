@@ -76,7 +76,7 @@ internal partial class IdFileLoggerWorker : TaskCore
     {
         this.logger = logService.GetLogger<IdFileLoggerWorker>();
         this.options = options;
-        this.formatter = new(options.Formatter);
+        this.formatter = new(options.FormatterOptions);
 
         var fileName = Path.GetFileName(options.Path);
         var fullPath = options.Path;

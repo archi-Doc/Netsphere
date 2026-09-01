@@ -114,7 +114,7 @@ public class Program
                  {
                      Path = Path.Combine(context.DataDirectory, logfile),
                      MaxLogCapacity = 1,
-                     Formatter = fileLoggerOptions.Formatter with { TimestampFormat = "yyyy-MM-dd HH:mm:ss.ffffff K", },
+                     FormatterOptions = fileLoggerOptions.FormatterOptions with { TimestampFormat = "yyyy-MM-dd HH:mm:ss.ffffff K", },
                      ClearLogsAtStartup = true,
                      MaxQueue = 100_000,
                  });
@@ -144,7 +144,7 @@ public class Program
 
         // Netsphere
         var unit = builder.Build();
-        root = unit.Context.Root;
+        root = unit.Context.ExecutionRoot;
         var options = unit.Context.ServiceProvider.GetRequiredService<NetOptions>();
         await Console.Out.WriteLineAsync($"Port: {options.Port.ToString()}");
 
