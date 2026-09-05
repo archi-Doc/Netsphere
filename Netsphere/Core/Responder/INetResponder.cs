@@ -2,6 +2,9 @@
 
 namespace Netsphere.Core;
 
+/// <summary>
+/// Handles a block or stream request identified by a data identifier.
+/// </summary>
 public interface INetResponder
 {
     ulong DataId { get; }

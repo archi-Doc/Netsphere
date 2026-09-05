@@ -1,4 +1,4 @@
-﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
+// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -17,6 +17,9 @@ namespace Netsphere;
 // byte[32 = EmbryoKeyLength] Key, byte[16 = EmbryoIvLength] Iv
 internal readonly record struct Embryo(ulong Salt, byte[] Key, byte[] Iv);
 
+/// <summary>
+/// Manages an encrypted connection, its transmission limits, and its lifetime.
+/// </summary>
 public abstract class Connection : IDisposable
 {
     private const int LowerRttLimit = 5_000; // 5ms
@@ -24,6 +27,9 @@ public abstract class Connection : IDisposable
     private const int DefaultRtt = 100_000; // 100ms
     internal const int EmbryoSize = 64;
 
+    /// <summary>
+    /// Specifies whether a connection may be reused or must be newly created.
+    /// </summary>
     public enum ConnectMode
     {
         ReuseIfAvailable,
@@ -31,6 +37,9 @@ public abstract class Connection : IDisposable
         NoReuse,
     }
 
+    /// <summary>
+    /// Identifies the lifecycle state of a connection.
+    /// </summary>
     public enum State
     {
         Open,
@@ -265,7 +274,7 @@ public abstract class Connection : IDisposable
     }
 
     /// <summary>
-    /// Close the connection without considering OpenCount.
+    /// Closes the connection regardless of its open reference count.
     /// </summary>
     internal void CloseInternal()
         => this.Dispose();
@@ -851,8 +860,6 @@ Wait:
                     span = span.Slice(length);
                 }
             }
-
-            Debug.Assert(span.Length == 0);
         }
     }
 
@@ -874,6 +881,23 @@ Wait:
         var rttHint = BitConverter.ToInt32(span);
         span = span.Slice(sizeof(int)); // 4
         var totalGenes = BitConverter.ToInt32(span);
+
+        if (dataControl < DataControl.Valid || dataControl > DataControl.Cancel ||
+            (transmissionMode == 0 && (totalGenes <= 0 || totalGenes > this.Agreement.MaxBlockGenes || dataControl != DataControl.Valid)))
+        {
+            return;
+        }
+
+        if (transmissionMode == 0)
+        {
+            var payloadLength = toBeShared.Length - FirstGeneFrame.LengthExcludingFrameType;
+            if (payloadLength > FirstGeneFrame.MaxGeneLength ||
+                (totalGenes > 1 && payloadLength != FirstGeneFrame.MaxGeneLength) ||
+                (totalGenes == 1 && payloadLength > this.Agreement.MaxBlockSize))
+            {
+                return;
+            }
+        }
 
         if (rttHint > 0)
         {
@@ -998,7 +1022,7 @@ Wait:
         span = span.Slice(sizeof(ushort)); // 2
 
         var dataPosition = BitConverter.ToInt32(span);
-        if (dataPosition == 0)
+        if (dataPosition <= 0 || dataControl < DataControl.Valid || dataControl > DataControl.Cancel)
         {
             return;
         }
@@ -1218,11 +1242,22 @@ Wait:
 
     internal bool TryDecrypt(uint salt4, ulong nonce8, Span<byte> span, int spanMax, out int written)
     {
+        written = 0;
+        if (span.Length < ProtectedPacket.TagSize || span.Length > spanMax)
+        {
+            return false;
+        }
+
         Span<byte> nonce = stackalloc byte[32];
         this.CreateNonce(salt4, nonce8, nonce);
 
+        if (!Aegis256.TryDecrypt(span[..^ProtectedPacket.TagSize], span, nonce, this.EmbryoKey))
+        {
+            return false;
+        }
+
         written = span.Length - ProtectedPacket.TagSize;
-        return Aegis256.TryDecrypt(span[..^ProtectedPacket.TagSize], span, nonce, this.EmbryoKey);
+        return true;
     }
 
     internal void CloseAllTransmission()

@@ -5,6 +5,9 @@ using System.Runtime.CompilerServices;
 
 namespace Netsphere;
 
+/// <summary>
+/// Combines an IP endpoint with a relay identifier.
+/// </summary>
 [TinyhandObject]
 public readonly partial record struct NetEndpoint : IEquatable<NetEndpoint>
 {

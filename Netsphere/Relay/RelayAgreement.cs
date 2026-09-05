@@ -2,6 +2,9 @@
 
 namespace Netsphere;
 
+/// <summary>
+/// Defines limits for relay allocations and forwarded traffic.
+/// </summary>
 [TinyhandObject]
 public partial record RelayAgreement
 {

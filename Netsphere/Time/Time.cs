@@ -8,6 +8,9 @@ using Netsphere.Misc;
 
 namespace Netsphere;
 
+/// <summary>
+/// Provides DateTime views of system, application, UTC, and corrected clocks.
+/// </summary>
 public static class Time
 {
     public static readonly double TimestampToTicks;
@@ -32,13 +35,13 @@ public static class Time
     }
 
     /// <summary>
-    /// Gets a DateTime since system startup (Stopwatch.GetTimestamp()).
+    /// Gets a DateTime from the monotonic stopwatch clock.
     /// </summary>
     /// <returns><see cref="DateTime"/>.</returns>
     public static DateTime GetSystem() => new DateTime((long)(Stopwatch.GetTimestamp() * TimestampToTicks));
 
     /// <summary>
-    /// Gets a <see cref="DateTime"/> since Lp has started (0001/01/01 0:00:00).<br/>
+    /// Gets elapsed application time as a <see cref="DateTime"/> relative to DateTime.MinValue.<br/>
     /// Not affected by manual date/time changes.
     /// </summary>
     /// <returns><see cref="DateTime"/>.</returns>
@@ -59,7 +62,7 @@ public static class Time
         => FixedUtcNow + TimeSpan.FromTicks((long)((Stopwatch.GetTimestamp() - FixedTimestamp) * TimestampToTicks));
 
     /// <summary>
-    /// Get a corrected <see cref="DateTime"/> expressed as UTC.
+    /// Gets a corrected <see cref="DateTime"/> expressed as UTC.
     /// </summary>
     /// <returns>The corrected <see cref="DateTime"/>.</returns>
     public static DateTime GetCorrected()

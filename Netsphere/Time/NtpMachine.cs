@@ -5,6 +5,9 @@ using Netsphere.Misc;
 
 namespace Netsphere.Machines;
 
+/// <summary>
+/// Schedules NTP clock correction in the background.
+/// </summary>
 [MachineObject(UseServiceProvider = true)]
 public partial class NtpMachine : Machine
 {

@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Netsphere.Crypto;
 
 /// <summary>
-/// Immutable identifier of objects in Lp.
+/// Represents an immutable 256-bit identifier with text conversion and ordering.
 /// </summary>
 [TinyhandObject]
 public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<Identifier>, IStringConvertible<Identifier>

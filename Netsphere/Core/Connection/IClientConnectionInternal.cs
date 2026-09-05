@@ -4,6 +4,9 @@ using Netsphere.Crypto;
 
 namespace Netsphere.Internal;
 
+/// <summary>
+/// Exposes client transport operations used by generated RPC code.
+/// </summary>
 public interface IClientConnectionInternal
 {
     Task<(NetResult Result, ulong DataId, BytePool.RentMemory Value)> RpcSendAndReceive(BytePool.RentMemory data, ulong dataId, CancellationToken cancellationToken = default);

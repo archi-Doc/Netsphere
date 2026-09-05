@@ -6,6 +6,9 @@ using System.Runtime.InteropServices;
 
 namespace Netsphere.Relay;
 
+/// <summary>
+/// Provides relay allocation, circuit setup, and block conversion helpers.
+/// </summary>
 public static class RelayHelper
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

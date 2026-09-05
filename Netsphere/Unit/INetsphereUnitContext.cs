@@ -4,13 +4,16 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Netsphere;
 
+/// <summary>
+/// Registers network services and their implementations during unit configuration.
+/// </summary>
 public interface INetsphereUnitContext
 {
     /// <summary>
-    /// Register the type of net service and the type of net object that implements it.<br/>
+    /// Registers a network service interface and its implementation type.
     /// </summary>
     /// <typeparam name="TNetService">The type of the net service to add.</typeparam>
-    /// <typeparam name="TNetObject">The type of the agent associated with the net service.</typeparam>
+    /// <typeparam name="TNetObject">The implementation type for the service.</typeparam>
     void AddNetService<TNetService, TNetObject>()
         where TNetService : class, INetService
         where TNetObject : class, TNetService;
@@ -19,9 +22,9 @@ public interface INetsphereUnitContext
     /// Registers the specified net service type and its implementation using a factory method.
     /// </summary>
     /// <typeparam name="TNetService">The type of the net service to add.</typeparam>
-    /// <typeparam name="TNetObject">The type of the agent associated with the net service.</typeparam>
+    /// <typeparam name="TNetObject">The implementation type for the service.</typeparam>
     /// <param name="factory">
-    /// A factory function that takes an <see crdef="IServiceProvider"/> and returns an instance of <typeparamref name="TNetObject"/>.
+    /// A factory function that takes an <see cref="IServiceProvider"/> and returns an instance of <typeparamref name="TNetObject"/>.
     /// </param>
     void AddNetService<TNetService, TNetObject>(Func<IServiceProvider, TNetObject> factory)
         where TNetService : class, INetService

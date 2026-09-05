@@ -2,6 +2,9 @@
 
 namespace Netsphere;
 
+/// <summary>
+/// Represents an inclusive range of microsecond timestamps.
+/// </summary>
 public readonly record struct MicsRange
 {
     public static bool IsWithin(long targetMics, long lowerBoundMics, long upperBoundMics)
@@ -11,9 +14,9 @@ public readonly record struct MicsRange
         => (lowerBoundMics - margin <= targetMics) && (targetMics <= upperBoundMics + margin);
 
     /// <summary>
-    /// Creates a <see cref="MicsRange"/> from the present mics (<see cref="Mics.GetCorrected"/>) to the present+specified mics.
+    /// Creates an inclusive range from <see cref="Mics.FastCorrected"/> to that timestamp plus the specified duration.
     /// </summary>
-    /// <param name="period">Mics ahead from the present mics.</param>
+    /// <param name="period">The duration in microseconds.</param>
     /// <returns><see cref="MicsRange"/>.</returns>
     public static MicsRange FromFastCorrectedToFuture(long period)
     {

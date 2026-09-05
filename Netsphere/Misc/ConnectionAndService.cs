@@ -5,14 +5,12 @@ using System.Diagnostics.CodeAnalysis;
 namespace Netsphere;
 
 /// <summary>
-/// Represents a combination of a network connection and a service, providing functionality to manage their lifecycle.
+/// Combines a connection result, connection, and service proxy with connection disposal.
 /// </summary>
-/// <remarks>This structure encapsulates a <see cref="Connection"/> and a <typeparamref name="TService"/>
-/// instance, allowing for easy validation and disposal of the connection.<br/>
-/// Use the <see cref="IsSuccess"/> property to check if both components are properly initialized, and <see cref="Dispose"/> to close the connection.</remarks>
-/// <typeparam name="TService">The type of the service associated with the connection. Must implement <see cref="INetService"/>.</typeparam>
-/// <param name="Connection">The network connection.</param>
-/// <param name="Service">The service instance.</param>
+/// <typeparam name="TService">The network service interface.</typeparam>
+/// <param name="Result">The connection result.</param>
+/// <param name="Connection">The connection, if available.</param>
+/// <param name="Service">The service proxy, if available.</param>
 public readonly record struct ConnectionAndService<TService>(NetResult Result, Connection? Connection, TService? Service) : IDisposable
     where TService : INetService
 {
@@ -27,23 +25,23 @@ public readonly record struct ConnectionAndService<TService>(NetResult Result, C
     }
 
     /// <summary>
-    /// Gets a value indicating whether both the <see cref="Connection"/> and <see cref="Service"/> are valid (not null).
+    /// Gets a value indicating whether the result is successful and both the connection and service are available.
     /// </summary>
-    /// <value><c>true</c> if both <see cref="Connection"/> and <see cref="Service"/> are not null; otherwise, <c>false</c>.</value>
+    /// <value>True if Result is Success and both objects are non-null; otherwise, false.</value>
     [MemberNotNullWhen(true, nameof(Connection))]
     [MemberNotNullWhen(true, nameof(Service))]
     public bool IsSuccess => this.Result == NetResult.Success && this.Connection is not null && this.Service is not null;
 
     /// <summary>
-    /// Gets a value indicating whether either the <see cref="Connection"/> or <see cref="Service"/> is invalid (null).
+    /// Gets a value indicating whether the result failed or the connection or service is unavailable.
     /// </summary>
-    /// <value><c>true</c> if either <see cref="Connection"/> or <see cref="Service"/> is null; otherwise, <c>false</c>.</value>
+    /// <value>True if Result is not Success or either object is null; otherwise, false.</value>
     [MemberNotNullWhen(false, nameof(Connection))]
     [MemberNotNullWhen(false, nameof(Service))]
     public bool IsFailure => this.Result != NetResult.Success || this.Connection is null || this.Service is null;
 
     /// <summary>
-    /// Close the <see cref="Connection"/> if it is not null.
+    /// Disposes the connection if it is available.
     /// </summary>
     public void Dispose()
     {

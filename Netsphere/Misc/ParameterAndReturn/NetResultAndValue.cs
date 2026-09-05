@@ -6,9 +6,9 @@ using System.Runtime.CompilerServices;
 namespace Netsphere;
 
 /// <summary>
-/// Represents a net result and value.
+/// Combines a transport result with a typed value.
 /// </summary>
-/// <typeparam name="TValue">The type of the value.</typeparam>
+/// <typeparam name="TValue">The result value type.</typeparam>
 public readonly record struct NetResultAndValue<TValue>
 {
     public NetResultAndValue(NetResult result, TValue value)

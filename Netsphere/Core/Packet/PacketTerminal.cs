@@ -1,4 +1,4 @@
-﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
+// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System;
 using System.Net;
@@ -11,6 +11,9 @@ using Tinyhand.IO;
 
 namespace Netsphere.Packet;
 
+/// <summary>
+/// Sends and receives datagram packets, including request retries and response matching.
+/// </summary>
 public sealed partial class PacketTerminal
 {
     [ValueLinkObject(Isolation = IsolationLevel.Serializable)]
@@ -100,12 +103,16 @@ public sealed partial class PacketTerminal
         BitConverter.TryWriteBytes(span, packetId); // Id
         span = span.Slice(sizeof(ulong));
 
-        writer.WriteSpan(header);
-
-        TinyhandSerializer.SerializeObject(ref writer, packet);
-
-        rentMemory = writer.FlushAndGetRentMemory();
-        writer.Dispose();
+        try
+        {
+            writer.WriteSpan(header);
+            TinyhandSerializer.SerializeObject(ref writer, packet);
+            rentMemory = writer.FlushAndGetRentMemory();
+        }
+        finally
+        {
+            writer.Dispose();
+        }
 
         // Get checksum
         span = rentMemory.Span;
@@ -176,6 +183,23 @@ public sealed partial class PacketTerminal
         }
         catch
         {
+            if (!responseTcs.TrySetCanceled() && responseTcs.Task.IsCompletedSuccessfully)
+            {
+                responseTcs.Task.Result.Return();
+            }
+
+            using (this.items.LockObject.EnterScope())
+            {
+                foreach (var item in this.items)
+                {
+                    if (ReferenceEquals(item.ResponseTcs, responseTcs))
+                    {
+                        item.Remove();
+                        break;
+                    }
+                }
+            }
+
             return (NetResult.Timeout, default, 0);
         }
     }
@@ -486,7 +510,11 @@ public sealed partial class PacketTerminal
                 if (item.ResponseTcs is { } tcs)
                 {
                     var elapsedMics = currentSystemMics > item.SentMics ? (int)(currentSystemMics - item.SentMics) : 0;
-                    tcs.SetResult(new(NetResult.Success, 0, elapsedMics, toBeShared.IncrementAndShare()));
+                    var response = new NetResponse(NetResult.Success, 0, elapsedMics, toBeShared.IncrementAndShare());
+                    if (!tcs.TrySetResult(response))
+                    {
+                        response.Return();
+                    }
                 }
             }
         }
@@ -501,6 +529,7 @@ public sealed partial class PacketTerminal
         if (length < PacketHeader.Length ||
             length > NetConstants.MaxPacketLength)
         {
+            dataToBeMoved.Return();
             return NetResult.InvalidData;
         }
 
@@ -509,13 +538,15 @@ public sealed partial class PacketTerminal
         {// The minimum number of relays
             if (circuit.NumberOfRelays < relayNumber)
             {
+                dataToBeMoved.Return();
                 return NetResult.InvalidRelay;
             }
         }
         else if (relayNumber < 0)
         {// The target relay
-            if (circuit.NumberOfRelays < -relayNumber)
+            if (circuit.NumberOfRelays < -(long)relayNumber)
             {
+                dataToBeMoved.Return();
                 return NetResult.InvalidRelay;
             }
         }
@@ -526,6 +557,7 @@ public sealed partial class PacketTerminal
         {// No relay
             if (!this.netTerminal.TryCreateEndpoint(ref netAddress, endpointResolution, out endpoint))
             {
+                dataToBeMoved.Return();
                 return NetResult.NoNetwork;
             }
 
@@ -548,6 +580,7 @@ public sealed partial class PacketTerminal
 
         if (endpoint.EndPoint is null)
         {
+            dataToBeMoved.Return();
             return NetResult.InvalidEndpoint;
         }
 
@@ -584,6 +617,7 @@ public sealed partial class PacketTerminal
         if (length < PacketHeader.Length ||
             length > NetConstants.MaxPacketLength)
         {
+            dataToBeMoved.Return();
             return NetResult.InvalidData;
         }
 
@@ -592,13 +626,15 @@ public sealed partial class PacketTerminal
         {// The minimum number of relays
             if (circuit.NumberOfRelays < relayNumber)
             {
+                dataToBeMoved.Return();
                 return NetResult.InvalidRelay;
             }
         }
         else if (relayNumber < 0)
         {// The target relay
-            if (circuit.NumberOfRelays < -relayNumber)
+            if (circuit.NumberOfRelays < -(long)relayNumber)
             {
+                dataToBeMoved.Return();
                 return NetResult.InvalidRelay;
             }
         }
@@ -625,6 +661,7 @@ public sealed partial class PacketTerminal
 
         if (endpoint.EndPoint is null)
         {
+            dataToBeMoved.Return();
             return NetResult.InvalidEndpoint;
         }
 
@@ -643,11 +680,13 @@ public sealed partial class PacketTerminal
         if (length < PacketHeader.Length ||
             length > NetConstants.MaxPacketLength)
         {
+            dataToBeMoved.Return();
             return NetResult.InvalidData;
         }
 
         if (!endpoint.IsValid)
         {
+            dataToBeMoved.Return();
             return NetResult.InvalidEndpoint;
         }
 
@@ -656,7 +695,7 @@ public sealed partial class PacketTerminal
         BitConverter.TryWriteBytes(span, (RelayId)0); // SourceRelayId
         span = span.Slice(sizeof(RelayId));
         BitConverter.TryWriteBytes(span, endpoint.RelayId); // DestinationRelayId
-        var packetId = BitConverter.ToUInt64(dataToBeMoved.Span.Slice(sizeof(RelayId) + sizeof(uint))); // PacketId
+        var packetId = BitConverter.ToUInt64(dataToBeMoved.Span.Slice(RelayHeader.RelayIdLength + 6)); // PacketId
 
         var item = new Item(endpoint.EndPoint, packetId, dataToBeMoved, responseTcs);
         using (this.items.LockObject.EnterScope())

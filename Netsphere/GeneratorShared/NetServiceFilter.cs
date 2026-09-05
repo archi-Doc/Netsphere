@@ -2,6 +2,10 @@
 
 namespace Netsphere;
 
+/// <summary>
+/// Applies a service filter to a network object or service method.
+/// </summary>
+/// <typeparam name="TFilter">The service filter type.</typeparam>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = true, AllowMultiple = true)]
 public class NetServiceFilterAttribute<TFilter> : Attribute
     where TFilter : IServiceFilter

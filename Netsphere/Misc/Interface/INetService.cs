@@ -5,16 +5,15 @@ using Netsphere.Crypto;
 namespace Netsphere;
 
 /// <summary>
-/// A base interface for net service.<br/>
-/// The requirements are to add the <see cref="NetServiceAttribute" /> and to derive from the <see cref="INetService" />.<br/>
-/// The return type of the interface function must be either <see cref="Task"/> or <see cref="Task{TResponse}"/>(TResponse is Tinyhand serializable) or <see cref="Task"/> or <see cref="Task{TResult}"/>.
+/// Marks an interface as a network service contract.
 /// </summary>
+/// <remarks>Apply <see cref="NetServiceAttribute"/>. Methods return <see cref="Task"/> or <see cref="Task{TResult}"/>, or use a final ref <see cref="ResponseChannel{TResponse}"/> parameter with a void return type.</remarks>
 public interface INetService
 {
 }
 
 /// <summary>
-/// An interface for adding functions to <see cref="INetService"/> to update the agreement.
+/// Adds a signed connection-agreement update operation to a service.
 /// </summary>
 public interface INetServiceWithUpdateAgreement : INetService
 {
@@ -29,7 +28,7 @@ public interface INetServiceWithUpdateAgreement : INetService
 }
 
 /// <summary>
-/// An interface for adding functions to <see cref="INetService"/> to enable bidirectional connection.
+/// Adds an operation that enables bidirectional communication on a connection.
 /// </summary>
 public interface INetServiceWithConnectBidirectionally : INetService
 {
@@ -43,7 +42,7 @@ public interface INetServiceWithConnectBidirectionally : INetService
 }
 
 /// <summary>
-/// An interface for adding functions to <see cref="INetService"/> for authentication.
+/// Adds token authentication to a network service.
 /// </summary>
 public interface INetServiceWithAuthenticate : INetService
 {

@@ -8,6 +8,9 @@ using System.Runtime.InteropServices;
 
 namespace Netsphere.Crypto;
 
+/// <summary>
+/// Stores a node's encryption public key and supports validation and text conversion.
+/// </summary>
 [TinyhandObject]
 [StructLayout(LayoutKind.Explicit)]
 public readonly partial struct EncryptionPublicKey : IValidatable, IEquatable<EncryptionPublicKey>, IStringConvertible<EncryptionPublicKey>

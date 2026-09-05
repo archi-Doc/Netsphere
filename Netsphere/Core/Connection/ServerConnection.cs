@@ -5,6 +5,9 @@ using Netsphere.Packet;
 
 namespace Netsphere;
 
+/// <summary>
+/// Represents a server-side connection and its service context.
+/// </summary>
 [ValueLinkObject(Isolation = IsolationLevel.Serializable, Restricted = true)]
 public sealed partial class ServerConnection : Connection, IEquatable<ServerConnection>, IComparable<ServerConnection>
 {

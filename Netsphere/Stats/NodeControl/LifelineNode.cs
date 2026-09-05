@@ -4,6 +4,9 @@ using Netsphere.Crypto;
 
 namespace Netsphere.Stats;
 
+/// <summary>
+/// Tracks a bootstrap node's connection history and consecutive failures.
+/// </summary>
 [TinyhandObject]
 [ValueLinkObject(Isolation = IsolationLevel.Serializable)]
 public sealed partial class LifelineNode : NetNode

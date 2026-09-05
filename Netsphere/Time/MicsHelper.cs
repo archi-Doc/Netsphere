@@ -12,7 +12,7 @@ public static class MicsHelper
     /// <summary>
     /// Checks if the specified interval has passed since the last recorded time.
     /// </summary>
-    /// <param name="current">The last recorded time in microseconds.</param>
+    /// <param name="current">The last recorded timestamp; updated to Mics.FastSystem when the interval has elapsed.</param>
     /// <param name="interval">The interval to check in microseconds.</param>
     /// <returns>True if the interval has passed; otherwise, false.</returns>
     public static bool CheckInteval(ref long current, long interval)
@@ -31,7 +31,7 @@ public static class MicsHelper
     /// Converts the specified microseconds to a <see cref="DateTime"/>.
     /// </summary>
     /// <param name="mics">The time in microseconds.</param>
-    /// <returns>A <see cref="DateTime"/> representing the specified time.</returns>
+    /// <returns>A DateTime with Kind set to Unspecified; the timestamp's clock origin is unchanged.</returns>
     public static DateTime MicsToDateTime(this long mics) => new DateTime((long)((double)mics * Time.MicsToTicks));
 
     /// <summary>

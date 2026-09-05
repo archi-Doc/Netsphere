@@ -4,6 +4,9 @@ using Netsphere.Core;
 
 namespace Netsphere;
 
+/// <summary>
+/// Sends stream data and waits for transmission completion.
+/// </summary>
 public class SendStream : SendStreamBase
 {
     internal SendStream(SendTransmission sendTransmission, long maxLength, ulong dataId)

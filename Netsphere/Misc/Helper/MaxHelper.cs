@@ -4,6 +4,9 @@ using Netsphere.Crypto;
 
 namespace Netsphere;
 
+/// <summary>
+/// Provides fixed values for estimating maximum serialized sizes.
+/// </summary>
 public static class MaxHelper
 {
     public const byte UInt8 = 0xBD;

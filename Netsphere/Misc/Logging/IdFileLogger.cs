@@ -2,6 +2,10 @@
 
 namespace Netsphere.Logging;
 
+/// <summary>
+/// Buffers log events and writes them to files grouped by identifier.
+/// </summary>
+/// <typeparam name="TOption">The logger options type.</typeparam>
 public class IdFileLogger<TOption> : BufferedLogOutput
     where TOption : IdFileLoggerOptions
 {

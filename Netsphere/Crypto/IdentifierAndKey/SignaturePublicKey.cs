@@ -8,6 +8,9 @@ using System.Runtime.InteropServices;
 
 namespace Netsphere.Crypto;
 
+/// <summary>
+/// Stores a signature verification key and supports text conversion and aliases.
+/// </summary>
 [TinyhandObject]
 [StructLayout(LayoutKind.Explicit)]
 public readonly partial struct SignaturePublicKey : IValidatable, IEquatable<SignaturePublicKey>, IStringConvertible<SignaturePublicKey>

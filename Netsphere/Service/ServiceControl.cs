@@ -4,6 +4,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Netsphere.Service;
 
+/// <summary>
+/// Controls which registered services are enabled by default for new server connections.
+/// </summary>
 public sealed class ServiceControl
 {
     internal ServiceControl(NetsphereUnitContext context)

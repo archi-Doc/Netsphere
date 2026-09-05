@@ -4,6 +4,10 @@ using Netsphere.Core;
 
 namespace Netsphere;
 
+/// <summary>
+/// Sends stream data and receives a typed response.
+/// </summary>
+/// <typeparam name="TReceive">The response type.</typeparam>
 public class SendStreamAndReceive<TReceive> : SendStreamBase
 {
     internal SendStreamAndReceive(SendTransmission sendTransmission, long maxLength, ulong dataId)

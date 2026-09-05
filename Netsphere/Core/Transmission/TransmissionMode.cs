@@ -2,6 +2,9 @@
 
 namespace Netsphere.Core;
 
+/// <summary>
+/// Identifies the block or stream mode encoded in a first-gene frame.
+/// </summary>
 public enum TransmissionMode : ushort
 {
     Block,

@@ -3,9 +3,9 @@
 namespace Netsphere;
 
 /// <summary>
-/// An attribute applied to classes that provide a NetService on the server side.<br/>
-/// If necessary, the class can also implement <see cref="INetObject"/> to add connection-related callback methods.
+/// Marks a server-side implementation of one or more network services.
 /// </summary>
+/// <remarks>Implement <see cref="INetObject"/> to receive connection lifecycle callbacks.</remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
 public sealed class NetObjectAttribute : Attribute
 {

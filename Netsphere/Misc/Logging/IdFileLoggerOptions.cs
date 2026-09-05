@@ -2,6 +2,9 @@
 
 namespace Netsphere.Logging;
 
+/// <summary>
+/// Configures identifier-based log files and their retention.
+/// </summary>
 public record class IdFileLoggerOptions : FileLoggerOptions
 {
     public IdFileLoggerOptions()
@@ -15,7 +18,7 @@ public record class IdFileLoggerOptions : FileLoggerOptions
     }
 
     /// <summary>
-    /// Gets the upper limit of log stream.
+    /// Gets the maximum number of log file streams kept open.
     /// </summary>
     public int MaxStreamCapacity { get; init; } = 10;
 }

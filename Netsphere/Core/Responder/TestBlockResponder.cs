@@ -5,6 +5,9 @@ using Netsphere.Misc;
 
 namespace Netsphere.Responder;
 
+/// <summary>
+/// Echoes a test block for transmission checks.
+/// </summary>
 public class TestBlockResponder : SyncResponder<TestBlock, TestBlock>
 {
     public static readonly INetResponder Instance = new TestBlockResponder();

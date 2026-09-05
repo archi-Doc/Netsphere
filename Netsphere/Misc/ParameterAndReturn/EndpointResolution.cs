@@ -18,12 +18,12 @@ public enum EndpointResolution : byte
     NetAddress,
 
     /// <summary>
-    /// Use Ipv4 endpoints.
+    /// Uses IPv4 endpoints only.
     /// </summary>
     Ipv4,
 
     /// <summary>
-    /// Use Ipv6 endpoints.
+    /// Uses IPv6 endpoints only.
     /// </summary>
     Ipv6,
 }

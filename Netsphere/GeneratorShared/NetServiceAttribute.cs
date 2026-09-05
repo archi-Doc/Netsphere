@@ -3,10 +3,9 @@
 namespace Netsphere;
 
 /// <summary>
-/// An attribute that is applied to the interface when defining a NetService.<br/>
-/// The requirements are to add the <see cref="NetServiceAttribute" /> and to derive from the <see cref="INetService" />.<br/>
-/// The return type of the interface function must be either <see cref="Task"/> or <see cref="Task{TResponse}"/>(TResponse is Tinyhand serializable).
+/// Marks an interface for generated network service proxies and dispatchers.
 /// </summary>
+/// <remarks>The interface must inherit <see cref="INetService"/> and use its supported method signatures.</remarks>
 [AttributeUsage(AttributeTargets.Interface, AllowMultiple = false, Inherited = false)]
 public sealed class NetServiceAttribute : Attribute
 {

@@ -6,6 +6,10 @@ using System.Runtime.CompilerServices;
 
 namespace Netsphere;
 
+/// <summary>
+/// Tracks recent observations and selects a value when its trust threshold is met.
+/// </summary>
+/// <typeparam name="T">The observed value type.</typeparam>
 [TinyhandObject]
 public sealed partial class TrustSource<T>
 {
@@ -91,7 +95,7 @@ public sealed partial class TrustSource<T>
     public bool IsInconsistent => !this.isFixed && this.IsAboveMinimum;
 
     /// <summary>
-    /// Gets a value indicating whether the count of items is above the minimum trust value.
+    /// Gets a value indicating whether the observation count has reached the trust threshold.
     /// </summary>
     public bool IsAboveMinimum => this.items.Count >= this.TrustMinimum;
 

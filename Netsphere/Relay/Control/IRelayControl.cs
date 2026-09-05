@@ -4,6 +4,9 @@ using Netsphere.Responder;
 
 namespace Netsphere.Relay;
 
+/// <summary>
+/// Defines relay allocation policy and limits.
+/// </summary>
 public interface IRelayControl
 {
     int MaxRelayExchanges { get; }

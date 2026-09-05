@@ -46,6 +46,7 @@ public class FilterTest
     {
         using (var connection = await this.NetUnit.NetTerminal.Connect(Alternative.NetNode))
         {
+            Assert.NotNull(connection);
             if (connection is null)
             {
                 return;

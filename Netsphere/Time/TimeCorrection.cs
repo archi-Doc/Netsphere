@@ -4,6 +4,9 @@
 
 namespace Netsphere.Misc;
 
+/// <summary>
+/// Estimates a corrected UTC clock from sampled time differences.
+/// </summary>
 public partial class TimeCorrection
 {
     /// <summary>
@@ -16,6 +19,9 @@ public partial class TimeCorrection
     /// </summary>
     public const uint MinCorrections = 10;
 
+    /// <summary>
+    /// Indicates whether enough samples were available to correct the clock.
+    /// </summary>
     public enum Result
     {
         NotCorrected,
@@ -45,7 +51,7 @@ public partial class TimeCorrection
     }
 
     /// <summary>
-    /// Get the corrected <see cref="Mics"/> expressed as UTC.
+    /// Gets the corrected time in microseconds expressed as UTC.
     /// </summary>
     /// <param name="correctedMics">The corrected <see cref="Mics"/>.</param>
     /// <returns><see cref="Result"/>.</returns>

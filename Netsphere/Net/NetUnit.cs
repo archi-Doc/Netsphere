@@ -25,10 +25,16 @@ using Netsphere.Stats;
 
 namespace Netsphere;
 
+/// <summary>
+/// Integrates Netsphere networking services with an Arc.Unit application.
+/// </summary>
 public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 {
     #region Builder
 
+    /// <summary>
+    /// Builds and configures a Netsphere application and its services.
+    /// </summary>
     public class Builder : UnitBuilder<Product>
     {
         public Builder()
@@ -103,6 +109,9 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
     #region Product
 
+    /// <summary>
+    /// Starts and stops a configured Netsphere application.
+    /// </summary>
     public class Product : UnitProduct
     {
         public Product(UnitContext context)

@@ -3,10 +3,9 @@
 namespace Netsphere;
 
 /// <summary>
-/// Represents a net response.<br/>
-/// <see cref="NetResult.Success"/>: <see cref="NetResponse.Received"/> is valid, and it's preferable to call Return() method.<br/>
-/// Other: <see cref="NetResponse.Received"/> is default (empty).
+/// Contains a transport result and an optional pooled response buffer.
 /// </summary>
+/// <remarks>Call <see cref="Return"/> after consuming the pooled buffer. Copies share the same buffer ownership.</remarks>
 public readonly record struct NetResponse
 {
     public NetResponse(NetResult result, ulong dataId, long additional, BytePool.RentMemory received)

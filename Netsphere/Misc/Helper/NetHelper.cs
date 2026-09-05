@@ -13,6 +13,9 @@ using Tinyhand.IO;
 
 namespace Netsphere;
 
+/// <summary>
+/// Provides serialization, connection, and stream conversion helpers.
+/// </summary>
 public static class NetHelper
 {
     internal const int BurstGenes = 3;
@@ -31,7 +34,6 @@ public static class NetHelper
             value.SignedMics = Mics.FastCorrected;
             value.Salt = salt;
             TinyhandSerializer.SerializeObject(ref writer, value, TinyhandSerializerOptions.Signature);
-            Span<byte> hash = stackalloc byte[32];
             writer.FlushAndGetReadOnlySpan(out var span, out _);
 
             var sign = new byte[CryptoSign.SignatureSize];
@@ -214,7 +216,6 @@ public static class NetHelper
     {
         var result = NetResult.Success;
         var rentArray = BytePool.Default.Rent(StreamBufferSize);
-        long totalSent = 0;
         try
         {
             int length;
@@ -225,11 +226,9 @@ public static class NetHelper
                 {
                     return result;
                 }
-
-                totalSent += length;
             }
 
-            await sendStream.Complete(cancellationToken).ConfigureAwait(false);
+            result = await sendStream.Complete(cancellationToken).ConfigureAwait(false);
         }
         catch
         {
@@ -248,7 +247,6 @@ public static class NetHelper
     {
         var result = NetResult.Success;
         var rentArray = BytePool.Default.Rent(StreamBufferSize);
-        long totalSent = 0;
         try
         {
             int length;
@@ -259,8 +257,6 @@ public static class NetHelper
                 {
                     return new(result);
                 }
-
-                totalSent += length;
             }
 
             var r = await sendStream.CompleteSendAndReceive(cancellationToken).ConfigureAwait(false);
@@ -448,7 +444,7 @@ public static class NetHelper
     /// </summary>
     /// <param name="value">The object to be verified.</param>
     /// <typeparam name="T">The type of the object.</typeparam>
-    /// <returns><see langword="true" />: Success.</returns>
+    /// <returns>True on success; otherwise, false.</returns>
     private static bool ValidateAndVerify<T>(T value)
         where T : ITinyhandSerializable<T>, ISignAndVerify
     {
@@ -563,7 +559,8 @@ public static class NetHelper
 
         size -= FirstGeneFrame.MaxGeneLength;
         var numberOfGenes = (int)(size / FollowingGeneFrame.MaxGeneLength);
-        var lastGeneSize = (uint)(size - (numberOfGenes * FollowingGeneFrame.MaxGeneLength));
-        return (lastGeneSize > 0 ? numberOfGenes + 2 : numberOfGenes + 1, FirstGeneFrame.MaxGeneLength, lastGeneSize);
+        var lastGeneSize = (uint)(size % FollowingGeneFrame.MaxGeneLength);
+        return (lastGeneSize > 0 ? numberOfGenes + 2 : numberOfGenes + 1, FirstGeneFrame.MaxGeneLength,
+            lastGeneSize > 0 ? lastGeneSize : FollowingGeneFrame.MaxGeneLength);
     }
 }

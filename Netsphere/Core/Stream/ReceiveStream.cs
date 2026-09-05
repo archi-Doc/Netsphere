@@ -7,11 +7,18 @@ namespace Netsphere;
 
 #pragma warning disable SA1202 // Elements should be ordered by access
 
+/// <summary>
+/// Exposes length-prefixed block reception for transport helpers.
+/// </summary>
 public interface IReceiveStreamInternal
 {
     Task<NetResultAndValue<TReceive>> ReceiveBlock<TReceive>(CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Receives a request stream and sends a typed response when reception finishes.
+/// </summary>
+/// <typeparam name="TResponse">The response type.</typeparam>
 public readonly struct ReceiveStream<TResponse>
 {
     internal ReceiveStream(TransmissionContext transmissionContext, ReceiveStream receiveStream)
@@ -45,6 +52,9 @@ public readonly struct ReceiveStream<TResponse>
     }
 }
 
+/// <summary>
+/// Reads incoming stream data within its declared length limit.
+/// </summary>
 public class ReceiveStream : IReceiveStreamInternal // , IDisposable
 {
     internal ReceiveStream(ReceiveTransmission receiveTransmission, ulong dataId, long maxStreamLength)
@@ -111,6 +121,12 @@ public class ReceiveStream : IReceiveStreamInternal // , IDisposable
             }
 
             var length = BitConverter.ToInt32(rentArray.AsSpan());
+            if (length < 0)
+            {
+                this.Dispose();
+                return new(NetResult.DeserializationFailed);
+            }
+
             if (length > this.ReceiveTransmission.Connection.Agreement.MaxBlockSize)
             {
                 this.Dispose();

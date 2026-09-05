@@ -11,6 +11,9 @@ using Netsphere.Stats;
 
 namespace Netsphere;
 
+/// <summary>
+/// Coordinates sockets, packets, connections, services, and relay circuits for a node.
+/// </summary>
 public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 {
     public const string GroupName = "Netsphere";
@@ -195,6 +198,15 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         this.IsAlternative = isAlternative;
 
         this.RelayControl.RegisterResponder(this.Responders);
+    }
+
+    internal void SetAutoAssignedPort(int port)
+    {
+        this.Port = port;
+        if (!this.IsAlternative)
+        {
+            this.NetBase.SetAutoAssignedPort(port);
+        }
     }
 
     internal async Task<NetResponse> Wait(Task<NetResponse> task, TimeSpan timeout, CancellationToken cancellationToken)

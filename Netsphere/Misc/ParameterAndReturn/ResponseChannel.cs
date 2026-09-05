@@ -10,6 +10,9 @@ namespace Netsphere;
 
 public delegate void ResponseDelegate<TReceive>(NetResult result, TReceive? value);
 
+/// <summary>
+/// Exposes response serialization and callback operations for generated RPC code.
+/// </summary>
 public interface IResponseChannelInternal
 {
     void Invoke(NetResult result);
@@ -20,15 +23,10 @@ public interface IResponseChannelInternal
 }
 
 /// <summary>
-/// A shared structure used to send and receive data between the client and server.<br/>
-/// On the client side, a delegate is invoked when data is received.<br/>
-/// Its advantage is that it does not rely on Task, but its use is not recommended.<br/>
-/// <br/>
-/// Client side: Set SendValue and call the NetService method.<br/>
-/// Server side: Read SendValue and set ReceiveValue.<br/>
-/// If asynchronous processing is required, do not use ResponseChannel; define a normal NetService method instead.
+/// Carries a synchronous RPC response or a client callback for that response.
 /// </summary>
-/// <typeparam name="TResponse"></typeparam>
+/// <typeparam name="TResponse">The response type.</typeparam>
+/// <remarks>Pass as the final ref parameter of a void service method. The server calls SetResponse; the client supplies a callback. Use Task-based methods for asynchronous handlers.</remarks>
 [TinyhandObject]
 public partial record struct ResponseChannel<TResponse> : IResponseChannelInternal, ITinyhandSerializable<ResponseChannel<TResponse>>, ITinyhandReconstructable<ResponseChannel<TResponse>>, ITinyhandCloneable<ResponseChannel<TResponse>>, ITinyhandSingleLayoutSerializable
 {
@@ -73,8 +71,7 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
 
     void IResponseChannelInternal.Invoke(NetResponse response)
     {
-        if (response.Result != NetResult.Success ||
-            response.Received.IsEmpty)
+        if (response.Result != NetResult.Success)
         {
             this.ResponseDelegate?.Invoke(response.Result, default);
             return;
@@ -86,26 +83,33 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
             return;
         }
 
+        if (response.Received.IsEmpty)
+        {
+            this.ResponseDelegate?.Invoke(response.Result, default);
+            return;
+        }
+
         var span = response.Received.Span;
         TResponse? receiveValue = default;
+        var result = response.Result;
         try
         {
             var reader = new TinyhandReader(span);
             if (reader.TryReadNil())
             {
-                this.ResponseDelegate?.Invoke(NetResult.DeserializationFailed, default);
-                return;
+                result = NetResult.DeserializationFailed;
             }
-
-            receiveValue = TinyhandSerializer.Deserialize<TResponse>(ref reader, TinyhandSerializerOptions.Standard);
+            else
+            {
+                receiveValue = TinyhandSerializer.Deserialize<TResponse>(ref reader, TinyhandSerializerOptions.Standard);
+            }
         }
         catch
         {
-            this.ResponseDelegate?.Invoke(NetResult.DeserializationFailed, default);
-            return;
+            result = NetResult.DeserializationFailed;
         }
 
-        this.ResponseDelegate?.Invoke(response.Result, receiveValue);
+        this.ResponseDelegate?.Invoke(result, receiveValue);
     }
 
     void IResponseChannelInternal.Invoke(NetResult result)
@@ -128,10 +132,13 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
     {
         if (reader.TryReadNil())
         {
+            v.Value = default;
+            v.IsValueSet = false;
             return;
         }
 
         v.Value = TinyhandSerializer.Deserialize<TResponse>(ref reader, options);
+        v.IsValueSet = true;
     }
 
     static void ITinyhandReconstructable<ResponseChannel<TResponse>>.Reconstruct([NotNull] scoped ref ResponseChannel<TResponse> v, TinyhandSerializerOptions options)

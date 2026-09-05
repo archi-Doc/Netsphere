@@ -4,6 +4,9 @@ using Netsphere.Crypto;
 
 namespace Netsphere.Packet;
 
+/// <summary>
+/// Requests a node's encryption public key.
+/// </summary>
 [TinyhandObject]
 public partial class GetInformationPacket : IPacket
 {
@@ -14,6 +17,9 @@ public partial class GetInformationPacket : IPacket
     }
 }
 
+/// <summary>
+/// Returns a node's encryption public key.
+/// </summary>
 [TinyhandObject]
 public partial class GetInformationPacketResponse : IPacket
 {

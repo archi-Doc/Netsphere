@@ -9,9 +9,9 @@ using Tinyhand.IO;
 namespace Netsphere.Crypto;
 
 /// <summary>
-/// Represents a certificate token.
+/// Carries signed data with a signing timestamp and an optional connection salt.
 /// </summary>
-/// <typeparam name="T">The type of the certificate object.</typeparam>
+/// <typeparam name="T">The type of the signed data.</typeparam>
 [TinyhandObject]
 public partial class CertificateToken<T> : ISignAndVerify, IEquatable<CertificateToken<T>>, IStringConvertible<CertificateToken<T>>
     where T : ITinyhandSerializable<T>

@@ -6,6 +6,9 @@ using System.Runtime.CompilerServices;
 
 namespace Netsphere.Misc;
 
+/// <summary>
+/// Provides signing, verification, and size estimation for tokens.
+/// </summary>
 public static class TokenHelper
 {
     public const char StartChar = '{';

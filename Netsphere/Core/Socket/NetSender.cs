@@ -1,4 +1,4 @@
-﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
+// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Runtime.CompilerServices;
 
@@ -25,7 +25,6 @@ internal class NetSender
     public NetSender(NetTerminal netTerminal, NetBase netBase, ILogger<NetSender> logger)
     {
         this.netTerminal = netTerminal;
-        this.netBase = netBase;
         this.logger = logger;
         this.netSocketIpv4 = new(this.netTerminal);
         this.netSocketIpv6 = new(this.netTerminal);
@@ -76,6 +75,7 @@ internal class NetSender
     {
         if (endPoint is null)
         {
+            toBeMoved.Return();
             return;
         }
 
@@ -111,8 +111,14 @@ internal class NetSender
         retry = 0;
         while (true)
         {
-            if (this.netSocketIpv4.Start(group, port, false))
+            if (this.netSocketIpv4.Start(group, port, false, out var boundPort))
             {
+                if (port == 0)
+                {
+                    port = boundPort;
+                    this.netTerminal.SetAutoAssignedPort(port);
+                }
+
                 break;
             }
 
@@ -131,7 +137,7 @@ internal class NetSender
         retry = 0;
         while (true)
         {
-            if (this.netSocketIpv6.Start(group, port, true))
+            if (this.netSocketIpv6.Start(group, port, true, out _))
             {
                 break;
             }
@@ -158,6 +164,11 @@ internal class NetSender
         this.netSocketIpv4.Stop();
         this.netSocketIpv6.Stop();
         this.sendCore?.Dispose();
+        using (this.lockObject.EnterScope())
+        {
+            ReturnQueuedMemory(this.itemsIpv4);
+            ReturnQueuedMemory(this.itemsIpv6);
+        }
     }
 
     public void SetDeliveryFailureRatio(double ratio)
@@ -174,7 +185,6 @@ internal class NetSender
     public int SendCount { get; private set; }
 
     private readonly NetTerminal netTerminal;
-    private readonly NetBase netBase;
     private readonly ILogger logger;
     private readonly NetSocket netSocketIpv4;
     private readonly NetSocket netSocketIpv6;
@@ -206,6 +216,14 @@ internal class NetSender
             }
         }
     }*/
+
+    private static void ReturnQueuedMemory(Queue<Item> queue)
+    {
+        while (queue.TryDequeue(out var item))
+        {
+            item.MemoryOwner.Return();
+        }
+    }
 
     private void Process()
     {// Invoked by multiple threads(SendCore or MultimediaTimer).
@@ -264,6 +282,7 @@ internal class NetSender
 #if DEBUG
                 if (this.deliveryFailureRatio != 0 && RandomVault.Xoshiro.NextDouble() < this.deliveryFailureRatio)
                 {
+                    item.MemoryOwner.Return();
                     continue;
                 }
 #endif
@@ -288,7 +307,7 @@ internal class NetSender
         }
         else
         {
-            this.itemsIpv4.Clear();
+            ReturnQueuedMemory(this.itemsIpv4);
         }
 
         if (this.netSocketIpv6.UnsafeUdpClient is { } ipv6)
@@ -298,6 +317,7 @@ internal class NetSender
 #if DEBUG
                 if (this.deliveryFailureRatio != 0 && RandomVault.Xoshiro.NextDouble() < this.deliveryFailureRatio)
                 {
+                    item.MemoryOwner.Return();
                     continue;
                 }
 #endif
@@ -322,7 +342,7 @@ internal class NetSender
         }
         else
         {
-            this.itemsIpv6.Clear();
+            ReturnQueuedMemory(this.itemsIpv6);
         }
     }
 }

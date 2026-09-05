@@ -39,6 +39,9 @@ internal class ExampleConnectionContext : ServerConnectionContext
     }*/
 }
 
+/// <summary>
+/// Manages services, authentication, and request dispatch for a server connection.
+/// </summary>
 public class ServerConnectionContext
 {
     #region FieldAndProperty

@@ -5,7 +5,7 @@ using Netsphere.Crypto;
 namespace Netsphere;
 
 /// <summary>
-/// An interface for adding a signature to an object or authenticating a signature.
+/// Defines signing data, signature metadata, and validation for an object.
 /// </summary>
 public interface ISignAndVerify : IValidatable
 {

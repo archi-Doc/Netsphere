@@ -2,6 +2,9 @@
 
 namespace Netsphere.Packet;
 
+/// <summary>
+/// Requests a UDP hole-punch message, optionally through a relay.
+/// </summary>
 [TinyhandObject]
 public sealed partial class PunchPacket : IPacket
 {
@@ -36,6 +39,9 @@ public sealed partial class PunchPacket : IPacket
     }
 }
 
+/// <summary>
+/// Acknowledges a UDP hole-punch request.
+/// </summary>
 [TinyhandObject]
 public sealed partial class PunchPacketResponse : IPacket
 {

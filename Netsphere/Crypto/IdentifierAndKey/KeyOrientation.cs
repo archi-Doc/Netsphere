@@ -3,8 +3,7 @@
 namespace Netsphere.Crypto;
 
 /// <summary>
-///  <see cref="SeedKey"/> is designed to be used for both Signature and Encryption (although this may not be recommended).<br/>
-///  Specify the intended purpose the key.
+/// Specifies whether key material is intended for encryption or signing.
 /// </summary>
 public enum KeyOrientation
 {

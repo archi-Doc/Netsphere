@@ -2,6 +2,9 @@
 
 namespace Netsphere.Packet;
 
+/// <summary>
+/// Requests the address exposed by an OpenSesami-enabled relay.
+/// </summary>
 [TinyhandObject]
 public sealed partial class OpenSesamiPacket : IPacket
 {
@@ -12,6 +15,9 @@ public sealed partial class OpenSesamiPacket : IPacket
     }
 }
 
+/// <summary>
+/// Returns the address exposed by an OpenSesami-enabled relay.
+/// </summary>
 [TinyhandObject]
 public sealed partial class OpenSesamiResponse : IPacket
 {

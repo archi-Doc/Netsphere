@@ -6,6 +6,9 @@ namespace Netsphere.Relay;
 
 #pragma warning disable CS0649
 
+/// <summary>
+/// Defines the relay envelope containing addressing and encryption metadata.
+/// </summary>
 [StructLayout(LayoutKind.Explicit)]
 public readonly struct RelayHeader
 {// 32 bytes, RelayHeaderCode

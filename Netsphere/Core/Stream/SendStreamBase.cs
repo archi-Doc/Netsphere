@@ -8,6 +8,9 @@ namespace Netsphere.Core;
 
 #pragma warning disable SA1202 // Elements should be ordered by access
 
+/// <summary>
+/// Provides shared state and operations for sending a length-limited stream.
+/// </summary>
 public abstract class SendStreamBase
 {
     internal SendStreamBase(SendTransmission sendTransmission, long maxLength, ulong dataId)
@@ -65,14 +68,14 @@ public abstract class SendStreamBase
             return NetResult.SerializationFailed;
         }
 
-        if (rentMemory.Length > this.SendTransmission.Connection.Agreement.MaxBlockSize)
-        {
-            return NetResult.BlockSizeLimit;
-        }
-
         NetResult result;
         try
         {
+            if (rentMemory.Length - sizeof(int) > this.SendTransmission.Connection.Agreement.MaxBlockSize)
+            {
+                return NetResult.BlockSizeLimit;
+            }
+
             result = await this.Send(rentMemory.Memory, cancellationToken).ConfigureAwait(false);
         }
         finally

@@ -9,13 +9,12 @@ internal interface ICongestionControl
     bool IsCongested { get; }
 
     /// <summary>
-    /// Update the state of congestion control and resend if there are packets that require resending.<br/>
-    /// When the connection is closed, return false and release the congestion control.
+    /// Updates congestion state and retransmits packets when needed.
     /// </summary>
-    /// <param name="netSender">An instance of <see cref="NetSender"/>.</param>
-    /// <param name="elapsedMics">elapsedMics.</param>
-    /// <param name="elapsedMilliseconds">elapsedMilliseconds.</param>
-    /// <returns>false: Release the congestion control.</returns>
+    /// <param name="netSender">The packet sender for this processing round.</param>
+    /// <param name="elapsedMics">Elapsed time since the previous round, in microseconds.</param>
+    /// <param name="elapsedMilliseconds">Elapsed time since the previous round, in milliseconds.</param>
+    /// <returns>True to keep the controller registered; false to remove it.</returns>
     bool Process(NetSender netSender, long elapsedMics, double elapsedMilliseconds);
 
     // void ReportDeliverySuccess();

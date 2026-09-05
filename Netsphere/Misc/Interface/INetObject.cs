@@ -3,7 +3,7 @@
 namespace Netsphere;
 
 /// <summary>
-/// An attribute added to a NetObject class that provides a NetService, allowing connection-related callback methods to be added.
+/// Provides connection lifecycle callbacks for a network service implementation.
 /// </summary>
 public interface INetObject
 {

@@ -2,6 +2,9 @@
 
 namespace Netsphere;
 
+/// <summary>
+/// Configures Netsphere source generation for a type.
+/// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = true)]
 public sealed class NetsphereGeneratorOptionAttribute : Attribute
 {

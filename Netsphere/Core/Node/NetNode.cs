@@ -6,8 +6,7 @@ using Netsphere.Crypto;
 namespace Netsphere;
 
 /// <summary>
-/// Represents ipv4/ipv6 node information.<br/>
-/// <see cref="NetNode"/> = <see cref="NetAddress"/> + <see cref="EncryptionPublicKey"/>.
+/// Combines a network address with the node's encryption public key.
 /// </summary>
 [TinyhandObject(ReservedKeyCount = 2)]
 public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquatable<NetNode>
@@ -102,7 +101,7 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
         }
 
         var index2 = source.IndexOf(')');
-        if (index2 < 0)
+        if (index2 < index)
         {
             return false;
         }
@@ -110,7 +109,8 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
         var sourceAddress = source.Slice(0, index);
         var sourcePublicKey = source.Slice(index, index2 - index + 1);
 
-        if (!NetAddress.TryParse(sourceAddress, out var address, out _))
+        if (!NetAddress.TryParse(sourceAddress, out var address, out var addressRead) ||
+            addressRead != sourceAddress.Trim().Length)
         {
             return false;
         }

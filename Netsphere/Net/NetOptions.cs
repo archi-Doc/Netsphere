@@ -4,6 +4,9 @@ using SimpleCommandLine;
 
 namespace Netsphere;
 
+/// <summary>
+/// Configures a node's identity, listening port, and enabled network features.
+/// </summary>
 [TinyhandObject(ImplicitMemberNameAsKey = true)]
 public partial record NetOptions
 {

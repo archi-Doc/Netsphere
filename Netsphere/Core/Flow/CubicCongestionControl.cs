@@ -8,6 +8,9 @@ using Arc.Collections;
 
 namespace Netsphere.Core;
 
+/// <summary>
+/// Controls the send window and retransmissions using CUBIC-based congestion control.
+/// </summary>
 public class CubicCongestionControl : ICongestionControl
 {
     private const double BrakeThreshold = 0.05d;
@@ -160,7 +163,7 @@ public class CubicCongestionControl : ICongestionControl
     {
         using (this.lockObject.EnterScope())
         {
-            if (ack)
+            if (ack && sendGene.Node is not null)
             {
                 this.ackCount++;
                 this.ReportDeliverySuccess();
@@ -288,8 +291,11 @@ public class CubicCongestionControl : ICongestionControl
                 this.Connection.DoubleTaichi();
             }
 
-            Console.WriteLine($"Brake: {this.Connection.Taichi},{failureRatio:F3}");
-            Console.WriteLine($"+{this.positiveFactor:F3} -{this.negativeFactor:F3} : {failureRatio:F3} power {this.power:F3}");
+            if (NetConstants.LogLowLevelNet)
+            {
+                this.logger?.GetWriter(LogLevel.Debug)?.Write($"Brake: {this.Connection.Taichi},{failureRatio:F3}");
+                this.logger?.GetWriter(LogLevel.Debug)?.Write($"+{this.positiveFactor:F3} -{this.negativeFactor:F3} : {failureRatio:F3} power {this.power:F3}");
+            }
 
             this.positiveFactor = 0;
             this.negativeFactor = 0;
@@ -354,7 +360,11 @@ public class CubicCongestionControl : ICongestionControl
             }
             else
             {// Resend
-                Console.WriteLine($"Resend(loss detection): {gene.GeneSerial}");
+                if (NetConstants.LogLowLevelNet)
+                {
+                    this.logger?.GetWriter(LogLevel.Debug)?.Write($"Resend(loss detection): {gene.GeneSerial}");
+                }
+
                 this.genesInFlight.MoveToLast(node);  // Move to the last.
             }
         }
@@ -370,7 +380,11 @@ public class CubicCongestionControl : ICongestionControl
 
             resendCapacity--;
             this.ReportDeliveryFailure();
-            Console.WriteLine($"Resend(timeout2): {gene.GeneSerial}/{gene.SendTransmission.GeneSerialMax} ({this.Connection.IsClient}) {gene.SendTransmission.Connection.RetransmissionTimeout} mics");
+            if (NetConstants.LogLowLevelNet)
+            {
+                this.logger?.GetWriter(LogLevel.Debug)?.Write($"Resend(timeout2): {gene.GeneSerial}/{gene.SendTransmission.GeneSerialMax} ({this.Connection.IsClient}) {gene.SendTransmission.Connection.RetransmissionTimeout} mics");
+            }
+
             if (!gene.Resend_NotThreadSafe(netSender, 0))
             {// Cannot send
                 this.genesInFlight.Remove(firstNode);
@@ -464,8 +478,12 @@ public class CubicCongestionControl : ICongestionControl
                 var eta = Math.Clamp(currentMinRtt >> 3, HystartMinEta, HystartMaxEta);
                 if (currentMinRtt >= (this.previousMinRtt + eta))
                 {// Exit slow start
-                    Console.WriteLine($"Hystart MinRtt Current  {currentMinRtt / 1000} ms Previous {this.previousMinRtt / 1000} ms");
-                    Console.WriteLine($"Exit slow start");
+                    if (NetConstants.LogLowLevelNet)
+                    {
+                        this.logger?.GetWriter(LogLevel.Debug)?.Write($"Hystart MinRtt Current  {currentMinRtt / 1000} ms Previous {this.previousMinRtt / 1000} ms");
+                        this.logger?.GetWriter(LogLevel.Debug)?.Write("Exit slow start");
+                    }
+
                     this.slowstart = false;
                 }
             }

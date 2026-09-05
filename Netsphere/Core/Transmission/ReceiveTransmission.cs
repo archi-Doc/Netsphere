@@ -191,7 +191,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
         this.Mode = NetTransmissionMode.Stream;
         this.totalGene = -1;
 
-        var info = NetHelper.CalculateGene(maxLength);
+        var info = NetHelper.CalculateGene(Math.Min(maxLength, this.Connection.Agreement.StreamBufferSize));
         var numberOfGenes = Math.Min(this.Connection.Agreement.StreamBufferGenes, info.NumberOfGenes + 1); // +1 for last complete gene.
 
         this.genes = new();
@@ -212,6 +212,41 @@ internal sealed partial class ReceiveTransmission : IDisposable
         BytePool.RentMemory rentMemory = default;
         using (this.lockObject.EnterScope())
         {
+            if (dataPosition < 0 || dataControl < DataControl.Valid || dataControl > DataControl.Cancel)
+            {
+                return;
+            }
+
+            if (this.Mode == NetTransmissionMode.Burst || this.Mode == NetTransmissionMode.Block)
+            {
+                if (dataPosition >= this.totalGene || dataControl != DataControl.Valid)
+                {
+                    return;
+                }
+
+                var payloadLength = toBeShared.Length - (dataPosition == 0 ? 12 : 0);
+                var maxLength = dataPosition == 0 ? FirstGeneFrame.MaxGeneLength : FollowingGeneFrame.MaxGeneLength;
+                if (payloadLength < 0 || payloadLength > maxLength ||
+                    (dataPosition < this.totalGene - 1 && payloadLength != maxLength))
+                {
+                    return;
+                }
+
+                if (dataPosition == this.totalGene - 1)
+                {
+                    var totalLength = this.totalGene == 1 ? payloadLength :
+                        FirstGeneFrame.MaxGeneLength + ((long)(this.totalGene - 2) * FollowingGeneFrame.MaxGeneLength) + payloadLength;
+                    if ((this.totalGene > 1 && payloadLength == 0) || totalLength > this.Connection.Agreement.MaxBlockSize)
+                    {
+                        return;
+                    }
+                }
+            }
+            else if (this.Mode == NetTransmissionMode.Stream && dataPosition == 0 && toBeShared.Length < 12)
+            {
+                return;
+            }
+
             if (this.Mode == NetTransmissionMode.Disposed)
             {// The case that the ACK has not arrived after the receive transmission was disposed.
                 this.Connection.ConnectionTerminal.AckQueue.AckBlock(this.Connection, this, dataPosition);
@@ -336,7 +371,10 @@ internal sealed partial class ReceiveTransmission : IDisposable
             {
                 if (this.Connection.Agreement.MaxTransmissions < 10)
                 {// Instant
-                    this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{this.Connection.ConnectionIdText} Send Instant Ack {this.totalGene} to {this.Connection.DestinationEndpoint}");
+                    if (NetConstants.LogLowLevelNet)
+                    {
+                        this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{this.Connection.ConnectionIdText} Send Instant Ack {this.totalGene} to {this.Connection.DestinationEndpoint}");
+                    }
 
                     Span<byte> ackFrame = stackalloc byte[2 + 4 + 4];
                     var span = ackFrame;
@@ -383,16 +421,25 @@ internal sealed partial class ReceiveTransmission : IDisposable
 
             if (rentMemory.IsRent)
             {
-                if (this.Connection is ServerConnection serverConnection)
-                {// InvokeServer: Connection, NetTransmission, Owner
-                    var transmissionContext = new TransmissionContext(serverConnection, this.TransmissionId, dataKind, dataId, rentMemory.IncrementAndShare());
-                    serverConnection.GetContext().InvokeSync(transmissionContext);
-                }
+                try
+                {
+                    if (this.Connection is ServerConnection serverConnection)
+                    {// InvokeServer: Connection, NetTransmission, Owner
+                        var transmissionContext = new TransmissionContext(serverConnection, this.TransmissionId, dataKind, dataId, rentMemory.IncrementAndShare());
+                        serverConnection.GetContext().InvokeSync(transmissionContext);
+                    }
 
-                var response = new NetResponse(NetResult.Success, dataId, 0, rentMemory.IncrementAndShare());
-                receivedTcs?.SetResult(response);
-                receivedNetUnion?.Invoke(response);
-                rentMemory.Return();
+                    if (receivedTcs is not null)
+                    {
+                        receivedTcs.SetResult(new NetResponse(NetResult.Success, dataId, 0, rentMemory.IncrementAndShare()));
+                    }
+
+                    receivedNetUnion?.Invoke(new NetResponse(NetResult.Success, dataId, 0, rentMemory));
+                }
+                finally
+                {
+                    rentMemory.Return();
+                }
             }
         }
     }
@@ -602,6 +649,7 @@ Abort:
                         length = remaining;
                     }
 
+                    length = (int)Math.Min(length, stream.MaxStreamLength - stream.ReceivedLength);
                     gene.Packet.Span.Slice(stream.CurrentPosition, length).CopyTo(buffer.Span);
                     buffer = buffer.Slice(length);
                     written += length;

@@ -7,6 +7,9 @@ using Tinyhand.IO;
 
 namespace Netsphere.Stats;
 
+/// <summary>
+/// Maintains bootstrap and active nodes for discovery and connectivity checks.
+/// </summary>
 [TinyhandObject(UseServiceProvider = true)]
 public sealed partial class NodeControl
 {
@@ -122,7 +125,7 @@ public sealed partial class NodeControl
     /// <summary>
     /// Maintains the lifeline nodes by adding online nodes to the lifeline and removing offline lifeline nodes if there are sufficient lifeline nodes.
     /// </summary>
-    /// <param name="ownNode">The own net node.</param>
+    /// <param name="ownNode">The local node to exclude from the lifeline list, or null.</param>
     public void MaintainLifelineNode(NetNode? ownNode)
     {
         using (this.lifelineNodes.LockObject.EnterScope())
