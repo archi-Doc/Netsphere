@@ -19,7 +19,7 @@
 
 
   <ItemGroup>
-    <PackageReference Include="CrystalData" Version="0.46.1" />
+    <PackageReference Include="CrystalData" Version="0.47.0" />
   </ItemGroup>
 
 </Project>
