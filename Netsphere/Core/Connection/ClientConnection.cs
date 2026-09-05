@@ -309,13 +309,18 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
             return (NetResult.SerializationFailed, default);
         }
 
-        if (rentMemory.Length > this.Agreement.MaxBlockSize)
-        {
-            return (NetResult.BlockSizeLimit, default);
-        }
-
         try
         {
+            if (rentMemory.Length - sizeof(int) > this.Agreement.MaxBlockSize)
+            {
+                return (NetResult.BlockSizeLimit, default);
+            }
+
+            if (maxLength < 0 || maxLength > long.MaxValue - rentMemory.Length)
+            {
+                return (NetResult.StreamLengthLimit, default);
+            }
+
             var (result, stream) = this.SendStream(rentMemory.Length + maxLength, dataId);
             if (result != NetResult.Success || stream is null)
             {
@@ -343,13 +348,18 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
             return (NetResult.SerializationFailed, default);
         }
 
-        if (rentMemory.Length > this.Agreement.MaxBlockSize)
-        {
-            return (NetResult.BlockSizeLimit, default);
-        }
-
         try
         {
+            if (rentMemory.Length - sizeof(int) > this.Agreement.MaxBlockSize)
+            {
+                return (NetResult.BlockSizeLimit, default);
+            }
+
+            if (maxLength < 0 || maxLength > long.MaxValue - rentMemory.Length)
+            {
+                return (NetResult.StreamLengthLimit, default);
+            }
+
             var (result, stream) = this.SendStreamAndReceive<TReceive>(rentMemory.Length + maxLength, dataId);
             if (result != NetResult.Success || stream is null)
             {

@@ -97,7 +97,8 @@ internal partial class SendGene
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Send_NotThreadSafe(NetSender netSender, int additional)
     {
-        if (!this.CanSend || !this.Packet.TryIncrement())
+        var packet = this.Packet;
+        if (!this.CanSend || !packet.TryIncrement())
         {// MemoryOwner has been returned to the pool (Disposed).
             return false;
         }
@@ -107,22 +108,22 @@ internal partial class SendGene
 
         if (NetConstants.LogLowLevelNet)
         {
-            connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{connection.ConnectionIdText} {connection.ConnectionTerminal.NetTerminal.NetTerminalString} to {connection.DestinationEndpoint.ToString()}, Send gene {this.GeneSerialListLink.Position} {this.CurrentState.ToString()} {this.Packet.Memory.Length}");
+            connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{connection.ConnectionIdText} {connection.ConnectionTerminal.NetTerminal.NetTerminalString} to {connection.DestinationEndpoint.ToString()}, Send gene {this.GeneSerialListLink.Position} {this.CurrentState.ToString()} {packet.Memory.Length}");
         }
 
         if (connection.MinimumNumberOfRelays == 0)
         {// No relay
-            netSender.Send_NotThreadSafe(connection.DestinationEndpoint.EndPoint, this.Packet);
+            netSender.Send_NotThreadSafe(connection.DestinationEndpoint.EndPoint, packet);
         }
         else
         {// Relay
-            if (!connection.CorrespondingRelayKey.TryEncrypt(connection.MinimumNumberOfRelays, connection.DestinationNode.Address, this.Packet.Span, out var encrypted, out var relayEndpoint))
+            if (!connection.CorrespondingRelayKey.TryEncrypt(connection.MinimumNumberOfRelays, connection.DestinationNode.Address, packet.Span, out var encrypted, out var relayEndpoint))
             {
-                this.Packet.Return();
+                packet.Return();
                 return false;
             }
 
-            this.Packet.Return();
+            packet.Return();
             netSender.Send_NotThreadSafe(relayEndpoint.EndPoint, encrypted);
         }
 
@@ -147,14 +148,14 @@ internal partial class SendGene
     {// using (SendTransmissions.lockObject.EnterScope())
         this.CongestionControl.RemoveInFlight(this, ack);
         this.Goshujin = null;
-        this.Packet.Return();
+        this.Packet = this.Packet.Return();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DisposeMemory()
     {// using (SendTransmissions.lockObject.EnterScope())
         this.CongestionControl.RemoveInFlight(this, false);
-        this.Packet.Return();
+        this.Packet = this.Packet.Return();
     }
 
     public override string ToString()

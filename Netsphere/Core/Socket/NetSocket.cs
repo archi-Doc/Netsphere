@@ -20,7 +20,7 @@ public sealed class NetSocket
 
     private class RecvCore : ThreadCore
     {
-        public static async void Process(object? parameter)
+        public static void Process(object? parameter)
         {
             var core = (RecvCore)parameter!;
 
@@ -76,6 +76,8 @@ public sealed class NetSocket
                 {
                 }
             }
+
+            rentArray?.Return();
         }
 
         public RecvCore(ExecutionGroup parent, NetSocket socket)

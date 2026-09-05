@@ -111,6 +111,12 @@ public class ReceiveStream : IReceiveStreamInternal // , IDisposable
             }
 
             var length = BitConverter.ToInt32(rentArray.AsSpan());
+            if (length < 0)
+            {
+                this.Dispose();
+                return new(NetResult.DeserializationFailed);
+            }
+
             if (length > this.ReceiveTransmission.Connection.Agreement.MaxBlockSize)
             {
                 this.Dispose();

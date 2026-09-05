@@ -73,8 +73,7 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
 
     void IResponseChannelInternal.Invoke(NetResponse response)
     {
-        if (response.Result != NetResult.Success ||
-            response.Received.IsEmpty)
+        if (response.Result != NetResult.Success)
         {
             this.ResponseDelegate?.Invoke(response.Result, default);
             return;
@@ -86,26 +85,33 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
             return;
         }
 
+        if (response.Received.IsEmpty)
+        {
+            this.ResponseDelegate?.Invoke(response.Result, default);
+            return;
+        }
+
         var span = response.Received.Span;
         TResponse? receiveValue = default;
+        var result = response.Result;
         try
         {
             var reader = new TinyhandReader(span);
             if (reader.TryReadNil())
             {
-                this.ResponseDelegate?.Invoke(NetResult.DeserializationFailed, default);
-                return;
+                result = NetResult.DeserializationFailed;
             }
-
-            receiveValue = TinyhandSerializer.Deserialize<TResponse>(ref reader, TinyhandSerializerOptions.Standard);
+            else
+            {
+                receiveValue = TinyhandSerializer.Deserialize<TResponse>(ref reader, TinyhandSerializerOptions.Standard);
+            }
         }
         catch
         {
-            this.ResponseDelegate?.Invoke(NetResult.DeserializationFailed, default);
-            return;
+            result = NetResult.DeserializationFailed;
         }
 
-        this.ResponseDelegate?.Invoke(response.Result, receiveValue);
+        this.ResponseDelegate?.Invoke(result, receiveValue);
     }
 
     void IResponseChannelInternal.Invoke(NetResult result)
@@ -128,10 +134,13 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
     {
         if (reader.TryReadNil())
         {
+            v.Value = default;
+            v.IsValueSet = false;
             return;
         }
 
         v.Value = TinyhandSerializer.Deserialize<TResponse>(ref reader, options);
+        v.IsValueSet = true;
     }
 
     static void ITinyhandReconstructable<ResponseChannel<TResponse>>.Reconstruct([NotNull] scoped ref ResponseChannel<TResponse> v, TinyhandSerializerOptions options)

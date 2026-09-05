@@ -54,7 +54,6 @@ public partial record ConnectionAgreement
         set
         {
             this.maxStreamLength = value;
-            var info = NetHelper.CalculateGene(this.maxStreamLength);
             // this.MaxStreamGenes = info.NumberOfGenes;
         }
     }
@@ -110,7 +109,7 @@ public partial record ConnectionAgreement
         {
             this.MaxStreamLength = -1;
         }
-        else if (target.MaxStreamLength > this.MaxStreamLength)
+        else if (this.MaxStreamLength >= 0 && target.MaxStreamLength > this.MaxStreamLength)
         {
             this.MaxStreamLength = target.MaxStreamLength;
         }
@@ -148,7 +147,8 @@ public partial record ConnectionAgreement
                 return false;
             }
         }
-        else if (this.StreamBufferSize > target.StreamBufferSize)
+
+        if (this.StreamBufferSize > target.StreamBufferSize)
         {
             return false;
         }
@@ -171,6 +171,11 @@ public partial record ConnectionAgreement
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool CheckStreamLength(long maxStreamLength)
     {
+        if (maxStreamLength < 0)
+        {
+            return false;
+        }
+
         if (this.maxStreamLength < 0)
         {
             return true;

@@ -125,10 +125,7 @@ public class StreamServiceImpl : IStreamService
         }
 
         var hash2 = xhash.GetCurrentHashAsUInt64();
-        if (hash == hash2)
-        {
-            transmissionContext.Result = NetResult.Success;
-        }
+        transmissionContext.Result = hash == hash2 ? NetResult.Success : NetResult.InvalidData;
 
         return default;
     }

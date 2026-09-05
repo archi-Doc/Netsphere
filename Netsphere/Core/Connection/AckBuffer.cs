@@ -195,11 +195,12 @@ NewPacket:
 
                 ushort numberOfPairs = 0;
                 var numberOfPairsSpan = span;
+                BitConverter.TryWriteBytes(numberOfPairsSpan, numberOfPairs);
                 span = span.Slice(sizeof(ushort)); // 2 bytes
 
                 int startGene = -1;
                 int endGene = -1;
-                while (ackGene.TryDequeue(out var geneSerial))
+                while (ackGene.TryPeek(out var geneSerial))
                 {
                     if (startGene == -1)
                     {// Initial gene
@@ -228,6 +229,8 @@ NewPacket:
                         startGene = geneSerial;
                         endGene = geneSerial + 1;
                     }
+
+                    ackGene.Dequeue();
                 }
 
                 if (startGene != -1)
@@ -245,7 +248,7 @@ NewPacket:
             }
         }
 
-        if (rentArray is not null && span.Length > 0)
+        if (rentArray is not null)
         {// Send the packet if not empty.
             Send(maxLength - span.Length);
         }

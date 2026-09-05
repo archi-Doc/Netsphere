@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Netsphere\Netsphere.csproj" />
+    <ProjectReference Include="..\Netsphere.Runner\Netsphere.Runner.csproj" Aliases="RunnerAssembly" />
     <ProjectReference Include="..\NetsphereGenerator\NetsphereGenerator.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
   </ItemGroup>
 
@@ -32,5 +33,13 @@
   <ItemGroup>
     <Compile Remove="Generated\*" />
   </ItemGroup>
+
+  <!-- This project declares no BigMachines; avoid generating an unused loader that
+       conflicts with internal loaders exposed to the regression tests. -->
+  <Target Name="RemoveUnusedBigMachinesGenerator" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Analyzer Remove="@(Analyzer)" Condition="'%(Filename)' == 'BigMachinesGenerator'" />
+    </ItemGroup>
+  </Target>
 
 </Project>

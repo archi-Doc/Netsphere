@@ -57,11 +57,26 @@ public class StreamTest
         }
     }
 
+    [Fact]
+    public async Task Put2RejectsHashMismatch()
+    {
+        using var connection = await this.netFixture.NetUnit.NetTerminal.Connect(Alternative.NetNode);
+        Assert.NotNull(connection);
+        var data = new byte[] { 1, 2, 3 };
+        var service = connection.GetService<IStreamService>();
+        var stream = await service.Put2(XxHash3.Hash64(data) ^ 1, data.Length);
+        Assert.NotNull(stream);
+        Assert.Equal(NetResult.Success, await stream.Send(data, TestContext.Current.CancellationToken));
+        var response = await stream.CompleteSendAndReceive(TestContext.Current.CancellationToken);
+        Assert.Equal(NetResult.Success, response.Result);
+        Assert.Equal(NetResult.InvalidData, response.Value);
+    }
+
     private async Task TestPingPing(IStreamService service)
     {
         for (var i = 0; i < this.dataLength.Length; i++)
         {
-            if (this.dataArray[i].Length <= NetFixture.MaxBlockSize)
+            if (this.dataArray[i].Length <= NetFixture.MaxBlockSize - 6)
             {
                 var r = await service.Pingpong(this.dataArray[i]);
                 r.SequenceEqual(this.dataArray[i]).IsTrue();
@@ -73,7 +88,7 @@ public class StreamTest
     {
         for (var i = 0; i < this.dataLength.Length; i++)
         {
-            if (this.dataArray[i].Length <= NetFixture.MaxBlockSize)
+            if (this.dataArray[i].Length <= NetFixture.MaxBlockSize - 6)
             {
                 var r = await service.GetHash(this.dataArray[i]);
                 r.Is(FarmHash.Hash64(this.dataArray[i]));
@@ -190,7 +205,7 @@ public class StreamTest
     {
         for (var i = 0; i < this.dataLength.Length; i++)
         {
-            var hash = FarmHash.Hash64(this.dataArray[i]);
+            var hash = XxHash3.Hash64(this.dataArray[i]);
             var sendStream = await service.Put2(hash, this.dataLength[i]);
             sendStream.IsNotNull();
             if (sendStream is null)

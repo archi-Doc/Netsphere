@@ -63,10 +63,10 @@ public class BasicTest
             resultAndValue.Result.Is(NetResult.Completed);
             resultAndValue.Value.Is(42);
 
-            int receivedValue = 2;
-            var channel = new ResponseChannel<int>((result, value) => { receivedValue = value; });
+            var received = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var channel = new ResponseChannel<int>((result, value) => { received.SetResult(value); });
             basicService.SendInt2(2, ref channel);
-            await Task.Delay(10, TestContext.Current.CancellationToken);
+            var receivedValue = await received.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
             receivedValue.Is(6);
         }
     }

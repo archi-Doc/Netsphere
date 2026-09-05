@@ -1,4 +1,4 @@
-﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
+// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics;
 using Arc.Collections;
@@ -246,6 +246,11 @@ internal sealed partial class SendTransmission : IDisposable
                 return NetResult.Closed;
             }
 
+            if (block.Length > this.Connection.Agreement.MaxBlockSize)
+            {
+                return NetResult.BlockSizeLimit;
+            }
+
             var info = NetHelper.CalculateGene(block.Span.Length);
             this.Connection.UpdateLastEventMics();
             this.sentTcs = sentTcs;
@@ -365,7 +370,7 @@ internal sealed partial class SendTransmission : IDisposable
             this.GeneSerialMax = 0;
             this.genes = new();
 
-            var info = NetHelper.CalculateGene(maxLength);
+            var info = NetHelper.CalculateGene(Math.Min(maxLength, this.Connection.Agreement.StreamBufferSize));
             var bufferGenes = Math.Min(this.Connection.Agreement.StreamBufferGenes, info.NumberOfGenes + 1); // +1 for last complete gene.
             this.genes.GeneSerialListChain.Resize(bufferGenes);
             this.MaxReceivePosition = bufferGenes;
@@ -425,6 +430,11 @@ internal sealed partial class SendTransmission : IDisposable
 
     internal async Task<NetResult> ProcessSend(SendStreamBase stream, DataControl dataControl, ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
     {
+        if (buffer.Length > stream.RemainingLength)
+        {
+            return NetResult.StreamLengthLimit;
+        }
+
         if (this.Mode != NetTransmissionMode.Stream)
         {
             // return this.Mode == NetTransmissionMode.StreamCompleted ? NetResult.Completed : NetResult.Closed;
@@ -584,7 +594,10 @@ Exit:
 
     internal void ProcessReceive_AckBurstInternal()
     {// using (this.lockObject.EnterScope())
-        this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{this.Connection.ConnectionIdText} ReceiveAck Burst {this.GeneSerialMax}");
+        if (NetConstants.LogLowLevelNet)
+        {
+            this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{this.Connection.ConnectionIdText} ReceiveAck Burst {this.GeneSerialMax}");
+        }
 
         if (this.gene0 is not null)
         {
@@ -659,13 +672,43 @@ Exit:
         using (this.lockObject.EnterScope())
         {
             // if (this.Mode == NetTransmissionMode.Burst)
+            if (this.Mode == NetTransmissionMode.Initial || this.Mode == NetTransmissionMode.Disposed ||
+                maxReceivePosition < 0 || successiveReceivedPosition < 0 || successiveReceivedPosition > this.GeneSerialMax ||
+                span.Length < numberOfPairs * (sizeof(int) * 2))
+            {
+                return;
+            }
+
             if (this.genes is null)
             {// Burst (Complete)
                 this.ProcessReceive_AckBurstInternal();
                 return;
             }
 
-            this.MaxReceivePosition = maxReceivePosition;
+            this.MaxReceivePosition = maxReceivePosition == 0 ? 0 : Math.Max(this.MaxReceivePosition, maxReceivePosition);
+            var chain = this.genes.GeneSerialListChain;
+            // [chain.StartPosition, successiveReceivedPosition)
+            for (int i = chain.StartPosition, end = Math.Min(successiveReceivedPosition, chain.EndPosition); i < end; i++)
+            {
+                if (chain.Get(i) is { } gene)
+                {
+                    if (gene.CurrentState == SendGene.State.Sent)
+                    {// Exclude resent genes as they do not allow for accurate RTT measurement.
+                        var rtt = (int)(Mics.FastSystem - gene.SentMics);
+
+                        if (NetConstants.LogLowLevelNet)
+                        {
+                            // this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"ReceiveAck {gene.GeneSerial} {rtt} mics");
+                        }
+
+                        this.Connection.AddRtt(rtt);
+                        congestionControl.AddRtt(rtt);
+                    }
+
+                    gene.Dispose(true); // this.genes.GeneSerialListChain.Remove(gene);
+                }
+            }
+
             while (numberOfPairs-- > 0)
             {
                 var startGene = BitConverter.ToInt32(span);
@@ -674,45 +717,25 @@ Exit:
                 span = span.Slice(sizeof(int));
 
                 if (startGene < 0 || startGene >= this.GeneSerialMax ||
-                    endGene < 0 || endGene > this.GeneSerialMax)
+                    endGene <= startGene || endGene > this.GeneSerialMax)
                 {
                     continue;
                 }
 
                 // NetTransmissionMode.Block
-                this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{this.Connection.ConnectionIdText} ReceiveAck {startGene} - {endGene - 1}");
-                var chain = this.genes.GeneSerialListChain;
-
-                // [chain.StartPosition, successiveReceivedPosition)
-                for (var i = chain.StartPosition; i < successiveReceivedPosition; i++)
+                if (NetConstants.LogLowLevelNet)
                 {
-                    if (chain.Get(i) is { } gene)
-                    {
-                        if (gene.CurrentState == SendGene.State.Sent)
-                        {// Exclude resent genes as they do not allow for accurate RTT measurement.
-                            var rtt = (int)(Mics.FastSystem - gene.SentMics);
-
-                            if (NetConstants.LogLowLevelNet)
-                            {
-                                // this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"ReceiveAck {gene.GeneSerial} {rtt} mics");
-                            }
-
-                            this.Connection.AddRtt(rtt);
-                            congestionControl.AddRtt(rtt);
-                        }
-
-                        gene.Dispose(true); // this.genes.GeneSerialListChain.Remove(gene);
-                    }
+                    this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{this.Connection.ConnectionIdText} ReceiveAck {startGene} - {endGene - 1}");
                 }
 
                 // Console.WriteLine($"ReceiveCapacity {receiveCapacity}");
                 if (startGene < successiveReceivedPosition)
                 {
-                    startGene = successiveReceivedPosition - 1;
+                    startGene = successiveReceivedPosition;
                 }
 
                 // [startGene, endGene)
-                for (var i = startGene; i < endGene; i++)
+                for (int i = Math.Max(startGene, chain.StartPosition), end = Math.Min(endGene, chain.EndPosition); i < end; i++)
                 {
                     if (chain.Get(i) is { } gene)
                     {
@@ -759,15 +782,15 @@ Exit:
                         }
                     }
                 }*/
+            }
 
-                if (this.Mode == NetTransmissionMode.Block)
-                {
-                    completeFlag = this.genes.GeneSerialListChain.Count == 0;
-                }
-                else if (this.Mode == NetTransmissionMode.StreamCompleted)
-                {
-                    completeFlag = this.genes.GeneSerialListChain.StartPosition >= this.GeneSerialMax;
-                }
+            if (this.Mode == NetTransmissionMode.Block)
+            {
+                completeFlag = this.genes.GeneSerialListChain.Count == 0;
+            }
+            else if (this.Mode == NetTransmissionMode.StreamCompleted)
+            {
+                completeFlag = this.genes.GeneSerialListChain.StartPosition >= this.GeneSerialMax;
             }
 
             if (lossPosition >= 0 && this.genes?.GeneSerialListChain is { } c)
@@ -780,8 +803,12 @@ Exit:
 
                 var startPosition = Math.Max(this.lastLossPosition, c.StartPosition);
 
-                this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"Loss detected Start: {startPosition} Loss: {lossPosition} In-flight: {congestionControl.NumberInFlight}");
-                for (var i = startPosition; i < lossPosition; i++)
+                if (NetConstants.LogLowLevelNet)
+                {
+                    this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"Loss detected Start: {startPosition} Loss: {lossPosition} In-flight: {congestionControl.NumberInFlight}");
+                }
+
+                for (int i = startPosition, end = Math.Min(lossPosition, c.EndPosition); i < end; i++)
                 {
                     if (c.Get(i) is { } gene)
                     {

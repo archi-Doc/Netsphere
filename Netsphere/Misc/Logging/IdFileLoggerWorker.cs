@@ -127,13 +127,14 @@ internal partial class IdFileLoggerWorker : TaskCore
         {
             foreach (var x in Directory.EnumerateFiles(directory, this.baseFile + "*" + this.baseExtension, SearchOption.TopDirectoryOnly))
             {
-                var idLength = x.Length - (directory.Length + 1 + this.baseExtension.Length);
+                var fileName = Path.GetFileName(x);
+                var idLength = fileName.Length - this.baseFile.Length - this.baseExtension.Length;
                 if (idLength < 0)
                 {
                     continue;
                 }
 
-                var idString = x.Substring(directory.Length + 1, idLength);
+                var idString = fileName.Substring(this.baseFile.Length, idLength);
                 if (long.TryParse(idString, System.Globalization.NumberStyles.HexNumber, null, out var id))
                 {
                     var stream = this.goshujin.IdChain.FindFirst(id);

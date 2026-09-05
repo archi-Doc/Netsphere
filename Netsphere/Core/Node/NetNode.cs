@@ -102,7 +102,7 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
         }
 
         var index2 = source.IndexOf(')');
-        if (index2 < 0)
+        if (index2 < index)
         {
             return false;
         }
@@ -110,7 +110,8 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
         var sourceAddress = source.Slice(0, index);
         var sourcePublicKey = source.Slice(index, index2 - index + 1);
 
-        if (!NetAddress.TryParse(sourceAddress, out var address, out _))
+        if (!NetAddress.TryParse(sourceAddress, out var address, out var addressRead) ||
+            addressRead != sourceAddress.Trim().Length)
         {
             return false;
         }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
+// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -851,8 +851,6 @@ Wait:
                     span = span.Slice(length);
                 }
             }
-
-            Debug.Assert(span.Length == 0);
         }
     }
 
@@ -874,6 +872,23 @@ Wait:
         var rttHint = BitConverter.ToInt32(span);
         span = span.Slice(sizeof(int)); // 4
         var totalGenes = BitConverter.ToInt32(span);
+
+        if (dataControl < DataControl.Valid || dataControl > DataControl.Cancel ||
+            (transmissionMode == 0 && (totalGenes <= 0 || totalGenes > this.Agreement.MaxBlockGenes || dataControl != DataControl.Valid)))
+        {
+            return;
+        }
+
+        if (transmissionMode == 0)
+        {
+            var payloadLength = toBeShared.Length - FirstGeneFrame.LengthExcludingFrameType;
+            if (payloadLength > FirstGeneFrame.MaxGeneLength ||
+                (totalGenes > 1 && payloadLength != FirstGeneFrame.MaxGeneLength) ||
+                (totalGenes == 1 && payloadLength > this.Agreement.MaxBlockSize))
+            {
+                return;
+            }
+        }
 
         if (rttHint > 0)
         {
@@ -998,7 +1013,7 @@ Wait:
         span = span.Slice(sizeof(ushort)); // 2
 
         var dataPosition = BitConverter.ToInt32(span);
-        if (dataPosition == 0)
+        if (dataPosition <= 0 || dataControl < DataControl.Valid || dataControl > DataControl.Cancel)
         {
             return;
         }
@@ -1218,11 +1233,22 @@ Wait:
 
     internal bool TryDecrypt(uint salt4, ulong nonce8, Span<byte> span, int spanMax, out int written)
     {
+        written = 0;
+        if (span.Length < ProtectedPacket.TagSize || span.Length > spanMax)
+        {
+            return false;
+        }
+
         Span<byte> nonce = stackalloc byte[32];
         this.CreateNonce(salt4, nonce8, nonce);
 
+        if (!Aegis256.TryDecrypt(span[..^ProtectedPacket.TagSize], span, nonce, this.EmbryoKey))
+        {
+            return false;
+        }
+
         written = span.Length - ProtectedPacket.TagSize;
-        return Aegis256.TryDecrypt(span[..^ProtectedPacket.TagSize], span, nonce, this.EmbryoKey);
+        return true;
     }
 
     internal void CloseAllTransmission()

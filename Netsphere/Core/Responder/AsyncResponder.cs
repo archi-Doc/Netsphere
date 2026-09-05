@@ -1,4 +1,4 @@
-﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
+// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 namespace Netsphere.Core;
 
@@ -22,18 +22,26 @@ public abstract class AsyncResponder<TSend, TReceive> : INetResponder
 
         _ = Task.Run(() =>
         {
-            this.ServerConnection = transmissionContext.ServerConnection;
-            var r = this.RespondAsync(t);
-            if (r.Value is not null)
+            var previousContext = TransmissionContext.AsyncLocal.Value;
+            TransmissionContext.AsyncLocal.Value = transmissionContext;
+            try
             {
-                transmissionContext.SendAndForget(r.Value, this.DataId);
+                var r = this.RespondAsync(t);
+                if (r.Value is not null)
+                {
+                    transmissionContext.SendAndForget(r.Value, this.DataId);
+                }
+                else
+                {
+                    transmissionContext.SendResultAndForget(r.Result);
+                }
             }
-            else
+            finally
             {
-                transmissionContext.SendResultAndForget(r.Result);
+                TransmissionContext.AsyncLocal.Value = previousContext;
             }
         });
     }
 
-    protected ServerConnection ServerConnection { get; private set; } = default!;
+    protected ServerConnection ServerConnection => TransmissionContext.Current.ServerConnection;
 }

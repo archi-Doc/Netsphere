@@ -174,8 +174,8 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
     {// 1.2.3.4:55, []:55, 1.2.3.4:55[]:55
         ushort port = 0;
         uint address4 = 0;
-        ulong address6a;
-        ulong address6b;
+        ulong address6a = 0;
+        ulong address6b = 0;
 
         instance = default;
         read = 0;
@@ -187,15 +187,36 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
         }
 
         var initialLength = source.Length;
-        TryParseRelayId(ref source, out var relayId);
+        RelayId relayId = 0;
+        if (source.Contains(RelayIdSeparator) && !TryParseRelayId(ref source, out relayId))
+        {
+            return false;
+        }
 
         if (IsIpv4Address(source))
         {// TryParse IPv4
-            TryParseIPv4(ref source, ref port, out address4);
-        }
+            if (!TryParseIPv4(ref source, ref port, out address4))
+            {
+                return false;
+            }
 
-        // TryParse IPv6
-        TryParseIPv6(ref source, ref port, out address6a, out address6b);
+            if (!source.IsEmpty && source[0] == '[')
+            {
+                var ipv4Port = port;
+                if (!TryParseIPv6(ref source, ref port, out address6a, out address6b) || port != ipv4Port)
+                {
+                    return false;
+                }
+            }
+        }
+        else
+        {
+            // TryParse IPv6
+            if (!TryParseIPv6(ref source, ref port, out address6a, out address6b))
+            {
+                return false;
+            }
+        }
 
         instance = new(relayId, address4, address6a, address6b, port);
         read = initialLength - source.Length;
@@ -388,13 +409,26 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
         {
             Span<byte> ipv4byte = stackalloc byte[4];
             BitConverter.TryWriteBytes(ipv4byte, this.Address4);
-            var ipv4 = new IPAddress(ipv4byte);
-            if (!ipv4.TryFormat(span, out written))
+            for (var i = 0; i < ipv4byte.Length; i++)
             {
-                return false;
-            }
+                if (i > 0)
+                {
+                    if (span.IsEmpty)
+                    {
+                        return false;
+                    }
 
-            span = span.Slice(written);
+                    span[0] = '.';
+                    span = span.Slice(1);
+                }
+
+                if (!ipv4byte[i].TryFormat(span, out written))
+                {
+                    return false;
+                }
+
+                span = span.Slice(written);
+            }
 
             if (span.Length == 0)
             {
@@ -670,17 +704,17 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
             }
         }
 
-        if (i == 0)
+        if (i == 0 || i >= source.Length || source[i] != RelayIdSeparator)
         {
             return false;
         }
-        else if (i >= source.Length)
-        {
-            i = source.Length - 1;
-        }
 
         var result = RelayId.TryParse(source.Slice(0, i), out relayId);
-        source = source.Slice(i + 1);
+        if (result)
+        {
+            source = source.Slice(i + 1);
+        }
+
         return result;
     }
 
@@ -695,19 +729,8 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
         }
 
         var sourceAddress = source.Slice(0, index); // "1.2.3.4"
-        ReadOnlySpan<char> sourcePort;
         source = source.Slice(index + 1); // :"xxxx"
-        index = source.IndexOf('[');
-        if (index < 0)
-        {// Only IPv4
-            sourcePort = source;
-            source = ReadOnlySpan<char>.Empty;
-        }
-        else
-        {
-            sourcePort = source.Slice(0, index); // "xxx"[
-            source = source.Slice(index); // "[xxxx]"
-        }
+        var sourcePort = source;
 
         if (!IPAddress.TryParse(sourceAddress, out var ipAddress) ||
             ipAddress.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
@@ -751,6 +774,7 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
         }
 
         port = p;
+        source = source.Slice(digitCount);
         return true;
     }
 
@@ -777,13 +801,12 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
 
             sourceAddress = source.Slice(1, index - 1); // "123::1"
             source = source.Slice(index + 1);
-            index = source.IndexOf(':');
-            if (index < 0)
+            if (source.IsEmpty || source[0] != ':')
             {
                 return false;
             }
 
-            sourcePort = source.Slice(index + 1); // :"xxxx"
+            sourcePort = source.Slice(1); // :"xxxx"
         }
         else
         {// 123::1:Port
@@ -797,7 +820,7 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
             sourcePort = source.Slice(index + 1);
         }
 
-        source = ReadOnlySpan<char>.Empty;
+        source = sourcePort;
 
         if (!IPAddress.TryParse(sourceAddress, out var ipAddress) ||
             ipAddress.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6)
@@ -843,6 +866,7 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
         }
 
         port = p;
+        source = source.Slice(digitCount);
         return true;
     }
 
@@ -934,9 +958,6 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
         {// Unspecified address, Loopback address
             return false;
         }
-
-        Span<byte> b = stackalloc byte[8];
-        BitConverter.TryWriteBytes(b, address6A);
 
         var b0 = (byte)address6A;
         var b1 = (byte)(address6A >> 8);

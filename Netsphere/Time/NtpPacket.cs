@@ -5,9 +5,9 @@ namespace Netsphere.Misc;
 public class NtpPacket
 {
     private const long CompensatingRate32 = 0x100000000L;
-    private const double CompensatingRate16 = 0x10000d;
-    private static readonly DateTime CompensatingDateTime = new DateTime(1900, 1, 1);
-    private static readonly DateTime PassedCompensatingDateTime = CompensatingDateTime.AddSeconds(uint.MaxValue);
+    private const double CompensatingRate16 = 65536d;
+    private static readonly DateTime CompensatingDateTime = new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime PassedCompensatingDateTime = CompensatingDateTime.AddSeconds(CompensatingRate32);
 
     public byte[] PacketData { get; private set; }
 
@@ -25,6 +25,12 @@ public class NtpPacket
 
     public NtpPacket(byte[] packetData)
     {
+        ArgumentNullException.ThrowIfNull(packetData);
+        if (packetData.Length < 48)
+        {
+            throw new ArgumentException("An NTP packet must contain at least 48 bytes.", nameof(packetData));
+        }
+
         this.PacketData = packetData;
         this.PacketCreatedTime = Time.GetFixedUtcNow();
     }
@@ -36,11 +42,7 @@ public class NtpPacket
         => dateTime >= PassedCompensatingDateTime ? PassedCompensatingDateTime : CompensatingDateTime;
 
     private static double SignedFixedPointToDouble(int signedFixedPoint)
-    {
-        var number = (short)(signedFixedPoint >> 16);
-        var fraction = (ushort)(signedFixedPoint & short.MaxValue);
-        return number + (fraction / CompensatingRate16);
-    }
+        => signedFixedPoint / CompensatingRate16;
 
     private static DateTime NtpTimeStampToDateTime(long ntpTimeStamp)
     {
@@ -64,18 +66,18 @@ public class NtpPacket
         => this.PacketData[0] >> 6 & 0x03;
 
     public int Version
-        => this.PacketData[0] >> 3 & 0x03;
+        => this.PacketData[0] >> 3 & 0x07;
 
     public int Mode
-        => this.PacketData[0] & 0x03;
+        => this.PacketData[0] & 0x07;
 
     public int Stratum
         => this.PacketData[1];
 
     public int PollInterval => (sbyte)this.PacketData[2] switch
     {
-        0 => 0,
-        1 => 1,
+        0 => 1,
+        1 => 2,
         var interval => (int)Math.Pow(2, interval),
     };
 
@@ -86,7 +88,7 @@ public class NtpPacket
     => SignedFixedPointToDouble(IPAddress.NetworkToHostOrder(BitConverter.ToInt32(this.PacketData, 4)));
 
     public double RootDispersion
-    => SignedFixedPointToDouble(IPAddress.NetworkToHostOrder(BitConverter.ToInt32(this.PacketData, 8)));
+    => (uint)IPAddress.NetworkToHostOrder(BitConverter.ToInt32(this.PacketData, 8)) / CompensatingRate16;
 
     public DateTime ReferenceTimestamp
         => NtpTimeStampToDateTime(IPAddress.NetworkToHostOrder(BitConverter.ToInt64(this.PacketData, 16)));

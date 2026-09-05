@@ -65,14 +65,14 @@ public abstract class SendStreamBase
             return NetResult.SerializationFailed;
         }
 
-        if (rentMemory.Length > this.SendTransmission.Connection.Agreement.MaxBlockSize)
-        {
-            return NetResult.BlockSizeLimit;
-        }
-
         NetResult result;
         try
         {
+            if (rentMemory.Length - sizeof(int) > this.SendTransmission.Connection.Agreement.MaxBlockSize)
+            {
+                return NetResult.BlockSizeLimit;
+            }
+
             result = await this.Send(rentMemory.Memory, cancellationToken).ConfigureAwait(false);
         }
         finally

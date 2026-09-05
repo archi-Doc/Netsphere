@@ -32,6 +32,7 @@ internal static class RunnerHelper
         }
         catch
         {// No docker
+            client.Dispose();
             return default;
         }
 
@@ -72,7 +73,7 @@ internal static class RunnerHelper
         }
     }*/
 
-    public static Task DispatchCommand(ILogger logger, string command)
+    public static async Task DispatchCommand(ILogger logger, string command)
     {
         string shellName;
         if (Environment.OSVersion.Platform == PlatformID.Win32NT)
@@ -89,22 +90,24 @@ internal static class RunnerHelper
         var startInfo = new ProcessStartInfo
         {
             FileName = shellName,
-            Arguments = "-c \"" + command + "\"",
             RedirectStandardOutput = true,
             UseShellExecute = false,
+            CreateNoWindow = true,
         };
+        startInfo.ArgumentList.Add("-c");
+        startInfo.ArgumentList.Add(command);
 
         try
         {
-            var process = new Process { StartInfo = startInfo };
+            using var process = new Process { StartInfo = startInfo };
             process.Start();
 
-            return process.WaitForExitAsync();
+            var drainOutput = process.StandardOutput.BaseStream.CopyToAsync(Stream.Null);
+            await Task.WhenAll(drainOutput, process.WaitForExitAsync()).ConfigureAwait(false);
         }
         catch
         {
             logger.GetWriter(LogLevel.Fatal)?.Write("A fatal error occurred during execution.");
-            return Task.CompletedTask;
         }
     }
 

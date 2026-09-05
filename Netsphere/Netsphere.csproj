@@ -27,7 +27,7 @@
   <ItemGroup>
     <PackageReference Include="Arc.Collections" Version="1.46.0" />
     <PackageReference Include="Arc.CrossChannel" Version="2.13.1" />
-    <PackageReference Include="Arc.Threading" Version="0.52.0" />
+    <PackageReference Include="Arc.Threading" Version="0.53.0" />
     <PackageReference Include="Arc.Crypto" Version="1.50.2" />
     <PackageReference Include="Arc.Unit" Version="0.46.1" />
     <PackageReference Include="BigMachines" Version="0.57.0" />
@@ -35,6 +35,11 @@
     <PackageReference Include="SimpleCommandLine" Version="0.45.0" />
     <PackageReference Include="Tinyhand" Version="0.144.2" />
     <PackageReference Include="ValueLink" Version="0.118.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="xUnitTest" />
+    <InternalsVisibleTo Include="Netsphere.CoreBenchmarks" />
   </ItemGroup>
 
   <ItemGroup>
