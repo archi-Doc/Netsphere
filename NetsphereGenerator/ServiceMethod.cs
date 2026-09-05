@@ -215,6 +215,19 @@ public class ServiceMethod
 
     public bool HasCancellationTokenParameter { get; private set; }
 
+    public int GetParameterCount(int decrement)
+        => this.method.Method_Parameters.Length - decrement;
+
+    public IEnumerable<string> GetParameterFormatterRegistrations(int decrement)
+    {
+        var parameters = this.method.Method_Parameters;
+        var length = parameters.Length - decrement;
+        for (var offset = 0; offset < length; offset += 7)
+        {
+            yield return GetValueTupleTypeArguments(parameters, length, offset);
+        }
+    }
+
     public string GetParameters()
     {// int a1, string a2
         var methodSymbol = this.method.TryGetMethodSymbol();
@@ -426,6 +439,30 @@ public class ServiceMethod
 
             return sb.ToString();
         }
+    }
+
+    private static string GetValueTupleTypeArguments(IReadOnlyList<string> parameters, int length, int offset)
+    {
+        var numberOfItems = Math.Min(7, length - offset);
+        var sb = new StringBuilder();
+        for (var i = 0; i < numberOfItems; i++)
+        {
+            if (i != 0)
+            {
+                sb.Append(", ");
+            }
+
+            sb.Append(parameters[offset + i]);
+        }
+
+        if ((length - offset) > 7)
+        {
+            sb.Append(", System.ValueTuple<");
+            sb.Append(GetValueTupleTypeArguments(parameters, length, offset + 7));
+            sb.Append('>');
+        }
+
+        return sb.ToString();
     }
 
     private static Type NameToType(string? name)

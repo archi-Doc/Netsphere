@@ -49,25 +49,20 @@ public class NetBase : UnitBase, IUnitPreparable
     public async Task Prepare(UnitContext unitContext, CancellationToken cancellationTokene)
     {
         // Set port number
-        if (this.NetOptions.Port < NetConstants.MinPort ||
-            this.NetOptions.Port > NetConstants.MaxPort)
+        this.IsPortNumberSpecified = this.NetOptions.Port >= NetConstants.MinPort &&
+            this.NetOptions.Port <= NetConstants.MaxPort;
+        if (!this.IsPortNumberSpecified)
         {
-            var showWarning = false;
-            if (this.NetOptions.Port != 0)
-            {
-                showWarning = true;
-            }
+            var showWarning = this.NetOptions.Port != 0;
 
-            this.NetOptions.Port = RandomVault.Default.NextInt32(NetConstants.EphemeralPort, NetConstants.MaxPort + 1);
+            // Port 0 lets the OS select a currently available port. Picking a random
+            // port here can select a reserved/excluded port, especially on Windows.
+            this.NetOptions.Port = 0;
             if (showWarning)
             {
                 this.LogService.GetWriter<NetBase>(LogLevel.Error)?.Write($"Port number must be between {NetConstants.MinPort} and {NetConstants.MaxPort}");
-                this.LogService.GetWriter<NetBase>(LogLevel.Error)?.Write($"Port number is set to {this.NetOptions.Port}");
+                this.LogService.GetWriter<NetBase>(LogLevel.Error)?.Write("Port number will be assigned automatically");
             }
-        }
-        else
-        {
-            this.IsPortNumberSpecified = true;
         }
 
         // Node key
@@ -122,5 +117,13 @@ public class NetBase : UnitBase, IUnitPreparable
     public byte[] SerializeNodePrivateKey()
     {
         return TinyhandSerializer.Serialize(this.NodeSeedKey);
+    }
+
+    internal void SetAutoAssignedPort(int port)
+    {
+        if (!this.IsPortNumberSpecified)
+        {
+            this.NetOptions.Port = port;
+        }
     }
 }

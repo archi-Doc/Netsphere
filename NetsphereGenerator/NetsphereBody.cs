@@ -180,6 +180,41 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                 ssb.AppendLine("Initialized = true;");
                 ssb.AppendLine();
 
+                // Tinyhand's source generator cannot see tuple types introduced by
+                // this generator, so register their closed formatters ourselves.
+                var registrations = new HashSet<string>();
+                foreach (var y in array.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetService)))
+                {
+                    if (y.ServiceMethods is null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var method in y.ServiceMethods.Values)
+                    {
+                        var decrement = method.ReturnType == ServiceMethod.Type.SendStream ||
+                            method.ReturnType == ServiceMethod.Type.SendStreamAndReceive ?
+                            1 : method.HasCancellationTokenParameter ? 1 : 0;
+                        if (method.GetParameterCount(decrement) > 1)
+                        {
+                            foreach (var registration in method.GetParameterFormatterRegistrations(decrement))
+                            {
+                                registrations.Add(registration);
+                            }
+                        }
+                    }
+                }
+
+                foreach (var registration in registrations.OrderBy(x => x, StringComparer.Ordinal))
+                {
+                    ssb.AppendLine($"global::Tinyhand.Resolvers.GeneratedResolver.RegisterValueTupleFormatter<{registration}>();");
+                }
+
+                if (registrations.Count > 0)
+                {
+                    ssb.AppendLine();
+                }
+
                 foreach (var y in array.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetService)))
                 {
                     ssb.AppendLine($"StaticNetService.SetFrontendFactory<{y.FullName}>(static x => new {y.ClassName}(x));");

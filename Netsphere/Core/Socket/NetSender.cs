@@ -111,8 +111,14 @@ internal class NetSender
         retry = 0;
         while (true)
         {
-            if (this.netSocketIpv4.Start(group, port, false))
+            if (this.netSocketIpv4.Start(group, port, false, out var boundPort))
             {
+                if (port == 0)
+                {
+                    port = boundPort;
+                    this.netTerminal.SetAutoAssignedPort(port);
+                }
+
                 break;
             }
 
@@ -131,7 +137,7 @@ internal class NetSender
         retry = 0;
         while (true)
         {
-            if (this.netSocketIpv6.Start(group, port, true))
+            if (this.netSocketIpv6.Start(group, port, true, out _))
             {
                 break;
             }

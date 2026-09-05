@@ -197,6 +197,15 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         this.RelayControl.RegisterResponder(this.Responders);
     }
 
+    internal void SetAutoAssignedPort(int port)
+    {
+        this.Port = port;
+        if (!this.IsAlternative)
+        {
+            this.NetBase.SetAutoAssignedPort(port);
+        }
+    }
+
     internal async Task<NetResponse> Wait(Task<NetResponse> task, TimeSpan timeout, CancellationToken cancellationToken)
     {// I don't think this is a smart approach, but...
         var remaining = timeout;

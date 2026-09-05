@@ -105,13 +105,15 @@ public sealed class NetSocket
 
     #endregion
 
-    public bool Start(ExecutionGroup parent, int port, bool ipv6)
+    public bool Start(ExecutionGroup parent, int port, bool ipv6, out int boundPort)
     {
+        boundPort = 0;
         this.recvCore ??= new RecvCore(parent, this);
 
         try
         {
             this.PrepareUdpClient(port, ipv6);
+            boundPort = ((IPEndPoint)this.UnsafeUdpClient!.Client.LocalEndPoint!).Port;
         }
         catch
         {
@@ -144,49 +146,52 @@ public sealed class NetSocket
     {
         var addressFamily = ipv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
         var udp = new UdpClient(addressFamily);
-
-        udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-
-        IPEndPoint endpoint;
-        if (ipv6 &&
-            !this.netTerminal.NetBase.NetOptions.EnableTemporaryIpv6Address &&
-            OperatingSystem.IsWindows() &&
-            NetHelper.TryGetStaticIpv6Address(out var ipv6Address))
-        {
-            endpoint = new IPEndPoint(ipv6Address, port);
-        }
-        else
-        {
-            endpoint = new IPEndPoint(ipv6 ? IPAddress.IPv6Any : IPAddress.Any, port);
-        }
-
-        udp.Client.Bind(endpoint);
-
         try
         {
-            const int SIO_UDP_CONNRESET = -1744830452;
-            udp.Client.IOControl((IOControlCode)SIO_UDP_CONNRESET, new byte[] { 0, 0, 0, 0 }, null);
-        }
-        catch
-        {
-        }
+            udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-        udp.Client.SendBufferSize = SendBufferSize;
-        udp.Client.ReceiveBufferSize = ReceiveBufferSize;
-        udp.Client.ReceiveTimeout = ReceiveTimeout;
-
-        try
-        {
-            if (this.UnsafeUdpClient != null)
+            IPEndPoint endpoint;
+            if (ipv6 &&
+                !this.netTerminal.NetBase.NetOptions.EnableTemporaryIpv6Address &&
+                OperatingSystem.IsWindows() &&
+                NetHelper.TryGetStaticIpv6Address(out var ipv6Address))
             {
-                this.UnsafeUdpClient.Dispose();
-                this.UnsafeUdpClient = null;
+                endpoint = new IPEndPoint(ipv6Address, port);
             }
+            else
+            {
+                endpoint = new IPEndPoint(ipv6 ? IPAddress.IPv6Any : IPAddress.Any, port);
+            }
+
+            udp.Client.Bind(endpoint);
+
+            try
+            {
+                const int SIO_UDP_CONNRESET = -1744830452;
+                udp.Client.IOControl((IOControlCode)SIO_UDP_CONNRESET, new byte[] { 0, 0, 0, 0 }, null);
+            }
+            catch
+            {
+            }
+
+            udp.Client.SendBufferSize = SendBufferSize;
+            udp.Client.ReceiveBufferSize = ReceiveBufferSize;
+            udp.Client.ReceiveTimeout = ReceiveTimeout;
+
+            try
+            {
+                this.UnsafeUdpClient?.Dispose();
+            }
+            catch
+            {
+            }
+
+            this.UnsafeUdpClient = udp;
         }
         catch
         {
+            udp.Dispose();
+            throw;
         }
-
-        this.UnsafeUdpClient = udp;
     }
 }
