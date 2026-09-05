@@ -10,7 +10,7 @@ using Tinyhand.Tree;
 namespace Netsphere;
 
 /// <summary>
-/// Represents ipv4/ipv6 address information.
+/// Stores IPv4 and IPv6 addresses, a shared port, and an optional relay identifier.
 /// </summary>
 [TinyhandObject]
 public readonly partial record struct NetAddress : IStringConvertible<NetAddress>, IValidatable // , IEquatable<NetAddress>

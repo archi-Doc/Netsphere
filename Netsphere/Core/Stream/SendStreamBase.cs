@@ -8,6 +8,9 @@ namespace Netsphere.Core;
 
 #pragma warning disable SA1202 // Elements should be ordered by access
 
+/// <summary>
+/// Provides shared state and operations for sending a length-limited stream.
+/// </summary>
 public abstract class SendStreamBase
 {
     internal SendStreamBase(SendTransmission sendTransmission, long maxLength, ulong dataId)

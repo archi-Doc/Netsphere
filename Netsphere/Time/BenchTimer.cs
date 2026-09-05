@@ -6,8 +6,7 @@ using System.Runtime.CompilerServices;
 namespace Netsphere.Misc;
 
 /// <summary>
-/// Provides a set of methods that you can use to measure elapsed time for benchmark.<br/>
-/// { Start() -> Stop() } x repetition -> GetResult().
+/// Measures elapsed time across repeated benchmark runs.
 /// </summary>
 public class BenchTimer
 {

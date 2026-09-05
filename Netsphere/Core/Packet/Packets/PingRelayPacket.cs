@@ -4,6 +4,9 @@ using Netsphere.Packet;
 
 namespace Netsphere.Relay;
 
+/// <summary>
+/// Requests relay status information.
+/// </summary>
 [TinyhandObject]
 public sealed partial class PingRelayPacket : IPacket
 {
@@ -14,6 +17,9 @@ public sealed partial class PingRelayPacket : IPacket
     }
 }
 
+/// <summary>
+/// Returns remaining relay points, retention time, and the outer endpoint.
+/// </summary>
 [TinyhandObject]
 public sealed partial class PingRelayResponse : IPacket
 {

@@ -2,6 +2,9 @@
 
 namespace Netsphere;
 
+/// <summary>
+/// Defines initialization shared by network service filters.
+/// </summary>
 public interface IServiceFilterBase
 {
     public void SetArguments(object[] args)
@@ -9,6 +12,9 @@ public interface IServiceFilterBase
     }
 }
 
+/// <summary>
+/// Intercepts asynchronous network service calls.
+/// </summary>
 public interface IServiceFilter : IServiceFilterBase
 {
     public Task Invoke(TransmissionContext context, Func<TransmissionContext, Task> invoker);

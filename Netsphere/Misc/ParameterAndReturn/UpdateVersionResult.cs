@@ -3,7 +3,7 @@
 namespace Netsphere;
 
 /// <summary>
-/// Represents a result of network transmission.
+/// Identifies the outcome of a version update request.
 /// </summary>
 public enum UpdateVersionResult : byte
 {

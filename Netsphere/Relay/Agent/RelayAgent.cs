@@ -9,7 +9,7 @@ using Netsphere.Stats;
 namespace Netsphere.Relay;
 
 /// <summary>
-/// Manages relays and conducts the actual relay processing on the server side.
+/// Allocates relays and forwards packets on a relay server.
 /// </summary>
 public partial class RelayAgent
 {

@@ -4,6 +4,9 @@ using Netsphere.Core;
 
 namespace Netsphere.Responder;
 
+/// <summary>
+/// Generates a deterministic response stream from a requested byte count.
+/// </summary>
 public class TestStreamResponder : INetResponder
 {
     public const int MaxLength = 1024 * 1024 * 100;

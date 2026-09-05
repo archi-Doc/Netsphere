@@ -2,6 +2,9 @@
 
 namespace Netsphere;
 
+/// <summary>
+/// Associates a network service interface with its implementation metadata.
+/// </summary>
 public record class NetServiceInfo
 {
     public NetServiceInfo(Type serviceType, NetObjectInfo netObjectInfo)

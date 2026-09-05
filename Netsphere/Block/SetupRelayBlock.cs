@@ -2,6 +2,9 @@
 
 namespace Netsphere.Relay;
 
+/// <summary>
+/// Configures a relay's outer endpoint and encryption material.
+/// </summary>
 [TinyhandObject(ReservedKeyCount = 2)]
 public partial class SetupRelayBlock
 {
@@ -24,6 +27,9 @@ public partial class SetupRelayBlock
     public byte[] OuterKeyAndNonce { get; set; } = [];
 }
 
+/// <summary>
+/// Contains the result of configuring a relay.
+/// </summary>
 [TinyhandObject]
 public partial class SetupRelayResponse
 {

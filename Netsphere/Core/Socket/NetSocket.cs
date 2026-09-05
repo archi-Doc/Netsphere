@@ -10,7 +10,7 @@ using Netsphere.Packet;
 namespace Netsphere.Core;
 
 /// <summary>
-/// NetSocket provides low-level network service.
+/// Owns a UDP socket and its receive loop for one address family.
 /// </summary>
 public sealed class NetSocket
 {

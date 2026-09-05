@@ -2,6 +2,9 @@
 
 namespace Netsphere.Stats;
 
+/// <summary>
+/// Classifies a node's network reachability.
+/// </summary>
 public enum NodeType
 {
     /// <summary>
@@ -15,12 +18,12 @@ public enum NodeType
     Direct,
 
     /// <summary>
-    /// The port numbers is translated through a NAT. The same port number is visible to multiple peers.
+    /// The NAT exposes the same translated port to multiple peers.
     /// </summary>
     Cone,
 
     /// <summary>
-    /// The port numbers is translated through a NAT. Different port numbers are visible to multiple peer.
+    /// The NAT exposes different translated ports to different peers.
     /// </summary>
     Symmetric,
 }

@@ -5,6 +5,9 @@ using Netsphere.Packet;
 
 namespace Netsphere;
 
+/// <summary>
+/// Stores node keys, options, default limits, and connection context factories.
+/// </summary>
 public class NetBase : UnitBase, IUnitPreparable
 {
     public NetBase(UnitContext context, LogUnit logUnit, ILogService logService)

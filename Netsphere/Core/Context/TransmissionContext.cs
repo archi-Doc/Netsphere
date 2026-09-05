@@ -9,11 +9,17 @@ using Netsphere.Crypto;
 
 namespace Netsphere;
 
+/// <summary>
+/// Marks a transmission context for internal transport integration.
+/// </summary>
 public interface ITransmissionContextInternal
 {
     // ReceiveStream GetReceiveStream();
 }
 
+/// <summary>
+/// Provides request data, connection state, and response operations for one transmission.
+/// </summary>
 public sealed class TransmissionContext : ITransmissionContextInternal
 {
     public static TransmissionContext Current => AsyncLocal.Value!;

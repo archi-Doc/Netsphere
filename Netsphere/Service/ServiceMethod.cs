@@ -2,6 +2,9 @@
 
 namespace Netsphere;
 
+/// <summary>
+/// Associates an RPC method identifier with its invocation delegate.
+/// </summary>
 public record class ServiceMethod
 {
     public delegate Task ServiceDelegate(object instance, TransmissionContext transmissionContext);

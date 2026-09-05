@@ -2,6 +2,11 @@
 
 namespace Netsphere.Core;
 
+/// <summary>
+/// Runs a block request handler on the thread pool and sends its response.
+/// </summary>
+/// <typeparam name="TSend">The request type.</typeparam>
+/// <typeparam name="TReceive">The response type.</typeparam>
 public abstract class AsyncResponder<TSend, TReceive> : INetResponder
 {
     public ulong DataId

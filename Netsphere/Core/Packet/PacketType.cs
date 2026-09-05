@@ -2,6 +2,9 @@
 
 namespace Netsphere.Packet;
 
+/// <summary>
+/// Identifies datagram requests, responses, and protected connection packets.
+/// </summary>
 public enum PacketType : ushort
 {
     // Packet types (0-127)

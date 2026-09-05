@@ -9,6 +9,9 @@ using Netsphere.Relay;
 
 namespace Netsphere.Stats;
 
+/// <summary>
+/// Tracks observed addresses, connectivity, and node discovery information.
+/// </summary>
 [TinyhandObject(UseServiceProvider = true, LockObject = "lockObject")]
 public sealed partial class NetStats
 {

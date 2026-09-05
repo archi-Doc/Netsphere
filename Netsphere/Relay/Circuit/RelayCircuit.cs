@@ -8,7 +8,7 @@ using System.Threading;
 namespace Netsphere.Relay;
 
 /// <summary>
-/// <see cref="RelayCircuit"/> is a primitive class for managing relay circuits.
+/// Manages an ordered chain of relays and its encryption keys.
 /// </summary>
 public class RelayCircuit
 {

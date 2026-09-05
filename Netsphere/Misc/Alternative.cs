@@ -4,6 +4,9 @@ using Netsphere.Crypto;
 
 namespace Netsphere;
 
+/// <summary>
+/// Provides the loopback address and temporary keys for the diagnostic terminal.
+/// </summary>
 public static class Alternative
 {
     public const string Name = "alternative";

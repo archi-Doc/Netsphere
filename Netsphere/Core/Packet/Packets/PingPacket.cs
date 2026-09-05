@@ -2,6 +2,9 @@
 
 namespace Netsphere.Packet;
 
+/// <summary>
+/// Carries a ping request with an optional message.
+/// </summary>
 [TinyhandObject]
 public sealed partial class PingPacket : IPacket
 {
@@ -25,6 +28,9 @@ public sealed partial class PingPacket : IPacket
     public override string ToString() => $"{this.Message}";
 }
 
+/// <summary>
+/// Returns the observed sender endpoint and responding node information.
+/// </summary>
 [TinyhandObject]
 public sealed partial class PingPacketResponse : IPacket
 {

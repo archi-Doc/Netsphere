@@ -2,6 +2,9 @@
 
 namespace Netsphere.Misc;
 
+/// <summary>
+/// Encodes and decodes an NTP packet and calculates clock offset and round-trip time.
+/// </summary>
 public class NtpPacket
 {
     private const long CompensatingRate32 = 0x100000000L;

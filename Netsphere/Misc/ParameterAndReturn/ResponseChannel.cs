@@ -10,6 +10,9 @@ namespace Netsphere;
 
 public delegate void ResponseDelegate<TReceive>(NetResult result, TReceive? value);
 
+/// <summary>
+/// Exposes response serialization and callback operations for generated RPC code.
+/// </summary>
 public interface IResponseChannelInternal
 {
     void Invoke(NetResult result);
@@ -20,15 +23,10 @@ public interface IResponseChannelInternal
 }
 
 /// <summary>
-/// A shared structure used to send and receive data between the client and server.<br/>
-/// On the client side, a delegate is invoked when data is received.<br/>
-/// Its advantage is that it does not rely on Task, but its use is not recommended.<br/>
-/// <br/>
-/// Client side: Set SendValue and call the NetService method.<br/>
-/// Server side: Read SendValue and set ReceiveValue.<br/>
-/// If asynchronous processing is required, do not use ResponseChannel; define a normal NetService method instead.
+/// Carries a synchronous RPC response or a client callback for that response.
 /// </summary>
-/// <typeparam name="TResponse"></typeparam>
+/// <typeparam name="TResponse">The response type.</typeparam>
+/// <remarks>Pass as the final ref parameter of a void service method. The server calls SetResponse; the client supplies a callback. Use Task-based methods for asynchronous handlers.</remarks>
 [TinyhandObject]
 public partial record struct ResponseChannel<TResponse> : IResponseChannelInternal, ITinyhandSerializable<ResponseChannel<TResponse>>, ITinyhandReconstructable<ResponseChannel<TResponse>>, ITinyhandCloneable<ResponseChannel<TResponse>>, ITinyhandSingleLayoutSerializable
 {

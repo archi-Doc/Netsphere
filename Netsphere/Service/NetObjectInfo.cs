@@ -4,6 +4,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Netsphere;
 
+/// <summary>
+/// Stores a network object type, its factory, and generated method dispatchers.
+/// </summary>
 public record class NetObjectInfo
 {
     public NetObjectInfo(Type objectType, Func<object>? objectFactory)

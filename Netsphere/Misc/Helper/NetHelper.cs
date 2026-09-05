@@ -13,6 +13,9 @@ using Tinyhand.IO;
 
 namespace Netsphere;
 
+/// <summary>
+/// Provides serialization, connection, and stream conversion helpers.
+/// </summary>
 public static class NetHelper
 {
     internal const int BurstGenes = 3;
@@ -441,7 +444,7 @@ public static class NetHelper
     /// </summary>
     /// <param name="value">The object to be verified.</param>
     /// <typeparam name="T">The type of the object.</typeparam>
-    /// <returns><see langword="true" />: Success.</returns>
+    /// <returns>True on success; otherwise, false.</returns>
     private static bool ValidateAndVerify<T>(T value)
         where T : ITinyhandSerializable<T>, ISignAndVerify
     {

@@ -6,8 +6,7 @@ using Netsphere.Crypto;
 namespace Netsphere;
 
 /// <summary>
-/// Represents ipv4/ipv6 node information.<br/>
-/// <see cref="NetNode"/> = <see cref="NetAddress"/> + <see cref="EncryptionPublicKey"/>.
+/// Combines a network address with the node's encryption public key.
 /// </summary>
 [TinyhandObject(ReservedKeyCount = 2)]
 public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquatable<NetNode>

@@ -9,7 +9,7 @@ using Tinyhand.IO;
 namespace Netsphere.Crypto;
 
 /// <summary>
-/// Represents an authentication token.
+/// Carries a signature, signing timestamp, and connection salt for authentication.
 /// </summary>
 [TinyhandObject]
 public sealed partial class AuthenticationToken : ISignAndVerify, IEquatable<AuthenticationToken>, IStringConvertible<AuthenticationToken>

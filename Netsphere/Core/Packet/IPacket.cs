@@ -3,12 +3,9 @@
 namespace Netsphere.Packet;
 
 /// <summary>
-/// Packet class requirements.<br/>
-/// 1. Inherit IPacket interface.<br/>
-/// 2. Has TinyhandObjectAttribute (Tinyhand serializable).<br/>
-/// 3. Unique PacketType is defined.<br/>
-/// 4. Length of the serialized byte array is less than or equal to <see cref="PacketHeader.MaxPayloadLength"/>.
+/// Defines the type identifier of a Tinyhand-serializable datagram packet.
 /// </summary>
+/// <remarks>Packets must be Tinyhand-serializable, have a unique packet type, and fit within the datagram payload limit.</remarks>
 public interface IPacket
 {
     static abstract PacketType PacketType { get; }

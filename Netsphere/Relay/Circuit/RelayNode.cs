@@ -2,6 +2,9 @@
 
 namespace Netsphere.Relay;
 
+/// <summary>
+/// Describes a relay hop and the key material needed to use it.
+/// </summary>
 [ValueLinkObject(Isolation = IsolationLevel.Serializable)]
 public sealed partial class RelayNode
 {

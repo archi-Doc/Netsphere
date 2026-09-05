@@ -4,6 +4,9 @@ using Netsphere.Crypto;
 
 namespace Netsphere;
 
+/// <summary>
+/// Stores a client connection and its authentication token.
+/// </summary>
 public class ClientConnectionContext
 {
     public ClientConnectionContext(ClientConnection clientConnection)

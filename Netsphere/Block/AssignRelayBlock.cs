@@ -2,6 +2,9 @@
 
 namespace Netsphere.Relay;
 
+/// <summary>
+/// Requests a relay allocation with incoming-traffic permissions and key material.
+/// </summary>
 [TinyhandObject(ReservedKeyCount = 2)]
 public partial class AssignRelayBlock
 {
@@ -23,8 +26,7 @@ public partial class AssignRelayBlock
     public bool AllowOpenSesami { get; protected set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether or not to allow communication from unknown nodes.<br/>
-    /// This feature is designed with Engagement in mind.
+    /// Gets or sets a value indicating whether the relay accepts packets from unknown nodes.
     /// </summary>
     [Key(1)]
     public bool AllowUnknownIncoming { get; protected set; }
@@ -36,6 +38,9 @@ public partial class AssignRelayBlock
     // public Linkage? Linkage { get; private set; }
 }
 
+/// <summary>
+/// Contains the result, relay identifiers, and limits of a relay allocation.
+/// </summary>
 [TinyhandObject]
 public partial class AssignRelayResponse
 {

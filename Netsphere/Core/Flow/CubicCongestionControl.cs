@@ -8,6 +8,9 @@ using Arc.Collections;
 
 namespace Netsphere.Core;
 
+/// <summary>
+/// Controls the send window and retransmissions using CUBIC-based congestion control.
+/// </summary>
 public class CubicCongestionControl : ICongestionControl
 {
     private const double BrakeThreshold = 0.05d;

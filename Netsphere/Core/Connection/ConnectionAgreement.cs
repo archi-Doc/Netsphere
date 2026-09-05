@@ -4,6 +4,9 @@ using System.Runtime.CompilerServices;
 
 namespace Netsphere;
 
+/// <summary>
+/// Defines the transmission limits and capabilities of a connection.
+/// </summary>
 [TinyhandObject]
 public partial record ConnectionAgreement
 {
@@ -24,13 +27,13 @@ public partial record ConnectionAgreement
     }
 
     /// <summary>
-    /// Gets or sets the maximum transmissions per connection.
+    /// Gets or sets the maximum number of concurrent transmissions per connection.
     /// </summary>
     [Key(0)]
     public uint MaxTransmissions { get; set; }
 
     /// <summary>
-    /// Gets or sets the maximum block size in bytes.
+    /// Gets or sets the maximum serialized block size in bytes, including serialization headers.
     /// </summary>
     [Key(1)]
     public int MaxBlockSize
@@ -45,8 +48,9 @@ public partial record ConnectionAgreement
     }
 
     /// <summary>
-    /// Gets or sets the maximum stream length in bytes.
+    /// Gets or sets the maximum stream length in bytes; negative values remove the length limit.
     /// </summary>
+    /// <remarks>Zero permits only empty streams. Individual requests must declare a nonnegative length.</remarks>
     [Key(2)]
     public long MaxStreamLength
     {
@@ -59,7 +63,7 @@ public partial record ConnectionAgreement
     }
 
     /// <summary>
-    /// Gets or sets the stream buffer size in bytes.
+    /// Gets or sets the stream window size in bytes, rounded to packet capacity.
     /// </summary>
     [Key(3)]
     public int StreamBufferSize
@@ -121,11 +125,11 @@ public partial record ConnectionAgreement
     }
 
     /// <summary>
-    /// Determines whether the agreement is within the range compared to the target.<br/>
+    /// Determines whether this agreement fits within the target's limits and capabilities.<br/>
     /// Returns <see langword="true"/> if it is within the range.
     /// </summary>
-    /// <param name="target">The comparand.</param>
-    /// <returns><see langword="true"/>; The agreement is within the target.</returns>
+    /// <param name="target">The limits and capabilities to compare against.</param>
+    /// <returns>True if the target permits this agreement; otherwise, false.</returns>
     public bool IsInclusive(ConnectionAgreement target)
     {
         if (this.MaxTransmissions > target.MaxTransmissions)

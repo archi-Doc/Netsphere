@@ -9,6 +9,9 @@ namespace Netsphere.Crypto;
 #pragma warning disable SA1204
 #pragma warning disable SA1401
 
+/// <summary>
+/// Stores secret seed material and derives encryption or signing keys.
+/// </summary>
 [TinyhandObject]
 public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<SeedKey>, IDisposable
 {// !!!Base64Url(Seed+Checksum)!!!(s:Base64Url(PublicKey+Checksum))
@@ -432,8 +435,7 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
     }
 
     /// <summary>
-    /// Clears the sensitive information held by the SeedKey.<br/>
-    /// Since SeedKey does not hold any resources, this is not intended for releasing resources.
+    /// Clears the secret seed and cached key material.
     /// </summary>
     public void Dispose()
     {

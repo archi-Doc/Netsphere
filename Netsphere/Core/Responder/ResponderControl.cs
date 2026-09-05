@@ -5,6 +5,9 @@ using Netsphere.Core;
 
 namespace Netsphere.Responder;
 
+/// <summary>
+/// Registers and resolves responders by data identifier.
+/// </summary>
 public sealed class ResponderControl
 {
     public ResponderControl()

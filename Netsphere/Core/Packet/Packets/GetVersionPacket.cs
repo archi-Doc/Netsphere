@@ -7,6 +7,9 @@ using Netsphere.Version;
 
 namespace Netsphere.Relay;
 
+/// <summary>
+/// Requests version information for a specified version kind.
+/// </summary>
 [TinyhandObject]
 public sealed partial class GetVersionPacket : IPacket
 {
@@ -25,6 +28,9 @@ public sealed partial class GetVersionPacket : IPacket
     public VersionInfo.Kind VersionKind { get; set; }
 }
 
+/// <summary>
+/// Returns signed version information.
+/// </summary>
 [TinyhandObject]
 public sealed partial class GetVersionResponse : IPacket
 {

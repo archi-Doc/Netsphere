@@ -6,6 +6,9 @@ using Netsphere.Responder;
 
 namespace Netsphere.Relay;
 
+/// <summary>
+/// Authorizes relay allocation using signed assignment requests.
+/// </summary>
 public class CertificateRelayControl : IRelayControl
 {
     public static readonly IRelayControl Instance = new CertificateRelayControl();

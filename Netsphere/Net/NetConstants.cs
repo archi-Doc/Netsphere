@@ -2,6 +2,9 @@
 
 namespace Netsphere;
 
+/// <summary>
+/// Defines protocol limits, timing values, and diagnostic switches.
+/// </summary>
 public static class NetConstants
 {
     public const string NodeName = "NodeName";

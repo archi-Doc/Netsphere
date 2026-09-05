@@ -2,6 +2,9 @@
 
 namespace Netsphere.Core;
 
+/// <summary>
+/// Identifies valid stream data, completion, cancellation, or an initial state.
+/// </summary>
 public enum DataControl : ushort
 {
     Initial,

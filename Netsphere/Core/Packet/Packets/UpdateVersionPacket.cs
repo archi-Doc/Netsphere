@@ -6,6 +6,9 @@ using Netsphere.Version;
 
 namespace Netsphere.Relay;
 
+/// <summary>
+/// Requests an update using signed version information.
+/// </summary>
 [TinyhandObject]
 public sealed partial class UpdateVersionPacket : IPacket
 {
@@ -24,6 +27,9 @@ public sealed partial class UpdateVersionPacket : IPacket
     public CertificateToken<VersionInfo>? Token { get; set; }
 }
 
+/// <summary>
+/// Contains the result of a version update request.
+/// </summary>
 [TinyhandObject]
 public sealed partial class UpdateVersionResponse : IPacket
 {

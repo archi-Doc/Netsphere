@@ -2,6 +2,9 @@
 
 namespace Netsphere.Version;
 
+/// <summary>
+/// Describes a version kind, version number, and release timestamp.
+/// </summary>
 [TinyhandObject]
 public sealed partial record class VersionInfo
 {
@@ -17,6 +20,9 @@ public sealed partial record class VersionInfo
         this.VersionInt = versionInt;
     }
 
+    /// <summary>
+    /// Identifies the category of version information.
+    /// </summary>
     public enum Kind : byte
     {
         Development,

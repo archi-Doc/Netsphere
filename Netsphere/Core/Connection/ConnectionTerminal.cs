@@ -12,6 +12,9 @@ using Netsphere.Stats;
 
 namespace Netsphere;
 
+/// <summary>
+/// Creates, tracks, and closes client and server connections.
+/// </summary>
 public class ConnectionTerminal
 {// ConnectionStateCode: Open -> Closed -> Disposed
     private static readonly long AdditionalServerMics = Mics.FromSeconds(1);

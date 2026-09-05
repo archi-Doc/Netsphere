@@ -17,6 +17,9 @@ namespace Netsphere;
 // byte[32 = EmbryoKeyLength] Key, byte[16 = EmbryoIvLength] Iv
 internal readonly record struct Embryo(ulong Salt, byte[] Key, byte[] Iv);
 
+/// <summary>
+/// Manages an encrypted connection, its transmission limits, and its lifetime.
+/// </summary>
 public abstract class Connection : IDisposable
 {
     private const int LowerRttLimit = 5_000; // 5ms
@@ -24,6 +27,9 @@ public abstract class Connection : IDisposable
     private const int DefaultRtt = 100_000; // 100ms
     internal const int EmbryoSize = 64;
 
+    /// <summary>
+    /// Specifies whether a connection may be reused or must be newly created.
+    /// </summary>
     public enum ConnectMode
     {
         ReuseIfAvailable,
@@ -31,6 +37,9 @@ public abstract class Connection : IDisposable
         NoReuse,
     }
 
+    /// <summary>
+    /// Identifies the lifecycle state of a connection.
+    /// </summary>
     public enum State
     {
         Open,
@@ -265,7 +274,7 @@ public abstract class Connection : IDisposable
     }
 
     /// <summary>
-    /// Close the connection without considering OpenCount.
+    /// Closes the connection regardless of its open reference count.
     /// </summary>
     internal void CloseInternal()
         => this.Dispose();

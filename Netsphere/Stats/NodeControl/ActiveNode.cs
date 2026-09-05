@@ -5,6 +5,9 @@ using ValueLink.Integrality;
 
 namespace Netsphere.Stats;
 
+/// <summary>
+/// Tracks a discovered node and its latest successful connection time.
+/// </summary>
 [TinyhandObject]
 [ValueLinkObject(Integrality = true, Isolation = IsolationLevel.Serializable)]
 public sealed partial class ActiveNode : NetNode

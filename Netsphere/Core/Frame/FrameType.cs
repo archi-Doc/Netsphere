@@ -2,6 +2,9 @@
 
 namespace Netsphere.Packet;
 
+/// <summary>
+/// Identifies a frame carried inside an encrypted connection packet.
+/// </summary>
 public enum FrameType : ushort
 {
     Close,

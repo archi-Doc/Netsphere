@@ -2,6 +2,9 @@
 
 namespace Netsphere.Relay;
 
+/// <summary>
+/// Disables relay allocation.
+/// </summary>
 public class NoRelayControl : IRelayControl
 {
     public static readonly IRelayControl Instance = new NoRelayControl();

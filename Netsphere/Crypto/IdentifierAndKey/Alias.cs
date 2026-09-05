@@ -4,6 +4,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Netsphere.Crypto;
 
+/// <summary>
+/// Maps identifiers and signature public keys to short text aliases.
+/// </summary>
 public class Alias : IConversionOptions
 {// Identifier/PublicKey <-> Alias
     public const int MaxAliasLength = 16; // Must be set to RawPublicKeyLengthInBase64 or less.

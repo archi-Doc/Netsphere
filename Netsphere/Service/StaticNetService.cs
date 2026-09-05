@@ -7,6 +7,9 @@ namespace Netsphere;
 
 #pragma warning disable SA1401 // Fields should be private
 
+/// <summary>
+/// Stores generated service metadata and creates client proxies.
+/// </summary>
 public static class StaticNetService
 {
     public delegate INetService FrontendFactoryDelegate(ClientConnection clientConnection);

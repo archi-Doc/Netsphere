@@ -32,6 +32,9 @@ public enum NetResult : byte
 
 #pragma warning disable SA1101 // Prefix local calls with this
 
+/// <summary>
+/// Provides checks for transport result categories.
+/// </summary>
 public static class NetResultExtensions
 {
     extension(NetResult result)

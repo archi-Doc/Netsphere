@@ -8,6 +8,9 @@ using Netsphere.Packet;
 
 namespace Netsphere;
 
+/// <summary>
+/// Provides RPC, block, and stream operations over a client connection.
+/// </summary>
 [ValueLinkObject(Isolation = IsolationLevel.Serializable, Restricted = true)]
 public sealed partial class ClientConnection : Connection, IClientConnectionInternal, IEquatable<ClientConnection>, IComparable<ClientConnection>
 {
@@ -64,14 +67,13 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         => StaticNetService.CreateFrontend<TService>(this);
 
     /// <summary>
-    /// Asynchronously waits until all pending receive transmissions on this connection have completed.
+    /// Waits until no receive transmissions remain, or polling stops because of cancellation or shutdown.
     /// </summary>
     /// <param name="cancellationToken">
-    /// A cancellation token that can be used to cancel the wait operation.
+    /// The token used to stop polling.
     /// </param>
     /// <returns>
-    /// A <see cref="Task"/> that completes when all receive transmissions have finished processing,
-    /// or immediately if there are no pending receive transmissions.
+    /// A task representing the wait. Callback completion is not guaranteed; await a callback-owned signal when needed.
     /// </returns>
     public async Task WaitForReceiveCompletion(CancellationToken cancellationToken = default)
     {

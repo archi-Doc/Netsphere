@@ -11,6 +11,9 @@ using Tinyhand.IO;
 
 namespace Netsphere.Packet;
 
+/// <summary>
+/// Sends and receives datagram packets, including request retries and response matching.
+/// </summary>
 public sealed partial class PacketTerminal
 {
     [ValueLinkObject(Isolation = IsolationLevel.Serializable)]

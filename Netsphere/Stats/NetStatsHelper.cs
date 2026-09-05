@@ -2,6 +2,9 @@
 
 namespace Netsphere.Stats;
 
+/// <summary>
+/// Queries public-address services for the node's external IP addresses.
+/// </summary>
 public static class NetStatsHelper
 {
     private const string IcanhazipUriIPv4 = "http://ipv4.icanhazip.com";

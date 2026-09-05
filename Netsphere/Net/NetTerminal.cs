@@ -11,6 +11,9 @@ using Netsphere.Stats;
 
 namespace Netsphere;
 
+/// <summary>
+/// Coordinates sockets, packets, connections, services, and relay circuits for a node.
+/// </summary>
 public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 {
     public const string GroupName = "Netsphere";

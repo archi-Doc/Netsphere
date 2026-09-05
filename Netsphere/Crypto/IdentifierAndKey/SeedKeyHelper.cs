@@ -9,6 +9,9 @@ namespace Netsphere.Crypto;
 #pragma warning disable SA1204
 #pragma warning disable SA1401
 
+/// <summary>
+/// Provides key-format constants, checksums, parsing, and serialization helpers.
+/// </summary>
 public static class SeedKeyHelper
 {
     public const int SeedSize = 32;

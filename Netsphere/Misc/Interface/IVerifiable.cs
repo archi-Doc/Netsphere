@@ -5,7 +5,7 @@ using Netsphere.Crypto;
 namespace Netsphere;
 
 /// <summary>
-/// Validate that object members and verify that the signature is appropriate.
+/// Defines content validation and signature verification.
 /// </summary>
 public interface IVerifiable : IValidatable
 {

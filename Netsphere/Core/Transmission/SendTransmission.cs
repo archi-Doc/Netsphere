@@ -6,6 +6,9 @@ using Netsphere.Packet;
 
 namespace Netsphere.Core;
 
+/// <summary>
+/// Identifies the internal lifecycle and transfer mode of a transmission.
+/// </summary>
 public enum NetTransmissionMode
 {
     Initial,

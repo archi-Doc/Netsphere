@@ -6,6 +6,9 @@ using System.Runtime.CompilerServices;
 
 namespace Netsphere.Misc;
 
+/// <summary>
+/// Queries NTP servers and maintains the clock correction offset.
+/// </summary>
 [TinyhandObject(LockObject = "lockObject", ExplicitKeysOnly = true, UseServiceProvider = true)]
 public sealed partial class NtpCorrection
 {

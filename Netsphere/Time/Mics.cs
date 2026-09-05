@@ -7,7 +7,7 @@ using Netsphere.Misc;
 namespace Netsphere;
 
 /// <summary>
-/// <see cref="Mics"/> represents time in microseconds (<see cref="long"/>).
+/// Provides microsecond clocks, cached timestamps, and time conversions.
 /// </summary>
 public static class Mics
 {
@@ -41,32 +41,32 @@ public static class Mics
     }
 
     /// <summary>
-    /// Gets the cached <see cref="Mics"/> (microseconds) since system startup (Stopwatch.GetTimestamp()).
+    /// Gets the cached <see cref="Mics"/> (microseconds) from the monotonic stopwatch clock.
     /// </summary>
     public static long FastSystem => fastSystemMics;
 
     /// <summary>
-    /// Gets the cached <see cref="Mics"/> (microseconds) since Lp has started.<br/>
+    /// Gets the cached <see cref="Mics"/> (microseconds) since clock initialization.<br/>
     /// Not affected by manual date/time changes.
     /// </summary>
     public static long FastApplication => fastApplicationMics;
 
     /// <summary>
     /// Gets the cached <see cref="Mics"/> (microseconds) expressed as UTC.<br/>
-    /// Mics since 0000-01-01 00:00:00.
+    /// Microseconds since 0001-01-01 00:00:00 UTC.
     /// </summary>
     public static long FastUtcNow => fastUtcNowMics;
 
     /// <summary>
     /// Gets the cached fixed <see cref="Mics"/> (microseconds) expressed as UTC.<br/>
-    /// Mics since 0000-01-01 00:00:00.<br/>
+    /// Microseconds since 0001-01-01 00:00:00 UTC.<br/>
     /// Not affected by manual date/time changes.
     /// </summary>
     public static long FastFixedUtcNow => fastFixedUtcNowMics;
 
     /// <summary>
     /// Gets the cached corrected <see cref="Mics"/> expressed as UTC.<br/>
-    /// Mics since 0000-01-01 00:00:00.
+    /// Microseconds since 0001-01-01 00:00:00 UTC.
     /// </summary>
     public static long FastCorrected => fastCorrectedMics;
 
@@ -102,14 +102,14 @@ public static class Mics
     }
 
     /// <summary>
-    /// Gets the <see cref="Mics"/> (microseconds) since system startup (Stopwatch.GetTimestamp()).
+    /// Gets the <see cref="Mics"/> (microseconds) from the monotonic stopwatch clock.
     /// </summary>
     /// <returns><see cref="Mics"/> (microseconds).</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long GetSystem() => (long)(Stopwatch.GetTimestamp() * TimestampToMics);
 
     /// <summary>
-    /// Gets the <see cref="Mics"/> (microseconds) since Lp has started.<br/>
+    /// Gets the <see cref="Mics"/> (microseconds) since clock initialization.<br/>
     /// Not affected by manual date/time changes.
     /// </summary>
     /// <returns><see cref="Mics"/> (microseconds).</returns>
@@ -117,7 +117,7 @@ public static class Mics
 
     /// <summary>
     /// Gets the <see cref="Mics"/> (microseconds) expressed as UTC.<br/>
-    /// Mics since 0000-01-01 00:00:00.
+    /// Microseconds since 0001-01-01 00:00:00 UTC.
     /// </summary>
     /// <returns><see cref="Mics"/> (microseconds).</returns>
     public static long GetUtcNow() => (long)(DateTime.UtcNow.Ticks * 0.1d);
@@ -131,7 +131,7 @@ public static class Mics
     public static long GetFixedUtcNow() => FixedMics + GetSystem();
 
     /// <summary>
-    /// Get the corrected <see cref="Mics"/> expressed as UTC.
+    /// Gets the corrected time in microseconds expressed as UTC.
     /// </summary>
     /// <returns>The corrected <see cref="Mics"/>.</returns>
     public static long GetCorrected()

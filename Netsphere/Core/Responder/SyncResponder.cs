@@ -2,6 +2,11 @@
 
 namespace Netsphere.Core;
 
+/// <summary>
+/// Handles a block request synchronously and sends its response.
+/// </summary>
+/// <typeparam name="TSend">The request type.</typeparam>
+/// <typeparam name="TReceive">The response type.</typeparam>
 public abstract class SyncResponder<TSend, TReceive> : INetResponder
 {
     public ulong DataId

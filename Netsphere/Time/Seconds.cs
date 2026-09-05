@@ -3,7 +3,7 @@
 namespace Netsphere;
 
 /// <summary>
-/// <see cref="Seconds"/> represents time in seconds (<see cref="int"/>).
+/// Provides conversions and a system clock measured in whole seconds.
 /// </summary>
 public static class Seconds
 {

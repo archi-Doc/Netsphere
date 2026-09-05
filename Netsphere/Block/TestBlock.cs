@@ -2,6 +2,9 @@
 
 namespace Netsphere.Misc;
 
+/// <summary>
+/// Carries sample values for block transmission tests.
+/// </summary>
 [TinyhandObject]
 public partial class TestBlock : IEquatable<TestBlock>
 {

@@ -3,13 +3,13 @@
 namespace Netsphere;
 
 /// <summary>
-/// Validate that object members are appropriate.
+/// Defines validation of an object's contents.
 /// </summary>
 public interface IValidatable
 {
     /// <summary>
-    /// Validate that object members are appropriate.
+    /// Checks whether the object's contents are valid.
     /// </summary>
-    /// <returns><see langword="true" />: Success.</returns>
+    /// <returns>True on success; otherwise, false.</returns>
     bool Validate();
 }
