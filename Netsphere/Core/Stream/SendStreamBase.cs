@@ -11,6 +11,7 @@ namespace Netsphere.Core;
 /// <summary>
 /// Provides shared state and operations for sending a length-limited stream.
 /// </summary>
+/// <remarks>Concurrent sends are serialized. Await each send when their order matters. Complete the stream once.</remarks>
 public abstract class SendStreamBase
 {
     internal SendStreamBase(SendTransmission sendTransmission, long maxLength, ulong dataId)
@@ -18,6 +19,12 @@ public abstract class SendStreamBase
         this.SendTransmission = sendTransmission;
         this.RemainingLength = maxLength;
         this.DataId = dataId;
+        this.sentTask = sendTransmission.SentTcs?.Task;
+        if (!sendTransmission.Connection.IsServer)
+        {
+            this.responseSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            this.receiveTransmission = sendTransmission.Connection.TryCreateReceiveTransmission(sendTransmission.TransmissionId, this.responseSource);
+        }
     }
 
     internal SendTransmission SendTransmission { get; }
@@ -28,9 +35,14 @@ public abstract class SendStreamBase
 
     public long SentLength { get; internal set; }
 
+    private readonly Task<NetResult>? sentTask;
+    private readonly TaskCompletionSource<NetResponse>? responseSource;
+    private readonly ReceiveTransmission? receiveTransmission;
+    private int completionStarted;
+
     internal void Dispose(bool disposeTransmission)
     {
-        if (this.SendTransmission.Mode == NetTransmissionMode.Stream)
+        if (!disposeTransmission && this.SendTransmission.Mode == NetTransmissionMode.Stream)
         {
             this.SendTransmission.TrySendControl(this, DataControl.Cancel); // Stream -> StreamCompleted
         }
@@ -42,6 +54,8 @@ public abstract class SendStreamBase
         else
         {// Delay the disposal of SendTransmission until the transmission is complete.
         }
+
+        this.ReleaseResponse();
     }
 
     public Task<NetResult> Cancel(CancellationToken cancellationToken = default)
@@ -49,10 +63,20 @@ public abstract class SendStreamBase
 
     internal async Task<NetResult> SendInternal(DataControl dataControl, ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
     {
+        if (this.responseSource is not null && this.receiveTransmission is null)
+        {
+            this.Dispose(true);
+            return NetResult.NoTransmission;
+        }
+
         var result = await this.SendTransmission.ProcessSend(this, dataControl, buffer, cancellationToken).ConfigureAwait(false);
         if (result.IsError())
         {// Error
             this.Dispose(true);
+        }
+        else if (dataControl == DataControl.Cancel)
+        {
+            this.ReleaseResponse();
         }
 
         return result;
@@ -99,32 +123,41 @@ public abstract class SendStreamBase
 
     protected async Task<NetResultAndValue<TReceive>> InternalComplete<TReceive>(CancellationToken cancellationToken)
     {
-        var result = await this.SendTransmission.ProcessSend(this, DataControl.Complete, ReadOnlyMemory<byte>.Empty, cancellationToken).ConfigureAwait(false);
-        if (result.IsError())
-        {// Error
-            this.Dispose(true);
-            return new(result);
+        if (Interlocked.Exchange(ref this.completionStarted, 1) != 0)
+        {
+            return new(NetResult.InvalidOperation);
         }
+
+        var responseClaimed = false;
 
         // Stream -> StreamCompleted
 
         try
         {
+            var result = this.sentTask is { IsCompletedSuccessfully: true } && this.sentTask.Result == NetResult.Success
+                ? NetResult.Success
+                : await this.SendTransmission.ProcessSend(this, DataControl.Complete, ReadOnlyMemory<byte>.Empty, cancellationToken).ConfigureAwait(false);
+            if (result.IsError())
+            {// Error
+                return new(result);
+            }
+
             var connection = this.SendTransmission.Connection;
             if (connection.IsServer)
             {// On the server side, it does not receive completion of the stream since ReceiveTransmission is already consumed.
                 result = NetResult.Success;
-                if (this.SendTransmission.SentTcs is { } sentTcs)
+                if (this.sentTask is { } sentTask)
                 {
-                    result = await this.SendTransmission.Wait(sentTcs.Task, -1, cancellationToken).ConfigureAwait(false);
+                    result = sentTask.IsCompletedSuccessfully ? sentTask.Result :
+                        await this.SendTransmission.Wait(sentTask, -1, cancellationToken).ConfigureAwait(false);
                 }
 
                 return new(result);
             }
 
             NetResponse response;
-            var tcs = new TaskCompletionSource<NetResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-            using (var receiveTransmission = connection.TryCreateReceiveTransmission(this.SendTransmission.TransmissionId, tcs))
+            var tcs = this.responseSource!;
+            using (var receiveTransmission = this.receiveTransmission)
             {
                 if (receiveTransmission is null)
                 {
@@ -133,9 +166,11 @@ public abstract class SendStreamBase
 
                 try
                 {
+                    responseClaimed = true;
                     response = await receiveTransmission.Wait(tcs.Task, -1, cancellationToken).ConfigureAwait(false);
                     if (response.IsFailure)
                     {
+                        response.Return();
                         return new(response.Result);
                     }
                 }
@@ -170,6 +205,23 @@ public abstract class SendStreamBase
         finally
         {
             this.SendTransmission.Dispose();
+            this.receiveTransmission?.Dispose();
+            if (!responseClaimed && this.responseSource is { } source)
+            {
+                ReturnUnclaimedResponse(source.Task);
+            }
+        }
+    }
+
+    private static void ReturnUnclaimedResponse(Task<NetResponse> task)
+        => _ = task.ContinueWith(static completed => completed.Result.Return(), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+
+    private void ReleaseResponse()
+    {
+        this.receiveTransmission?.Dispose();
+        if (Interlocked.Exchange(ref this.completionStarted, 1) == 0 && this.responseSource is { } source)
+        {
+            ReturnUnclaimedResponse(source.Task);
         }
     }
 }

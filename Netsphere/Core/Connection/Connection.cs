@@ -114,7 +114,7 @@ public abstract class Connection : IDisposable
         => this.smoothedRtt + (this.smoothedRtt >> 2) + (this.rttvar << 2) + NetConstants.AckDelayMics;
 
     public int TaichiTimeout
-        => this.RetransmissionTimeout * this.Taichi;
+        => (int)Math.Min((long)this.RetransmissionTimeout * this.Taichi, int.MaxValue);
 
     public int SendCount
         => this.sendCount;
@@ -284,11 +284,7 @@ public abstract class Connection : IDisposable
 
     internal void DoubleTaichi()
     {
-        this.Taichi <<= 1;
-        if (this.Taichi < 1)
-        {
-            this.Taichi = 1;
-        }
+        this.Taichi = (int)Math.Min((long)this.Taichi * 2, int.MaxValue);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1063,6 +1059,11 @@ Wait:
             {
                 return;
             }
+
+            if (transmission.Mode == NetTransmissionMode.Initial)
+            {
+                return;
+            }
         }
 
         Span<byte> frame = stackalloc byte[KnockResponseFrame.Length];
@@ -1094,9 +1095,12 @@ Wait:
                 var maxReceivePosition = BitConverter.ToInt32(span);
                 span = span.Slice(sizeof(int));
 
-                transmission.MaxReceivePosition = maxReceivePosition;
+                transmission.ProcessReceive_KnockResponse(maxReceivePosition);
 
-                this.Logger.GetWriter(LogLevel.Debug)?.Write($"KnockResponse: {maxReceivePosition}");
+                if (NetConstants.LogLowLevelNet)
+                {
+                    this.Logger.GetWriter(LogLevel.Debug)?.Write($"KnockResponse: {maxReceivePosition}");
+                }
             }
         }
     }

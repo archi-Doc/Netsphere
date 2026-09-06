@@ -1,6 +1,7 @@
 // Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
 using Arc.Collections;
@@ -16,6 +17,39 @@ var results = new List<object>();
 var address = new NetAddress(IPAddress.Parse("192.168.123.234"), 54321);
 var characters = new char[NetAddress.MaxStringLength];
 Measure("IPv4 TryFormat", 500_000, () => address.TryFormat(characters, out _));
+
+var queueLock = new Lock();
+var concurrentQueue = new ConcurrentQueue<object>();
+var queue = new Queue<object>();
+var queueItem = new object();
+Measure("Locked ConcurrentQueue: 32 enqueue/dequeue pairs", 100_000, () =>
+{
+    using (queueLock.EnterScope())
+    {
+        for (var i = 0; i < 32; i++)
+        {
+            concurrentQueue.Enqueue(queueItem);
+        }
+
+        while (concurrentQueue.TryDequeue(out _))
+        {
+        }
+    }
+});
+Measure("Locked Queue: 32 enqueue/dequeue pairs", 100_000, () =>
+{
+    using (queueLock.EnterScope())
+    {
+        for (var i = 0; i < 32; i++)
+        {
+            queue.Enqueue(queueItem);
+        }
+
+        while (queue.TryDequeue(out _))
+        {
+        }
+    }
+});
 
 var unit = new NetUnit.Builder().Build();
 await unit.Run(new NetOptions { EnableAlternative = true, EnableServer = true }, true);

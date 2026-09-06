@@ -49,10 +49,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
 
     public override void Dispose()
     {
-        if (this.DecrementOpenCount() <= 0)
-        {
-            base.Dispose();
-        }
+        this.ConnectionTerminal.CloseInternal(this, true, releaseReference: true);
     }
 
     public ClientConnectionContext GetContext()

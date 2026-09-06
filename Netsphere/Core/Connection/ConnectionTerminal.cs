@@ -464,16 +464,20 @@ public class ConnectionTerminal
         return true;
     }
 
-    internal void CloseInternal(Connection connection, bool sendCloseFrame)
+    internal void CloseInternal(Connection connection, bool sendCloseFrame, bool releaseReference = false)
     {
-        connection.CloseSendTransmission();
-
         if (connection is ClientConnection clientConnection &&
             clientConnection.Goshujin is { } g)
         {
             ServerConnection? bidirectionalConnection;
             using (g.LockObject.EnterScope())
             {
+                if (releaseReference && clientConnection.DecrementOpenCount() > 0)
+                {
+                    return;
+                }
+
+                connection.CloseSendTransmission();
                 clientConnection.SetOpenCount(0);
                 if (connection.CurrentState == Connection.State.Open)
                 {// Open -> Close
@@ -506,6 +510,7 @@ public class ConnectionTerminal
             ClientConnection? bidirectionalConnection;
             using (g2.LockObject.EnterScope())
             {
+                connection.CloseSendTransmission();
                 if (connection.CurrentState == Connection.State.Open)
                 {// Open -> Close
                     connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{connection.ConnectionIdText} Open -> Closed, SendCloseFrame {sendCloseFrame}");
@@ -530,6 +535,10 @@ public class ConnectionTerminal
             {
                 this.CloseInternal(bidirectionalConnection, sendCloseFrame);
             }
+        }
+        else
+        {
+            connection.CloseSendTransmission();
         }
     }
 
