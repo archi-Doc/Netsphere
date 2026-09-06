@@ -97,8 +97,41 @@ internal partial class SendGene
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Send_NotThreadSafe(NetSender netSender, int additional)
     {
+        using (this.CongestionControl.SyncObject.EnterScope())
+        {
+            return this.SendCore(netSender, additional);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Dispose(bool ack)
+    {// using (SendTransmissions.lockObject.EnterScope())
+        using (this.CongestionControl.SyncObject.EnterScope())
+        {
+            this.CongestionControl.RemoveInFlight(this, ack);
+            this.Packet = this.Packet.Return();
+        }
+
+        this.Goshujin = null;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void DisposeMemory()
+    {// using (SendTransmissions.lockObject.EnterScope())
+        using (this.CongestionControl.SyncObject.EnterScope())
+        {
+            this.CongestionControl.RemoveInFlight(this, false);
+            this.Packet = this.Packet.Return();
+        }
+    }
+
+    public override string ToString()
+        => $"Send gene {this.GeneSerial}";
+
+    private bool SendCore(NetSender netSender, int additional)
+    {
         var packet = this.Packet;
-        if (!this.CanSend || !packet.TryIncrement())
+        if (!this.CanSend || !packet.IsRent || !packet.TryIncrement())
         {// MemoryOwner has been returned to the pool (Disposed).
             return false;
         }
@@ -142,22 +175,4 @@ internal partial class SendGene
         this.CongestionControl.AddInFlight(this, additional);
         return true;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Dispose(bool ack)
-    {// using (SendTransmissions.lockObject.EnterScope())
-        this.CongestionControl.RemoveInFlight(this, ack);
-        this.Goshujin = null;
-        this.Packet = this.Packet.Return();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void DisposeMemory()
-    {// using (SendTransmissions.lockObject.EnterScope())
-        this.CongestionControl.RemoveInFlight(this, false);
-        this.Packet = this.Packet.Return();
-    }
-
-    public override string ToString()
-        => $"Send gene {this.GeneSerial}";
 }

@@ -4,6 +4,8 @@ namespace Netsphere.Core;
 
 internal interface ICongestionControl
 {
+    Lock SyncObject { get; }
+
     int NumberInFlight { get; }
 
     bool IsCongested { get; }

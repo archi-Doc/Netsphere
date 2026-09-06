@@ -102,7 +102,7 @@ public class CubicCongestionControl : ICongestionControl
 
     private readonly Lock lockObject = new();
     private readonly UnorderedLinkedList<SendGene> genesInFlight = new(); // Retransmission mics, gene
-    private readonly ConcurrentQueue<SendGene> genesLossDetected = new();
+    private readonly Queue<SendGene> genesLossDetected = new();
 
     // Smoothing transmissions
     private double capacity; // Equivalent to cwnd, but increases gradually to prevent mass transmission at once.
@@ -180,16 +180,19 @@ public class CubicCongestionControl : ICongestionControl
 
     void ICongestionControl.LossDetected(SendGene sendGene)
     {
-        if (sendGene.CurrentState == SendGene.State.LossDetected)
+        using (this.lockObject.EnterScope())
         {
-            return;
-        }
-        else
-        {
+            if (sendGene.Node is null || sendGene.CurrentState == SendGene.State.LossDetected)
+            {
+                return;
+            }
+
             sendGene.SetLossDetected();
             this.genesLossDetected.Enqueue(sendGene);
         }
     }
+
+    Lock ICongestionControl.SyncObject => this.lockObject;
 
     bool ICongestionControl.Process(NetSender netSender, long elapsedMics, double elapsedMilliseconds)
     {// lock (ConnectionTerminal.CongestionControlList)

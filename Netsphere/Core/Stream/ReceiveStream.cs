@@ -55,6 +55,7 @@ public readonly struct ReceiveStream<TResponse>
 /// <summary>
 /// Reads incoming stream data within its declared length limit.
 /// </summary>
+/// <remarks>Concurrent reads are serialized. Await each read when their order matters.</remarks>
 public class ReceiveStream : IReceiveStreamInternal // , IDisposable
 {
     internal ReceiveStream(ReceiveTransmission receiveTransmission, ulong dataId, long maxStreamLength)
@@ -78,6 +79,8 @@ public class ReceiveStream : IReceiveStreamInternal // , IDisposable
 
     internal int CurrentPosition { get; set; }
 
+    private readonly SemaphoreSlim receiveLock = new(1, 1);
+
     #endregion
 
     internal void Dispose()
@@ -86,6 +89,27 @@ public class ReceiveStream : IReceiveStreamInternal // , IDisposable
     }
 
     public async Task<(NetResult Result, int Written)> Receive(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await this.receiveLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                return await this.ReceiveCore(buffer, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                this.receiveLock.Release();
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            this.Dispose();
+            return (NetResult.Canceled, 0);
+        }
+    }
+
+    private async ValueTask<(NetResult Result, int Written)> ReceiveCore(Memory<byte> buffer, CancellationToken cancellationToken)
     {
         var r = await this.ReceiveTransmission.ProcessReceive(this, buffer, cancellationToken).ConfigureAwait(false);
         if (r.Result != NetResult.Success)
@@ -106,10 +130,31 @@ public class ReceiveStream : IReceiveStreamInternal // , IDisposable
 
     async Task<NetResultAndValue<TReceive>> IReceiveStreamInternal.ReceiveBlock<TReceive>(CancellationToken cancellationToken)
     {
+        try
+        {
+            await this.receiveLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                return await this.ReceiveBlockCore<TReceive>(cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                this.receiveLock.Release();
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            this.Dispose();
+            return new(NetResult.Canceled);
+        }
+    }
+
+    private async ValueTask<NetResultAndValue<TReceive>> ReceiveBlockCore<TReceive>(CancellationToken cancellationToken)
+    {
         var rentArray = BytePool.Default.Rent(TinyhandSerializer.InitialBufferSize);
         try
         {
-            var (result, written) = await this.Receive(rentArray.AsMemory(0, sizeof(int)).Memory, cancellationToken).ConfigureAwait(false);
+            var (result, written) = await this.ReceiveCore(rentArray.AsMemory(0, sizeof(int)).Memory, cancellationToken).ConfigureAwait(false);
             if (result != NetResult.Success)
             {
                 return new(result);
@@ -145,7 +190,7 @@ public class ReceiveStream : IReceiveStreamInternal // , IDisposable
                 memory = rentArray.AsMemory(0, length);
             }
 
-            (result, written) = await this.Receive(memory.Memory, cancellationToken).ConfigureAwait(false);
+            (result, written) = await this.ReceiveCore(memory.Memory, cancellationToken).ConfigureAwait(false);
             if (result.IsError())
             {
                 return new(result);

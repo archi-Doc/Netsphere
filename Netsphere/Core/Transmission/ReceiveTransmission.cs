@@ -32,13 +32,16 @@ internal sealed partial class ReceiveTransmission : IDisposable
     {
         get
         {
-            if (this.genes is null)
-            {// Disposed (Canceled)
-                return 0;
-            }
-            else
+            using (this.lockObject.EnterScope())
             {
-                return this.genes.DataPositionListChain.EndPosition;
+                if (this.genes is null)
+                {// Disposed (Canceled)
+                    return 0;
+                }
+                else
+                {
+                    return this.genes.DataPositionListChain.EndPosition;
+                }
             }
         }
     }
@@ -110,7 +113,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
 
         if (this.receivedTcs is not null)
         {
-            this.receivedTcs.SetResult(new(NetResult.Closed));
+            this.receivedTcs.TrySetResult(new(NetResult.Closed));
             this.receivedTcs = null;
         }
 
@@ -122,43 +125,19 @@ internal sealed partial class ReceiveTransmission : IDisposable
     }
 
     internal async Task<NetResponse> Wait(Task<NetResponse> task, int timeoutInMilliseconds, CancellationToken cancellationToken)
-    {// I don't think this is a smart approach, but...
-        var remainingMilliseconds = timeoutInMilliseconds;
-        while (true)
+    {
+        var received = false;
+        try
         {
-            if (!this.Connection.NetTerminal.IsActive)
-            {// NetTerminal
-                return new(NetResult.Closed);
-            }
-
-            if (!this.Connection.IsActive)
-            {// Connection
-                return new(NetResult.Closed);
-            }
-
-            try
+            var response = await this.WaitCore(task, timeoutInMilliseconds, cancellationToken).ConfigureAwait(false);
+            received = response.IsSuccess;
+            return response;
+        }
+        finally
+        {
+            if (!received)
             {
-                var result = await task.WaitAsync(NetConstants.WaitIntervalTimeSpan, cancellationToken).ConfigureAwait(false);
-                return result;
-            }
-            catch (TimeoutException)
-            {
-                if (remainingMilliseconds < 0)
-                {// Wait indefinitely.
-                }
-                else if (remainingMilliseconds > NetConstants.WaitIntervalMilliseconds)
-                {// Reduce the time and continue waiting.
-                    remainingMilliseconds -= NetConstants.WaitIntervalMilliseconds;
-                }
-                else
-                {// Timeout
-                    return new(NetResult.Timeout);
-                }
-            }
-
-            if (this.IsDisposed)
-            {// Transmission
-                return new(NetResult.Closed);
+                _ = task.ContinueWith(static completed => completed.Result.Return(), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
             }
         }
     }
@@ -207,6 +186,9 @@ internal sealed partial class ReceiveTransmission : IDisposable
     internal void ProcessReceive_Gene(DataControl dataControl, int dataPosition, BytePool.RentMemory toBeShared)
     {// this.Mode == NetTransmissionMode.Burst or NetTransmissionMode.Block or NetTransmissionMode.Stream
         var completeFlag = false;
+        var burst = false;
+        TaskCompletionSource<NetResponse>? receivedTcs = null;
+        IResponseChannelInternal? receivedNetUnion = null;
         uint dataKind = 0;
         ulong dataId = 0;
         BytePool.RentMemory rentMemory = default;
@@ -359,13 +341,20 @@ internal sealed partial class ReceiveTransmission : IDisposable
             if (completeFlag)
             {// Complete (Burst, Stream)
                 this.ProcessReceive_GeneComplete(out dataKind, out dataId, out rentMemory);
+                burst = this.Mode == NetTransmissionMode.Burst;
+                receivedTcs = this.receivedTcs;
+                receivedNetUnion = this.receivedNetUnion;
+                this.receivedTcs = default;
+                this.receivedNetUnion = default;
+                // this.Goshujin = null; // -> this.Connection.RemoveTransmission(this);
+                this.DisposeInternal();
             }
         }
 
         this.Connection.UpdateLastEventMics();
 
         // Send Ack
-        if (this.Mode == NetTransmissionMode.Burst)
+        if (burst || this.Mode == NetTransmissionMode.Burst)
         {// Fast Ack
             if (completeFlag)
             {
@@ -403,20 +392,6 @@ internal sealed partial class ReceiveTransmission : IDisposable
 
         if (completeFlag)
         {// Receive complete
-            TaskCompletionSource<NetResponse>? receivedTcs;
-            IResponseChannelInternal? receivedNetUnion;
-
-            using (this.lockObject.EnterScope())
-            {
-                receivedTcs = this.receivedTcs;
-                receivedNetUnion = this.receivedNetUnion;
-                this.receivedTcs = default;
-                this.receivedNetUnion = default;
-
-                // this.Goshujin = null; // -> this.Connection.RemoveTransmission(this);
-                this.DisposeInternal();
-            }
-
             this.Connection.RemoveTransmission(this);
 
             if (rentMemory.IsRent)
@@ -431,7 +406,11 @@ internal sealed partial class ReceiveTransmission : IDisposable
 
                     if (receivedTcs is not null)
                     {
-                        receivedTcs.SetResult(new NetResponse(NetResult.Success, dataId, 0, rentMemory.IncrementAndShare()));
+                        var response = new NetResponse(NetResult.Success, dataId, 0, rentMemory.IncrementAndShare());
+                        if (!receivedTcs.TrySetResult(response))
+                        {
+                            response.Return();
+                        }
                     }
 
                     receivedNetUnion?.Invoke(new NetResponse(NetResult.Success, dataId, 0, rentMemory));
@@ -455,7 +434,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
 
         if (receivedTcs is not null)
         {
-            receivedTcs.SetResult(new(NetResult.Success, dataId, maxStreamLength, default));
+            receivedTcs.TrySetResult(new(NetResult.Success, dataId, maxStreamLength, default));
         }
     }
 
@@ -589,6 +568,12 @@ Abort:
         {
             using (this.lockObject.EnterScope())
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    this.DisposeInternal();
+                    goto Cancel;
+                }
+
                 if (!this.Connection.IsActive)
                 {
                     return (NetResult.Closed, written);
@@ -695,9 +680,10 @@ Abort:
                     await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                     delay = Math.Min(delay << 1, NetConstants.MaxReceiveStreamDelayMilliseconds);
                 }
-                catch
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    return (NetResult.Timeout, written);
+                    this.ProcessDispose();
+                    return (NetResult.Canceled, written);
                 }
             }
         }
@@ -709,5 +695,52 @@ Complete:
 Cancel:
         this.Connection.RemoveTransmission(this);
         return (NetResult.Canceled, written);
+    }
+
+    private async ValueTask<NetResponse> WaitCore(Task<NetResponse> task, int timeoutInMilliseconds, CancellationToken cancellationToken)
+    {// I don't think this is a smart approach, but...
+        var remainingMilliseconds = timeoutInMilliseconds;
+        while (true)
+        {
+            if (task.IsCompletedSuccessfully)
+            {
+                return task.Result;
+            }
+
+            if (!this.Connection.NetTerminal.IsActive)
+            {// NetTerminal
+                return new(NetResult.Closed);
+            }
+
+            if (!this.Connection.IsActive)
+            {// Connection
+                return new(NetResult.Closed);
+            }
+
+            try
+            {
+                var result = await task.WaitAsync(NetConstants.WaitIntervalTimeSpan, cancellationToken).ConfigureAwait(false);
+                return result;
+            }
+            catch (TimeoutException)
+            {
+                if (remainingMilliseconds < 0)
+                {// Wait indefinitely.
+                }
+                else if (remainingMilliseconds > NetConstants.WaitIntervalMilliseconds)
+                {// Reduce the time and continue waiting.
+                    remainingMilliseconds -= NetConstants.WaitIntervalMilliseconds;
+                }
+                else
+                {// Timeout
+                    return new(NetResult.Timeout);
+                }
+            }
+
+            if (this.IsDisposed)
+            {// Transmission
+                return new(NetResult.Closed);
+            }
+        }
     }
 }

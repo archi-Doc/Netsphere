@@ -13,6 +13,8 @@ internal class NoCongestionControl : ICongestionControl
 
     #region FieldAndProperty
 
+    public Lock SyncObject => this.lockObject;
+
     public int NumberInFlight
         => this.genesInFlight.Count;
 
