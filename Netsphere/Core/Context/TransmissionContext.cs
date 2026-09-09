@@ -86,7 +86,7 @@ public sealed class TransmissionContext : ITransmissionContextInternal
 
         if (typeof(TSend) == typeof(NetResult))
         {
-            return this.SendAndForget(BytePool.RentMemory.Empty, Unsafe.As<TSend, ulong>(ref data));
+            return this.SendAndForget(BytePool.RentMemory.Empty, (ulong)Unsafe.As<TSend, NetResult>(ref data));
         }
 
         if (!NetHelper.TrySerialize(data, out var rentMemory))

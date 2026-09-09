@@ -1,4 +1,4 @@
-﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
+// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
@@ -73,7 +73,15 @@ public partial class RelayAgent
     #region FieldAndProperty
 
     public int NumberOfExchanges
-        => this.items.Count;
+    {
+        get
+        {
+            using (this.items.LockObject.EnterScope())
+            {
+                return this.items.Count;
+            }
+        }
+    }
 
     private readonly ILogger logger;
     private readonly IRelayControl relayControl;
@@ -107,9 +115,14 @@ public partial class RelayAgent
     {
         innerRelayId = 0;
         outerRelayId = 0;
+        if (block.InnerKeyAndNonce is not { Length: Aegis128L.KeySize + Aegis128L.NonceSize })
+        {
+            return RelayResult.InvalidEndpoint;
+        }
+
         using (this.items.LockObject.EnterScope())
         {
-            if (this.NumberOfExchanges >= this.relayControl.MaxRelayExchanges)
+            if (this.items.Count >= this.relayControl.MaxRelayExchanges)
             {
                 return RelayResult.RelayExchangeLimit;
             }
@@ -117,7 +130,7 @@ public partial class RelayAgent
             while (true)
             {
                 innerRelayId = (RelayId)RandomVault.Default.NextUInt32();
-                if (!this.items.RelayIdChain.ContainsKey(innerRelayId))
+                if (innerRelayId != 0 && !this.items.RelayIdChain.ContainsKey(innerRelayId))
                 {
                     break;
                 }
@@ -126,7 +139,7 @@ public partial class RelayAgent
             while (true)
             {
                 outerRelayId = (RelayId)RandomVault.Default.NextUInt32();
-                if (!this.items.RelayIdChain.ContainsKey(outerRelayId))
+                if (outerRelayId != 0 && outerRelayId != innerRelayId && !this.items.RelayIdChain.ContainsKey(outerRelayId))
                 {
                     break;
                 }
@@ -149,10 +162,13 @@ public partial class RelayAgent
             }
 
             var prev = exchange.RelayPoint;
-            exchange.RelayPoint += relayPoint;
-            if (exchange.RelayPoint > this.relayControl.DefaultMaxRelayPoint)
+            if (relayPoint >= 0)
             {
-                exchange.RelayPoint = this.relayControl.DefaultMaxRelayPoint;
+                exchange.RelayPoint += Math.Min(relayPoint, Math.Max(0, this.relayControl.DefaultMaxRelayPoint - prev));
+            }
+            else
+            {
+                exchange.RelayPoint -= relayPoint == long.MinValue ? prev : Math.Min(prev, -relayPoint);
             }
 
             return exchange.RelayPoint - prev;
@@ -166,10 +182,14 @@ public partial class RelayAgent
             return;
         }
 
-        this.lastCleanMics = Mics.FastSystem;
-
         using (this.items.LockObject.EnterScope())
         {
+            if (Mics.FastSystem - this.lastCleanMics < CleanIntervalMics)
+            {
+                return;
+            }
+
+            this.lastCleanMics = Mics.FastSystem;
             TemporaryList<RelayExchange> deleteList = default;
             foreach (var x in this.items)
             {
@@ -203,6 +223,13 @@ public partial class RelayAgent
 
         transmissionContext.Return();
 
+        if (!t.OuterEndpoint.IsValid || t.OuterEndpoint.RelayId == 0 ||
+            t.OuterKeyAndNonce is not { Length: Aegis128L.KeySize + Aegis128L.NonceSize })
+        {
+            transmissionContext.SendAndForget(new SetupRelayResponse(RelayResult.InvalidEndpoint), SetupRelayBlock.DataId);
+            return;
+        }
+
         var serverConnection = transmissionContext.ServerConnection;
         if (serverConnection.InnerRelayId == 0)
         {
@@ -227,23 +254,19 @@ public partial class RelayAgent
 
     internal bool ProcessRelay(NetEndpoint endpoint, RelayId destinationRelayId, BytePool.RentMemory source, out BytePool.RentMemory decrypted)
     {// This is all the code that performs the actual relay processing.
-        var span = source.Span.Slice(RelayHeader.RelayIdLength);
-        if (source.RentArray is null)
+        decrypted = default;
+        if (source.RentArray is null || source.Length < Packet.PacketHeader.Length || source.Length > NetConstants.MaxPacketLength)
         {// Invalid data
-            goto Exit;
+            return false;
         }
 
-        RelayExchange? exchange;
-        using (this.items.LockObject.EnterScope())
+        // Setup, cleanup, IPv4 and IPv6 reception share exchange and endpoint state.
+        using var scope = this.items.LockObject.EnterScope();
+        var span = source.Span.Slice(RelayHeader.RelayIdLength);
+        var exchange = this.items.RelayIdChain.FindFirst(destinationRelayId);
+        if (exchange is null || !exchange.DecrementAndCheck())
         {
-            exchange = this.items.RelayIdChain.FindFirst(destinationRelayId);
-            if (exchange is null)
-            {// No relay exchange
-                goto Exit;
-            }
-            else if (!exchange.DecrementAndCheck())
-            {// No relay point
-            }
+            goto Exit;
         }
 
         var serverConnection = exchange.ServerConnection;
@@ -255,6 +278,8 @@ public partial class RelayAgent
                 {
                     this.logger.GetWriter(LogLevel.Information)?.Write($"Inner({endpoint}) : invalid endpoint");
                 }
+
+                goto Exit;
             }
 
             // Inner Decrypt (RelayTagCode): source=Relay source id(2), destination id(2), salt(4), Data, Tag(16)
@@ -264,6 +289,8 @@ public partial class RelayAgent
                 {
                     this.logger.GetWriter(LogLevel.Information)?.Write($"Inner({endpoint}) : decryption failue2");
                 }
+
+                goto Exit;
             }
 
             // Since it comes from the inner, it is a packet that starts with RelayHeader.
@@ -292,6 +319,11 @@ public partial class RelayAgent
             var relayHeader = MemoryMarshal.Read<RelayHeader>(headerSpan);
             if (relayHeader.Zero == 0)
             { // Decrypted. Process the packet on this node.
+                if (source.Length < RelayHeader.Length + Packet.PacketHeader.Length)
+                {
+                    goto Exit;
+                }
+
                 span = span.Slice(RelayHeader.Length - RelayHeader.PlainLength - RelayHeader.RelayIdLength);
                 decrypted = source.Slice(RelayHeader.Length);
                 // decrypted = source.RentArray.AsMemory(RelayHeader.Length, span.Length);
@@ -337,7 +369,7 @@ public partial class RelayAgent
 
                     // Close -> EndPointOperation.SetRestricted ?
 
-                    var ep2 = this.GetEndPoint_NotThreadSafe(relayHeader.NetAddress, operation);
+                    var ep2 = this.GetEndPointCore(relayHeader.NetAddress, operation);
                     if (ep2.EndPoint is not null)
                     {
                         decrypted.IncrementAndShare();
@@ -390,6 +422,8 @@ public partial class RelayAgent
                         {
                             this.logger.GetWriter(LogLevel.Information)?.Write($"Outer({endpoint}) : decryption failue2");
                         }
+
+                        goto Exit;
                     }
                 }
                 else
@@ -405,7 +439,7 @@ public partial class RelayAgent
             else
             {// Outermost relay
                 // Other (unrestricted or restricted)
-                var ep2 = this.GetEndPoint_NotThreadSafe(new(endpoint), EndpointOperation.None);
+                var ep2 = this.GetEndPointCore(new(endpoint), EndpointOperation.None);
                 if (!ep2.Unrestricted)
                 {// Restricted
                     if (exchange.AllowUnknownIncoming &&
@@ -440,6 +474,12 @@ AcceptIncoming:
             var sourceRelayId = MemoryMarshal.Read<RelayId>(source.Span);
             if (sourceRelayId == 0)
             {// RelayId(Source/Destination), RelayHeader, Content(span)
+                if (source.Length > NetConstants.MaxPacketLength - RelayHeader.Length - Aegis128L.MinTagSize ||
+                    source.RentArray!.Array.Length < source.Length + RelayHeader.Length + Aegis128L.MinTagSize)
+                {
+                    goto Exit;
+                }
+
                 var sourceSpan = source.RentArray!.Array.AsSpan(RelayHeader.RelayIdLength);
                 span.CopyTo(sourceSpan.Slice(RelayHeader.Length));
 
@@ -496,6 +536,37 @@ Exit:
 
     internal (IPEndPoint? EndPoint, bool Unrestricted) GetEndPoint_NotThreadSafe(NetAddress netAddress, EndpointOperation operation)
     {
+        using (this.items.LockObject.EnterScope())
+        {
+            return this.GetEndPointCore(netAddress, operation);
+        }
+    }
+
+    internal PingRelayResponse? ProcessPingRelay(RelayId destinationRelayId)
+    {
+        if (this.NumberOfExchanges == 0)
+        {
+            return null;
+        }
+
+        RelayExchange? exchange;
+        PingRelayResponse? packet;
+        using (this.items.LockObject.EnterScope())
+        {
+            exchange = this.items.RelayIdChain.FindFirst(destinationRelayId);
+            if (exchange is null)
+            {
+                return null;
+            }
+
+            packet = new PingRelayResponse(exchange);
+        }
+
+        return packet;
+    }
+
+    private (IPEndPoint? EndPoint, bool Unrestricted) GetEndPointCore(NetAddress netAddress, EndpointOperation operation)
+    {// Caller holds items.LockObject, which is not reentrant.
         if (!this.endPointCache.NetAddressChain.TryGetValue(netAddress, out var item))
         {
             this.netTerminal.NetStats.TryCreateEndpoint(ref netAddress, EndpointResolution.PreferIpv6, out var endpoint);
@@ -524,7 +595,7 @@ Exit:
         }
         else
         {// None, Update
-            if (Mics.FastSystem - item.UnrestrictedMics > UnrestrictedRetensionMics)
+            if (item.UnrestrictedMics == 0 || Mics.FastSystem - item.UnrestrictedMics > UnrestrictedRetensionMics)
             {// Restricted
                 item.UnrestrictedMics = 0;
             }
@@ -539,28 +610,5 @@ Exit:
         }
 
         return (item.EndPoint, unrestricted);
-    }
-
-    internal PingRelayResponse? ProcessPingRelay(RelayId destinationRelayId)
-    {
-        if (this.NumberOfExchanges == 0)
-        {
-            return null;
-        }
-
-        RelayExchange? exchange;
-        PingRelayResponse? packet;
-        using (this.items.LockObject.EnterScope())
-        {
-            exchange = this.items.RelayIdChain.FindFirst(destinationRelayId);
-            if (exchange is null)
-            {
-                return null;
-            }
-
-            packet = new PingRelayResponse(exchange);
-        }
-
-        return packet;
     }
 }

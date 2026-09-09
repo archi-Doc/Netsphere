@@ -530,8 +530,15 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
                 ssb.AppendLine();
 
-                ssb.AppendLine($"((Netsphere.Internal.IClientConnectionInternal)this.ClientConnection).RpcSendAndReceive2(owner, {method.IdString}, {channelName});");
-                ssb.AppendLine("owner.Return();");
+                using (ssb.ScopeBrace("try"))
+                {
+                    ssb.AppendLine($"((Netsphere.Internal.IClientConnectionInternal)this.ClientConnection).RpcSendAndReceive2(owner, {method.IdString}, {channelName});");
+                }
+
+                using (ssb.ScopeBrace("finally"))
+                {
+                    ssb.AppendLine("owner.Return();");
+                }
             }
 
             return;
@@ -614,17 +621,19 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             }
 
             ssb.AppendLine();
+            var scopeOwner = ssb.ScopeBrace("try");
             if (method.ReturnType == ServiceMethod.Type.ReceiveStream)
             {
-                ssb.AppendLine($"var response = await (({NetsphereBody.IClientConnectionInternalName})this.ClientConnection).RpcSendAndReceiveStream(owner, {method.IdString}).ConfigureAwait(false);");
-                ssb.AppendLine("owner.Return();");
+                var cancellationToken = method.HasCancellationTokenParameter ? $", {NetsphereBody.ArgumentName}{method.ParameterLength}" : string.Empty;
+                ssb.AppendLine($"var response = await (({NetsphereBody.IClientConnectionInternalName})this.ClientConnection).RpcSendAndReceiveStream(owner, {method.IdString}{cancellationToken}).ConfigureAwait(false);");
                 AppendReturn2("response.Stream", "response.Result");
             }
             else
             {
                 var cancellationToken = method.HasCancellationTokenParameter ? $", {NetsphereBody.ArgumentName}{method.ParameterLength}" : string.Empty;
                 ssb.AppendLine($"var response = await (({NetsphereBody.IClientConnectionInternalName})this.ClientConnection).RpcSendAndReceive(owner, {method.IdString}{cancellationToken}).ConfigureAwait(false);");
-                ssb.AppendLine("owner.Return();");
+                ssb.AppendLine("var transferResponse = false;");
+                var scopeResponse = ssb.ScopeBrace("try");
                 using (var scopeNoNetService = ssb.ScopeBrace("if (response.Result == NetResult.Success && response.Value.IsEmpty)"))
                 {
                     AppendReturn("(NetResult)response.DataId");
@@ -639,7 +648,6 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 if (method.ReturnType == ServiceMethod.Type.NetResult)
                 {
                     ssb.AppendLine("NetHelper.DeserializeNetResult(response.DataId, response.Value.Memory.Span, out var result);");
-                    ssb.AppendLine("response.Value.Return();");
                 }
                 else if (method.ReturnType == ServiceMethod.Type.NetResultAndValue)
                 {
@@ -651,25 +659,25 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                     ssb.AppendLine();
                     // ssb.AppendLine($"var result = new {deserializeString}(response.Result, result2);");
                     ssb.AppendLine($"var result = new {deserializeString}((NetResult)response.DataId, result2);");
-                    ssb.AppendLine("response.Value.Return();");
                 }
                 else if (method.ReturnType == ServiceMethod.Type.ByteArray)
                 {
                     ssb.AppendLine("var result = response.Value.Memory.ToArray();");
-                    ssb.AppendLine("response.Value.Return();");
                 }
                 else if (method.ReturnType == ServiceMethod.Type.Memory ||
                     method.ReturnType == ServiceMethod.Type.ReadOnlyMemory)
                 {// response.Value(RentMemory) -> result(Memory<byte>)
-                    ssb.AppendLine("var result = response.Value.Memory;");
+                    ssb.AppendLine("var result = response.Value.Memory.ToArray().AsMemory();");
                 }
                 else if (method.ReturnType == ServiceMethod.Type.RentMemory)
                 {// response.Value(RentMemory) -> result(RentMemory)
                     ssb.AppendLine("var result = response.Value;");
+                    ssb.AppendLine("transferResponse = true;");
                 }
                 else if (method.ReturnType == ServiceMethod.Type.RentReadOnlyMemory)
                 {
                     ssb.AppendLine("var result = response.Value.ReadOnly;");
+                    ssb.AppendLine("transferResponse = true;");
                 }
                 else
                 {
@@ -679,13 +687,25 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                     }
 
                     ssb.AppendLine();
-                    ssb.AppendLine("response.Value.Return();");
                 }
 
                 if (method.ReturnObject is not null)
                 {
                     ssb.AppendLine($"return result;");
                 }
+
+                scopeResponse.Dispose();
+                using (ssb.ScopeBrace("finally"))
+                using (ssb.ScopeBrace("if (!transferResponse)"))
+                {
+                    ssb.AppendLine("response.Value.Return();");
+                }
+            }
+
+            scopeOwner.Dispose();
+            using (ssb.ScopeBrace("finally"))
+            {
+                ssb.AppendLine("owner.Return();");
             }
 
             scopeCore?.Dispose();
@@ -729,16 +749,6 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 foreach (var x in this.ServiceInterfaces)
                 {
                     this.GenerateBackend_Interface(ssb, info, x);
-                }
-            }
-
-            // Service filters
-            this.ClassFilters?.GenerateDefinition(ssb);
-            if (this.MethodToFilter != null)
-            {
-                foreach (var x in this.MethodToFilter.Values)
-                {
-                    x.GenerateDefinition(ssb);
                 }
             }
         }
@@ -786,32 +796,6 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         var decrement = method.HasCancellationTokenParameter ? 1 : 0;
         using (var scopeMethod = ssb.ScopeBrace($"private static async Task {method.MethodString}(object obj, TransmissionContext c0)"))
         {
-            if (method.ReturnType == ServiceMethod.Type.ResponseChannel)
-            {
-                using (var scopeDeserialize = ssb.ScopeBrace($"if (!NetHelper.Deserialize<{method.GetParameterTypes(decrement)}>(c0.RentMemory, out var value))"))
-                {
-                    ssb.AppendLine("c0.Result = NetResult.DeserializationFailed;");
-                    ssb.AppendLine("return;");
-                }
-
-                ssb.AppendLine();
-                ssb.AppendLine($"(({serviceInterface.FullName})obj).{method.SimpleName}({method.GetTupleNames("value", decrement, method.HasCancellationTokenParameter)});");
-
-                using (var scopeSerialize = ssb.ScopeBrace($"if (NetHelper.TrySerialize(value.Item{method.ParameterLength}, out var owner2))"))
-                {
-                    ssb.AppendLine("c0.RentMemory = c0.RentMemory.Return();");
-                    ssb.AppendLine("c0.RentMemory = owner2;");
-                }
-
-                using (var scopeElse = ssb.ScopeBrace("else"))
-                {
-                    ssb.AppendLine("c0.RentMemory = c0.RentMemory.Return();");
-                    ssb.AppendLine("c0.Result = NetResult.SerializationFailed;");
-                }
-
-                return;
-            }
-
             var methodFilters = this.GetServiceFilter(serviceInterface, method);
             var filters = ServiceFilterGroup.FromClassAndMethod(this.ClassFilters, methodFilters);
 
@@ -819,7 +803,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             var previousAsync = true;
             if (filters != null)
             {
-                ServiceFilterGroup.GenerateInitialize(ssb, "c0.ConnectionContext.ServiceProvider", methodFilters?.Items);
+                ServiceFilterGroup.GenerateInitialize(ssb, "c0.ConnectionContext.ServiceProvider", filters);
                 ssb.AppendLine();
 
                 var sb = new StringBuilder();
@@ -877,6 +861,31 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
     internal void GenerateBackend_MethodCore(ScopingStringBuilder ssb, GeneratorInformation info, NetsphereObject serviceInterface, ServiceMethod method, int decrement)
     {
+        if (method.ReturnType == ServiceMethod.Type.ResponseChannel)
+        {
+            using (ssb.ScopeBrace($"if (!NetHelper.Deserialize<{method.GetParameterTypes(decrement)}>(context.RentMemory, out var value))"))
+            {
+                ssb.AppendLine("context.Result = NetResult.DeserializationFailed;");
+                ssb.AppendLine("return;");
+            }
+
+            ssb.AppendLine($"agent.{method.SimpleName}({method.GetTupleNames("value", decrement, method.HasCancellationTokenParameter)});");
+            var responseValue = method.ParameterLength == 1 ? "value" : $"value.Item{method.ParameterLength}";
+            using (ssb.ScopeBrace($"if (NetHelper.TrySerialize({responseValue}, out var owner2))"))
+            {
+                this.Generate_ReturnRentMemory(ssb);
+                ssb.AppendLine("context.RentMemory = owner2;");
+            }
+
+            using (ssb.ScopeBrace("else"))
+            {
+                this.Generate_ReturnRentMemory(ssb);
+                ssb.AppendLine("context.Result = NetResult.SerializationFailed;");
+            }
+
+            return;
+        }
+
         if (method.ParameterType == ServiceMethod.Type.NetResult)
         {
             using (var scopeDeserialize = ssb.ScopeBrace($"if (!NetHelper.TryDeserializeNetResult(context.RentMemory, out var value))"))
@@ -925,7 +934,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 ssb.AppendLine("return;");
             }
 
-            if (method.TryGetNullCheck("value", out var statement))
+            if (method.TryGetNullCheck("value", decrement, out var statement))
             {
                 using (var scopeDeserialize = ssb.ScopeBrace($"if ({statement})"))
                 {
@@ -1021,8 +1030,11 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             method.ReturnType == ServiceMethod.Type.Memory ||
             method.ReturnType == ServiceMethod.Type.ReadOnlyMemory)
         {// byte[]/Memory/ReadOnlyMemory
+            ssb.AppendLine("ReadOnlyMemory<byte> responseMemory = result;");
+            ssb.AppendLine("var owner2 = Arc.Collections.BytePool.Default.Rent(responseMemory.Length).AsMemory(0, responseMemory.Length);");
+            ssb.AppendLine("responseMemory.CopyTo(owner2.Memory);");
             this.Generate_ReturnRentMemory(ssb);
-            ssb.AppendLine("context.RentMemory = Arc.Collections.BytePool.RentMemory.CreateFrom(result);");
+            ssb.AppendLine("context.RentMemory = owner2;");
         }
         else if (method.ReturnType == ServiceMethod.Type.RentMemory)
         {// BytePool.RentMemory result;

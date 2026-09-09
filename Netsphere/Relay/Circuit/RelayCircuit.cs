@@ -31,7 +31,7 @@ public class RelayCircuit
     public bool AllowUnknownIncoming { get; set; }
 
     public int NumberOfRelays
-        => this.relayNodes.Count;
+        => this.relayKey.NumberOfRelays;
 
     public bool IsIncoming { get; }
 
@@ -48,7 +48,7 @@ public class RelayCircuit
     private readonly ILogger logger;
     private readonly RelayNode.GoshujinClass relayNodes = new();
 
-    private RelayKey relayKey = new();
+    private volatile RelayKey relayKey = new();
     private long lastPingMics;
 
     #endregion
@@ -144,6 +144,8 @@ public class RelayCircuit
 
                 x.Remove();
             }
+
+            this.ResetRelayKeyInternal();
         }
     }
 
@@ -227,7 +229,7 @@ public class RelayCircuit
         }
 
         var dictionary = new ConcurrentDictionary<int, PingRelayResponse>();
-        var cts = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
         cts.CancelAfter(NetConstants.DefaultPacketTransmissionTimeout);
         var task = Parallel.ForAsync(0, endpointArray.Length, cts.Token, async (i, cancellationToken) =>
         {

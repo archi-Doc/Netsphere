@@ -102,7 +102,12 @@ public class ServiceMethod
                     method.Body.AddDiagnostic(NetsphereBody.Warning_NullableReferenceType, method.Location, rt.LocalName);
                 }
 
-                serviceMethod.ReturnType = NameToType(rt.OriginalDefinition?.FullName);
+                serviceMethod.ReturnType = NameToType(rt.FullName);
+                if (serviceMethod.ReturnType == Type.Other)
+                {
+                    serviceMethod.ReturnType = NameToType(rt.OriginalDefinition?.FullName);
+                }
+
                 if (serviceMethod.ReturnType == Type.NetResultAndValue ||
                     serviceMethod.ReturnType == Type.SendStreamAndReceive)
                 {
@@ -290,7 +295,7 @@ public class ServiceMethod
         }
     }
 
-    public bool TryGetNullCheck(string name, out string statement)
+    public bool TryGetNullCheck(string name, int decrement, out string statement)
     {
         statement = string.Empty;
         var methodSymbol = this.method.TryGetMethodSymbol();
@@ -300,15 +305,16 @@ public class ServiceMethod
         }
 
         var parameters = methodSymbol.Parameters;
-        if (parameters.Length == 0)
+        var length = parameters.Length - decrement;
+        if (length == 0)
         {
             return false;
         }
-        else if (parameters.Length == 1)
+        else if (length == 1)
         {
             if (parameters[0].Type.IsReferenceType && parameters[0].Type.NullableAnnotation == Microsoft.CodeAnalysis.NullableAnnotation.NotAnnotated)
             {
-                statement = $"value == null";
+                statement = $"{name} is null";
                 return true;
             }
             else
@@ -319,18 +325,18 @@ public class ServiceMethod
         else
         {
             StringBuilder? sb = default;
-            for (var i = 0; i < parameters.Length; i++)
+            for (var i = 0; i < length; i++)
             {
                 if (parameters[i].Type.IsReferenceType && parameters[i].Type.NullableAnnotation == Microsoft.CodeAnalysis.NullableAnnotation.NotAnnotated)
                 {
                     if (sb == null)
                     {
                         sb = new StringBuilder();
-                        sb.Append($"value.Item{i + 1} is null");
+                        sb.Append($"{name}.Item{i + 1} is null");
                     }
                     else
                     {
-                        sb.Append($" || value.Item{i + 1} is null");
+                        sb.Append($" || {name}.Item{i + 1} is null");
                     }
                 }
             }
@@ -403,13 +409,14 @@ public class ServiceMethod
         }
         else if (length == 1)
         {
+            var prefix = VisceralHelper.RefKindToStringWithSpace(methodSymbol.Parameters[0].RefKind);
             if (hasCancellationTokenParameter)
             {
-                return $"{name}, default";
+                return $"{prefix}{name}, default";
             }
             else
             {
-                return name;
+                return prefix + name;
             }
         }
         else

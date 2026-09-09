@@ -94,11 +94,11 @@ public class ServiceFilterGroup
             // ssb.AppendLine($"this.{x.Identifier} = ({x.Object.FullName}){context}.ServiceFilters.GetOrAdd(typeof({x.Object.FullName}), x => (IServiceFilter){newInstance});");
             if (hasDefaultConstructor)
             {
-                ssb.AppendLine($"{x.Identifier} ??= new {x.Object.FullName}();");
+                ssb.AppendLine($"var {x.Identifier} = new {x.Object.FullName}();");
             }
             else
             {
-                ssb.AppendLine($"{x.Identifier} ??= {serviceProvider}?.GetService(typeof({x.Object.FullName})) as {x.Object.FullName};");
+                ssb.AppendLine($"var {x.Identifier} = {serviceProvider}?.GetService(typeof({x.Object.FullName})) as {x.Object.FullName};");
             }
 
             using (var scopeNull = ssb.ScopeBrace($"if ({x.Identifier} == null)"))

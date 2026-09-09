@@ -23,7 +23,7 @@ public sealed partial class PacketTerminal
         // ResponseTcs != null: WaitingToSend -> WaitingForResponse -> Complete or Resend
         [Link(Type = ChainType.LinkedList, Name = "WaitingToSendList", AutoLink = true)]
         [Link(Type = ChainType.LinkedList, Name = "WaitingForResponseList", AutoLink = false)]
-        public Item(IPEndPoint endPoint, ulong packetId, BytePool.RentMemory dataToBeMoved, TaskCompletionSource<NetResponse>? responseTcs)
+        public Item(IPEndPoint endPoint, ulong packetId, BytePool.RentMemory dataToBeMoved, TaskCompletionSource<NetResponse>? responseTcs, ushort? expectedResponseType = null, NetEndpoint? responseEndpoint = null)
         {
             if (dataToBeMoved.Span.Length < PacketHeader.Length)
             {
@@ -34,6 +34,8 @@ public sealed partial class PacketTerminal
             this.PacketId = packetId;
             this.MemoryOwner = dataToBeMoved;
             this.ResponseTcs = responseTcs;
+            this.ExpectedResponseType = expectedResponseType;
+            this.ResponseEndpoint = responseEndpoint;
         }
 
         [Link(Primary = true, Type = ChainType.Unordered, AddValue = true)]
@@ -41,13 +43,25 @@ public sealed partial class PacketTerminal
 
         public IPEndPoint EndPoint { get; }
 
-        public BytePool.RentMemory MemoryOwner { get; }
+        public BytePool.RentMemory MemoryOwner { get; private set; }
+
+        public ushort? ExpectedResponseType { get; }
+
+        public NetEndpoint? ResponseEndpoint { get; }
 
         public TaskCompletionSource<NetResponse>? ResponseTcs { get; }
 
         public long SentMics { get; set; }
 
         public int ResentCount { get; set; }
+
+        public void CopyPacketForRetry()
+        {
+            var copy = BytePool.Default.Rent(this.MemoryOwner.Length).AsMemory(0, this.MemoryOwner.Length);
+            this.MemoryOwner.Span.CopyTo(copy.Span);
+            this.MemoryOwner.Return();
+            this.MemoryOwner = copy;
+        }
 
         public void Remove()
         {
@@ -156,12 +170,15 @@ public sealed partial class PacketTerminal
             // this.logger.GetWriter(LogLevel.Debug)?.Write($"{this.netTerminal.NetTerminalString} to {endPoint.ToString()} {rentMemory.Length} {typeof(TSend).Name}/{typeof(TReceive).Name}");
         }
 
+        var responseTaken = false;
         try
         {
             var response = await this.netTerminal.Wait(responseTcs.Task, this.netTerminal.PacketTransmissionTimeout, cancellationToken).ConfigureAwait(false);
+            responseTaken = responseTcs.Task.IsCompletedSuccessfully && response.IsSuccess;
 
             if (response.IsFailure)
             {
+                response.Return();
                 return new(response.Result, default, 0);
             }
 
@@ -183,7 +200,11 @@ public sealed partial class PacketTerminal
         }
         catch
         {
-            if (!responseTcs.TrySetCanceled() && responseTcs.Task.IsCompletedSuccessfully)
+            return (NetResult.Timeout, default, 0);
+        }
+        finally
+        {
+            if (!responseTaken && !responseTcs.TrySetCanceled() && responseTcs.Task.IsCompletedSuccessfully)
             {
                 responseTcs.Task.Result.Return();
             }
@@ -199,8 +220,6 @@ public sealed partial class PacketTerminal
                     }
                 }
             }
-
-            return (NetResult.Timeout, default, 0);
         }
     }
 
@@ -305,13 +324,16 @@ public sealed partial class PacketTerminal
                 if (item.ResentCount >= this.MaxResendCount)
                 {// The maximum number of resend attempts reached.
                     item.Remove();
+                    item.ResponseTcs?.TrySetResult(new(NetResult.Timeout));
                     continue;
                 }
 
                 // PacketHeaderCode
-                var span = item.MemoryOwner.Span;
-                if (MemoryMarshal.Read<RelayId>(span.Slice(sizeof(RelayId))) == 0)
+                if (MemoryMarshal.Read<RelayId>(item.MemoryOwner.Span.Slice(sizeof(RelayId))) == 0)
                 {// No relay
+                    // The previous attempt may still be queued by NetSender.
+                    item.CopyPacketForRetry();
+                    var span = item.MemoryOwner.Span;
                     // Reset packet id in order to improve the accuracy of RTT measurement.
                     var newPacketId = RandomVault.Default.NextUInt64();
                     item.PacketIdValue = newPacketId;
@@ -330,6 +352,11 @@ public sealed partial class PacketTerminal
 
     internal void ProcessReceive(NetEndpoint endpoint, int relayNumber, bool incomingRelay, RelayId destinationRelayId, ushort packetUInt16, BytePool.RentMemory toBeShared, long currentSystemMics)
     {// Checked: toBeShared.Length
+        if (toBeShared.Length < PacketHeader.Length || toBeShared.Length > NetConstants.MaxPacketLength)
+        {
+            return;
+        }
+
         if (NetConstants.LogLowLevelNet)
         {
             // this.logger.GetWriter(LogLevel.Debug)?.Write($"Receive actual");
@@ -346,7 +373,7 @@ public sealed partial class PacketTerminal
         var packetId = BitConverter.ToUInt64(span.Slice(RelayHeader.RelayIdLength + sizeof(uint) + sizeof(PacketType)));
 
         span = span.Slice(PacketHeader.Length);
-        if (packetUInt16 < 127)
+        if (packetUInt16 < 128)
         {// Packet types (0-127), Client -> Server
             if (relayNumber != 0 && !incomingRelay)
             {// Outgoing relay
@@ -489,13 +516,19 @@ public sealed partial class PacketTerminal
                 }
             }
         }
-        else if (packetUInt16 < 255)
+        else if (packetUInt16 < 256)
         {// Packet response types (128-255), Server -> Client (Response)
             Item? item;
             using (this.items.LockObject.EnterScope())
             {
                 if (this.items.PacketIdChain.TryGetValue(packetId, out item))
                 {
+                    if (item.ResponseTcs is null || item.ExpectedResponseType != packetUInt16 ||
+                        (item.ResponseEndpoint is { } expectedEndpoint && !expectedEndpoint.Equals(endpoint)))
+                    {
+                        return;
+                    }
+
                     item.Remove();
                 }
             }
@@ -552,6 +585,7 @@ public sealed partial class PacketTerminal
         }
 
         var packetId = BitConverter.ToUInt64(dataToBeMoved.Span.Slice(RelayHeader.RelayIdLength + 6)); // PacketHeaderCode
+        var expectedResponseType = (ushort)(BitConverter.ToUInt16(dataToBeMoved.Span.Slice(RelayHeader.RelayIdLength + sizeof(uint))) + 128);
         NetEndpoint endpoint;
         if (relayNumber == 0)
         {// No relay
@@ -584,7 +618,7 @@ public sealed partial class PacketTerminal
             return NetResult.InvalidEndpoint;
         }
 
-        var item = new Item(endpoint.EndPoint, packetId, dataToBeMoved, responseTcs);
+        var item = new Item(endpoint.EndPoint, packetId, dataToBeMoved, responseTcs, expectedResponseType, relayNumber == 0 ? endpoint : null);
         using (this.items.LockObject.EnterScope())
         {
             item.Goshujin = this.items;
@@ -697,7 +731,8 @@ public sealed partial class PacketTerminal
         BitConverter.TryWriteBytes(span, endpoint.RelayId); // DestinationRelayId
         var packetId = BitConverter.ToUInt64(dataToBeMoved.Span.Slice(RelayHeader.RelayIdLength + 6)); // PacketId
 
-        var item = new Item(endpoint.EndPoint, packetId, dataToBeMoved, responseTcs);
+        var expectedResponseType = (ushort)(BitConverter.ToUInt16(dataToBeMoved.Span.Slice(RelayHeader.RelayIdLength + sizeof(uint))) + 128);
+        var item = new Item(endpoint.EndPoint, packetId, dataToBeMoved, responseTcs, expectedResponseType, endpoint);
         using (this.items.LockObject.EnterScope())
         {
             item.Goshujin = this.items;

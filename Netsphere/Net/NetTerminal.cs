@@ -266,6 +266,11 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 
     internal unsafe void ProcessReceive(IPEndPoint endPoint, BytePool.RentArray toBeShared, int packetSize)
     {// Checked: packetSize
+        if (packetSize < PacketHeader.Length || packetSize > NetConstants.MaxPacketLength || packetSize > toBeShared.Array.Length)
+        {
+            return;
+        }
+
         var currentSystemMics = Mics.FastSystem;
         var rentMemory = toBeShared.AsMemory(0, packetSize);
         var span = rentMemory.Span;
@@ -288,21 +293,36 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         else if (netEndpoint.RelayId != 0)
         {// Receive data from relays.
             NetAddress originalAddress;
-            if (this.OutgoingCircuit.RelayKey.NumberOfRelays > 0 &&
-                this.OutgoingCircuit.RelayKey.TryDecrypt(netEndpoint, ref rentMemory, out originalAddress, out relayNumber))
+            var outgoingKey = this.OutgoingCircuit.RelayKey;
+            var incomingKey = this.IncomingCircuit.RelayKey;
+            if (outgoingKey.NumberOfRelays > 0 && netEndpoint.Equals(outgoingKey.FirstEndpoint))
             {// Outgoing relay
+                if (!outgoingKey.TryDecrypt(netEndpoint, ref rentMemory, out originalAddress, out relayNumber))
+                {
+                    return;
+                }
+
                 span = rentMemory.Span;
                 var ep2 = this.RelayAgent.GetEndPoint_NotThreadSafe(originalAddress, RelayAgent.EndpointOperation.None);
                 netEndpoint = new(originalAddress.RelayId, ep2.EndPoint);
             }
-            else if (this.IncomingCircuit.RelayKey.NumberOfRelays > 0 &&
-                this.IncomingCircuit.RelayKey.TryDecrypt(netEndpoint, ref rentMemory, out originalAddress, out relayNumber))
+            else if (incomingKey.NumberOfRelays > 0 && netEndpoint.Equals(incomingKey.FirstEndpoint))
             {// Incoming relay
+                if (!incomingKey.TryDecrypt(netEndpoint, ref rentMemory, out originalAddress, out relayNumber))
+                {
+                    return;
+                }
+
                 span = rentMemory.Span;
                 var ep2 = this.RelayAgent.GetEndPoint_NotThreadSafe(originalAddress, RelayAgent.EndpointOperation.None);
                 netEndpoint = new(originalAddress.RelayId, ep2.EndPoint);
                 incomingRelay = true;
             }
+        }
+
+        if (rentMemory.Length < PacketHeader.Length)
+        {
+            return;
         }
 
         // relayNumber: 0 No relay, >0 Outgoing, <0 Incoming

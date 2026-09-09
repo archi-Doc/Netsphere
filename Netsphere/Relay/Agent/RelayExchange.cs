@@ -18,7 +18,7 @@ internal partial class RelayExchange
         this.ServerConnection.InnerRelayId = innerRelayId;
         this.LastAccessMics = Mics.FastSystem;
 
-        this.InnerKeyAndNonce = block.InnerKeyAndNonce;
+        this.InnerKeyAndNonce = block.InnerKeyAndNonce.ToArray();
 
         this.RelayRetensionMics = relayControl.DefaultRelayRetensionMics;
         this.RestrictedIntervalMics = relayControl.DefaultRestrictedIntervalMics;

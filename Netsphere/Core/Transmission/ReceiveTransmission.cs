@@ -26,7 +26,11 @@ internal sealed partial class ReceiveTransmission : IDisposable
     [Link(Primary = true, Type = ChainType.Unordered)]
     public uint TransmissionId { get; }
 
-    public NetTransmissionMode Mode { get; private set; } // using (this.lockObject.EnterScope())
+    public NetTransmissionMode Mode
+    {
+        get => this.mode;
+        private set => this.mode = value;
+    }
 
     public int MaxReceivePosition
     {
@@ -60,10 +64,11 @@ internal sealed partial class ReceiveTransmission : IDisposable
 #pragma warning restore SA1401 // Fields should be private
 
     private readonly Lock lockObject = new();
+    private volatile NetTransmissionMode mode;
     private int totalGene;
     private TaskCompletionSource<NetResponse>? receivedTcs;
     private IResponseChannelInternal? receivedNetUnion;
-    private int successiveReceivedPosition;
+    private volatile int successiveReceivedPosition;
     private ReceiveGene? gene0; // Gene 0
     private ReceiveGene? gene1; // Gene 1
     private ReceiveGene? gene2; // Gene 2
@@ -72,9 +77,15 @@ internal sealed partial class ReceiveTransmission : IDisposable
     #endregion
 
     public void Dispose()
+        => this.Dispose(NetResult.Closed);
+
+    internal void Dispose(NetResult result)
     {
         this.Connection.RemoveTransmission(this);
-        this.DisposeTransmission();
+        using (this.lockObject.EnterScope())
+        {
+            this.DisposeInternal(result);
+        }
     }
 
     internal void DisposeTransmission()
@@ -90,7 +101,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
         }
     }
 
-    internal void DisposeInternal()
+    internal void DisposeInternal(NetResult result = NetResult.Closed)
     {
         if (this.IsDisposed)
         {
@@ -113,14 +124,16 @@ internal sealed partial class ReceiveTransmission : IDisposable
 
         if (this.receivedTcs is not null)
         {
-            this.receivedTcs.TrySetResult(new(NetResult.Closed));
+            this.receivedTcs.TrySetResult(new(result));
             this.receivedTcs = null;
         }
 
-        if (this.receivedNetUnion is not null)
+        if (this.receivedNetUnion is { } channel)
         {
-            this.receivedNetUnion.Invoke(NetResult.Closed);
             this.receivedNetUnion = null;
+            // Disposal may run while the connection's non-reentrant owner lock is held.
+            // A callback is allowed to start another request on the same connection.
+            _ = Task.Run(() => channel.Invoke(result));
         }
     }
 
@@ -142,8 +155,32 @@ internal sealed partial class ReceiveTransmission : IDisposable
         }
     }
 
+    internal async Task<NetResponse> Wait(Task<NetResponse> task, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        var received = false;
+        try
+        {
+            var response = await task.WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
+            received = true;
+            return response;
+        }
+        finally
+        {
+            if (!received)
+            {
+                _ = task.ContinueWith(static completed => completed.Result.Return(), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+            }
+        }
+    }
+
     internal void SetState_Receiving(int totalGene)
-    {// Since it's called immediately after the object's creation, 'using (this.lockObject.EnterScope())' is probably not necessary.
+    {
+        using var scope = this.lockObject.EnterScope();
+        if (this.Mode != NetTransmissionMode.Initial || totalGene <= 0 || totalGene > this.Connection.Agreement.MaxBlockGenes)
+        {
+            return;
+        }
+
         if (totalGene <= NetHelper.BurstGenes)
         {
             this.Mode = NetTransmissionMode.Burst;
@@ -166,7 +203,13 @@ internal sealed partial class ReceiveTransmission : IDisposable
     }
 
     internal void SetState_ReceivingStream(long maxLength)
-    {// Since it's called immediately after the object's creation, 'using (this.lockObject.EnterScope())' is probably not necessary.
+    {
+        using var scope = this.lockObject.EnterScope();
+        if (this.Mode != NetTransmissionMode.Initial || !this.Connection.Agreement.CheckStreamLength(maxLength))
+        {
+            return;
+        }
+
         this.Mode = NetTransmissionMode.Stream;
         this.totalGene = -1;
 

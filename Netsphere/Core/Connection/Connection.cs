@@ -903,6 +903,7 @@ Wait:
         ReceiveTransmission? transmission;
         long maxStreamLength = 0;
         ulong dataId = 0;
+        var startStream = false;
         using (this.receiveTransmissions.LockObject.EnterScope())
         {
             if (this.IsClient)
@@ -913,8 +914,8 @@ Wait:
                 }
                 else if (transmission.Mode != NetTransmissionMode.Initial)
                 {// Processing the first packet is limited to the initial state, as the state gets cleared.
-                    this.ConnectionTerminal.AckQueue.AckBlock(this, transmission, 0); // Resend the ACK in case it was not received.
-                    return;
+                    // An incomplete burst must not acknowledge the entire transmission.
+                    goto ProcessGene;
                 }
 
                 if (transmissionMode == 0 && totalGenes <= this.Agreement.MaxBlockGenes)
@@ -933,6 +934,7 @@ Wait:
                     }
 
                     transmission.SetState_ReceivingStream(maxStreamLength);
+                    startStream = true;
                 }
                 else
                 {
@@ -943,8 +945,7 @@ Wait:
             {// Server side
                 if (this.receiveTransmissions.TransmissionIdChain.TryGetValue(transmissionId, out transmission))
                 {// The same TransmissionId already exists.
-                    this.ConnectionTerminal.AckQueue.AckBlock(this, transmission, 0); // Resend the ACK in case it was not received.
-                    return;
+                    goto ProcessGene;
                 }
 
                 this.CleanReceiveTransmission();
@@ -973,6 +974,7 @@ Wait:
 
                     transmission = new(this, transmissionId, default, default);
                     transmission.SetState_ReceivingStream(maxStreamLength);
+                    startStream = true;
                 }
                 else
                 {
@@ -985,12 +987,13 @@ Wait:
             }
         }
 
+ProcessGene:
         this.UpdateLastEventMics();
 
         // FirstGeneFrameCode (DataKind + DataId + Data...)
         transmission.ProcessReceive_Gene(dataControl, 0, toBeShared.Slice(16));
 
-        if (transmission.Mode == NetTransmissionMode.Stream)
+        if (startStream && transmission.Mode == NetTransmissionMode.Stream)
         {// Invoke stream
             if (this is ServerConnection serverConnection)
             {
