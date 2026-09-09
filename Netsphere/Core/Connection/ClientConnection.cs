@@ -157,24 +157,25 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
                 return new(NetResult.NoTransmission);
             }
 
-            var result = transmissionAndTimeout.Transmission.SendBlock(0, dataId, rentMemory, default);
-            rentMemory.Return();
-            if (result != NetResult.Success)
-            {
-                return new(result);
-            }
-
             var tcs = new TaskCompletionSource<NetResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
             using (var receiveTransmission = this.TryCreateReceiveTransmission(transmissionAndTimeout.Transmission.TransmissionId, tcs))
             {
                 if (receiveTransmission is null)
                 {
+                    rentMemory.Return();
                     return new(NetResult.NoTransmission);
+                }
+
+                var result = transmissionAndTimeout.Transmission.SendBlock(0, dataId, rentMemory, default);
+                rentMemory.Return();
+                if (result != NetResult.Success)
+                {
+                    return new(result);
                 }
 
                 try
                 {
-                    response = await tcs.Task.WaitAsync(transmissionAndTimeout.Timeout).ConfigureAwait(false);
+                    response = await receiveTransmission.Wait(tcs.Task, transmissionAndTimeout.Timeout, cancellationToken).ConfigureAwait(false);
                     if (response.IsFailure)
                     {
                         return new(response.Result);
@@ -402,25 +403,28 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
                 return (NetResult.NoTransmission, default);
             }
 
-            var result = transmissionAndTimeout.Transmission.SendBlock(0, dataId, rentMemory, default);
-            rentMemory.Return();
-            if (result != NetResult.Success)
-            {
-                return (result, default);
-            }
-
             var tcs = new TaskCompletionSource<NetResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
             receiveTransmission = this.TryCreateReceiveTransmission(transmissionAndTimeout.Transmission.TransmissionId, tcs);
             if (receiveTransmission is null)
             {
+                rentMemory.Return();
                 return (NetResult.NoTransmission, default);
+            }
+
+            var result = transmissionAndTimeout.Transmission.SendBlock(0, dataId, rentMemory, default);
+            rentMemory.Return();
+            if (result != NetResult.Success)
+            {
+                receiveTransmission.Dispose();
+                return (result, default);
             }
 
             try
             {
-                response = await tcs.Task.WaitAsync(transmissionAndTimeout.Timeout).ConfigureAwait(false);
+                response = await receiveTransmission.Wait(tcs.Task, transmissionAndTimeout.Timeout, cancellationToken).ConfigureAwait(false);
                 if (response.IsFailure || !response.Received.IsEmpty)
                 {// Failure or not stream.
+                    response.Return();
                     receiveTransmission.Dispose();
                     return new(response.Result, default);
                 }
@@ -439,6 +443,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
 
         if (response.Additional == 0)
         {// No stream
+            receiveTransmission.Dispose();
             return ((NetResult)response.DataId, default);
         }
 
@@ -479,6 +484,11 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         return r.Result;
     }*/
 
+    /// <summary>
+    /// Verifies a token for this connection and caches it only after the server accepts it.
+    /// </summary>
+    /// <param name="token">A token signed with this connection's salt.</param>
+    /// <returns>Success for the established identity, InvalidData for an invalid token, or InvalidOperation for a different identity.</returns>
     public async Task<NetResult> SetAuthenticationToken(AuthenticationToken token)
     {
         if (token.Equals(this.context.AuthenticationToken))
@@ -489,7 +499,11 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         var r = await this.SendAndReceive<AuthenticationToken, NetResult>(token, ConnectionAgreement.AuthenticationTokenId).ConfigureAwait(false);
         if (r.Result == NetResult.Success)
         {
-            this.context.AuthenticationToken = token;
+            if (r.Value == NetResult.Success)
+            {
+                this.context.AuthenticationToken = token;
+            }
+
             return r.Value;
         }
 
@@ -512,12 +526,6 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
                 return new(NetResult.NoTransmission, 0, default);
             }
 
-            var result = transmissionAndTimeout.Transmission.SendBlock(1, dataId, data, default);
-            if (result != NetResult.Success)
-            {
-                return new(result, 0, default);
-            }
-
             var tcs = new TaskCompletionSource<NetResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
             using (var receiveTransmission = this.TryCreateReceiveTransmission(transmissionAndTimeout.Transmission.TransmissionId, tcs))
             {
@@ -526,9 +534,15 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
                     return new(NetResult.NoTransmission, 0, default);
                 }
 
+                var result = transmissionAndTimeout.Transmission.SendBlock(1, dataId, data, default);
+                if (result != NetResult.Success)
+                {
+                    return new(result, 0, default);
+                }
+
                 try
                 {
-                    response = await tcs.Task.WaitAsync(transmissionAndTimeout.Timeout, cancellationToken).ConfigureAwait(false);
+                    response = await receiveTransmission.Wait(tcs.Task, transmissionAndTimeout.Timeout, cancellationToken).ConfigureAwait(false);
                     if (response.IsFailure)
                     {
                         return new(response.Result, 0, default);
@@ -563,23 +577,23 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
             return;
         }
 
-        // netUnion.SetSendTransmission(sendTransmission);
-        var result = sendTransmission.SendBlock(1, dataId, data, default);
-        if (result != NetResult.Success)
-        {
-            netUnion.Invoke(result);
-            return;
-        }
-
         var receiveTransmission = this.TryCreateReceiveTransmission(sendTransmission.TransmissionId, default, netUnion);
         if (receiveTransmission is null)
         {
+            sendTransmission.Dispose();
             netUnion.Invoke(NetResult.NoTransmission);
             return;
         }
+
+        var result = sendTransmission.SendBlock(1, dataId, data, default);
+        if (result != NetResult.Success)
+        {
+            sendTransmission.Dispose();
+            receiveTransmission.Dispose(result);
+        }
     }
 
-    async Task<(NetResult Result, ReceiveStream? Stream)> IClientConnectionInternal.RpcSendAndReceiveStream(BytePool.RentMemory data, ulong dataId)
+    async Task<(NetResult Result, ReceiveStream? Stream)> IClientConnectionInternal.RpcSendAndReceiveStream(BytePool.RentMemory data, ulong dataId, CancellationToken cancellationToken)
     {
         if (!this.IsActive)
         {
@@ -589,7 +603,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         NetResponse response;
         ReceiveTransmission? receiveTransmission;
         var timeout = this.Agreement.TransmissionTimeout;
-        using (var transmissionAndTimeout = await this.TryCreateSendTransmission(timeout, default).ConfigureAwait(false))
+        using (var transmissionAndTimeout = await this.TryCreateSendTransmission(timeout, cancellationToken).ConfigureAwait(false))
         {
             if (transmissionAndTimeout.Transmission is null)
             {
@@ -612,9 +626,10 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
 
             try
             {
-                response = await tcs.Task.WaitAsync(transmissionAndTimeout.Timeout).ConfigureAwait(false);
+                response = await receiveTransmission.Wait(tcs.Task, transmissionAndTimeout.Timeout, cancellationToken).ConfigureAwait(false);
                 if (response.IsFailure || !response.Received.IsEmpty)
                 {// Failure or not stream.
+                    response.Return();
                     receiveTransmission.Dispose();
                     return new(response.Result, default);
                 }

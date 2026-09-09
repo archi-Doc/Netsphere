@@ -5,7 +5,7 @@ namespace Netsphere;
 /// <summary>
 /// Contains a transport result and an optional pooled response buffer.
 /// </summary>
-/// <remarks>Call <see cref="Return"/> after consuming the pooled buffer. Copies share the same buffer ownership.</remarks>
+/// <remarks>Call <see cref="Return"/> exactly once after consuming the buffer. Copying this value does not acquire another lease; do not use any copy after returning it.</remarks>
 public readonly record struct NetResponse
 {
     public NetResponse(NetResult result, ulong dataId, long additional, BytePool.RentMemory received)

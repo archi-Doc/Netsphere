@@ -39,8 +39,9 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
     public TResponse? Value { get; private set; }
 
     /// <summary>
-    /// Gets the callback invoked on the client when a response is received.
+    /// Gets the client callback for a response, send failure, or transmission closure.
     /// </summary>
+    /// <remarks>Callbacks may run on the receive path or the thread pool. Keep them short and signal completion explicitly.</remarks>
     // public ResponseDelegate<TResponse>? ResponseDelegate { get; private set; }
     public readonly ResponseDelegate<TResponse>? ResponseDelegate;
 
@@ -63,7 +64,11 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
         this.ResponseDelegate = responseDelegate;
     }
 
-    public unsafe void SetResponse(TResponse value)
+    /// <summary>
+    /// Sets the response value before the synchronous service handler returns.
+    /// </summary>
+    /// <param name="value">The response to serialize.</param>
+    public void SetResponse(TResponse value)
     {
         this.Value = value;
         this.IsValueSet = true;

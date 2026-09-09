@@ -1,0 +1,79 @@
+{
+  "Runtime": "10.0.12",
+  "OS": "Microsoft Windows NT 10.0.26200.0",
+  "Samples": 7,
+  "Results": [
+    {
+      "Name": "IPv4 TryFormat",
+      "Iterations": 500000,
+      "NanosecondsPerOperation": 20.96,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Locked ConcurrentQueue: 32 enqueue/dequeue pairs",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 540.25,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Locked Queue: 32 enqueue/dequeue pairs",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 348,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Create ping packet",
+      "Iterations": 30000,
+      "NanosecondsPerOperation": 189.84,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Receive unmatched ping response",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 132.75,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Encrypt 1024 bytes",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 186.03,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Process duplicate burst ACK",
+      "Iterations": 30000,
+      "NanosecondsPerOperation": 11.54,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Create and dispose receiver without callback",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 86.55,
+      "BytesPerOperation": 176
+    },
+    {
+      "Name": "Dispose receiver again",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 64.43,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Clean unchanged empty relay circuit",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 49.43,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Response 1024 bytes: rent/copy/return",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 73.56,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Response 1024 bytes: reuse owned buffer",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 48.68,
+      "BytesPerOperation": 0
+    }
+  ]
+}

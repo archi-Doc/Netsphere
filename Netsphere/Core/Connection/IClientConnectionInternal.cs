@@ -13,7 +13,7 @@ public interface IClientConnectionInternal
 
     void RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, IResponseChannelInternal channel);
 
-    Task<(NetResult Result, ReceiveStream? Stream)> RpcSendAndReceiveStream(BytePool.RentMemory data, ulong dataId);
+    Task<(NetResult Result, ReceiveStream? Stream)> RpcSendAndReceiveStream(BytePool.RentMemory data, ulong dataId, CancellationToken cancellationToken = default);
 
     Task<NetResult> UpdateAgreement(ulong dataId, CertificateToken<ConnectionAgreement> a1);
 

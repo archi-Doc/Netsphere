@@ -101,7 +101,10 @@ internal partial class AckBuffer
                 ackQueue.Enqueue(new(receiveTransmission, ackGene));
             }
 
-            ackGene.Enqueue(geneSerial);
+            if (ackGene != this.burst)
+            {
+                ackGene.Enqueue(geneSerial);
+            }
         }
     }
 

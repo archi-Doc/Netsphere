@@ -49,7 +49,11 @@ internal sealed partial class SendTransmission : IDisposable
     public string TransmissionIdText
         => ((ushort)this.TransmissionId).ToString("x4");
 
-    public NetTransmissionMode Mode { get; private set; } // using (this.lockObject.EnterScope())
+    public NetTransmissionMode Mode
+    {
+        get => this.mode;
+        private set => this.mode = value;
+    }
 
     public int GeneSerialMax { get; private set; }
 
@@ -62,7 +66,7 @@ internal sealed partial class SendTransmission : IDisposable
 #pragma warning disable SA1401 // Fields should be private
 
     internal UnorderedLinkedList<SendTransmission>.Node? SendNode; // lock (ConnectionTerminal.SyncSend)
-    internal int MaxReceivePosition;
+    internal volatile int MaxReceivePosition;
 
     // internal UnorderedLinkedList<SendTransmission>.Node? AckedNode; // lock (Connection.sendTransmissions.SyncObject)
     internal long AckedMics;
@@ -70,6 +74,7 @@ internal sealed partial class SendTransmission : IDisposable
 #pragma warning restore SA1401 // Fields should be private
 
     private readonly Lock lockObject = new();
+    private volatile NetTransmissionMode mode;
     private SemaphoreSlim? streamSendLock;
     private TaskCompletionSource<NetResult>? sentTcs;
     private SendGene? gene0; // Gene 0
@@ -550,6 +555,11 @@ internal sealed partial class SendTransmission : IDisposable
 
     internal void ProcessReceive_AckBlock(int maxReceivePosition, int successiveReceivedPosition, scoped Span<byte> span, ushort numberOfPairs)
     {// using (SendTransmissions.lockObject.EnterScope())
+        if (this.Mode == NetTransmissionMode.Disposed)
+        {
+            return;
+        }
+
         var completeFlag = false;
         int lossPosition = -1;
         var congestionControl = this.Connection.GetCongestionControl();

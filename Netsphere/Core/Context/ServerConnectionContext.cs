@@ -52,7 +52,9 @@ public class ServerConnectionContext
 
     public ServerConnection ServerConnection { get; }
 
-    public AuthenticationToken? AuthenticationToken { get; private set; }
+    public AuthenticationToken? AuthenticationToken => Volatile.Read(ref this.authenticationToken);
+
+    private AuthenticationToken? authenticationToken;
 
     // private readonly IServiceScope serviceScope;
     private object netServiceSync => this; // ...
@@ -224,13 +226,6 @@ public class ServerConnectionContext
 
     internal void InvokeStream(ReceiveTransmission receiveTransmission, ulong dataId, long maxStreamLength)
     {
-        // Get ServiceMethod
-        (var serviceMethod, var agentInstance) = this.TryGetServiceMethod(dataId);
-        if (serviceMethod is null)
-        {
-            return;
-        }
-
         var transmissionContext = new TransmissionContext(this.ServerConnection, receiveTransmission.TransmissionId, 1, dataId, default);
         if (!transmissionContext.CreateReceiveStream(receiveTransmission, maxStreamLength))
         {
@@ -245,6 +240,14 @@ public class ServerConnectionContext
             TransmissionContext.AsyncLocal.Value = transmissionContext;
             try
             {
+                // Get ServiceMethod
+                (var serviceMethod, var agentInstance) = this.TryGetServiceMethod(dataId);
+                if (serviceMethod is null)
+                {
+                    transmissionContext.SendResultAndForget(NetResult.NoNetService);
+                    return;
+                }
+
                 await serviceMethod.Invoke(agentInstance, transmissionContext).ConfigureAwait(false);
                 try
                 {
@@ -291,7 +294,15 @@ public class ServerConnectionContext
             }
             else if (this.NetTerminal.Responders.TryGet(transmissionContext.DataId, out var responder))
             {// Other responders
-                responder.Respond(transmissionContext);
+                try
+                {
+                    responder.Respond(transmissionContext);
+                }
+                catch
+                {
+                    transmissionContext.ReturnAndDisposeStream();
+                    transmissionContext.SendResultAndForget(NetResult.UnknownError);
+                }
             }
             else
             {
@@ -317,6 +328,10 @@ public class ServerConnectionContext
             Task.Run(() => this.InvokeRPC(transmissionContext));
             return;
         }
+        else
+        {
+            transmissionContext.ReturnAndDisposeStream();
+        }
 
         /*if (!this.InvokeCustom(transmissionContext))
         {
@@ -326,17 +341,18 @@ public class ServerConnectionContext
 
     internal async Task InvokeRPC(TransmissionContext transmissionContext)
     {
-        // Get ServiceMethod
-        (var serviceMethod, var agentInstance) = this.TryGetServiceMethod(transmissionContext.DataId);
-        if (serviceMethod == null)
-        {
-            goto SendNoNetService;
-        }
-
         // Invoke
         TransmissionContext.AsyncLocal.Value = transmissionContext;
         try
         {
+            // Get ServiceMethod
+            (var serviceMethod, var agentInstance) = this.TryGetServiceMethod(transmissionContext.DataId);
+            if (serviceMethod is null)
+            {
+                transmissionContext.SendAndForget(BytePool.RentMemory.Empty, (ulong)NetResult.NoNetService);
+                return;
+            }
+
             await serviceMethod.Invoke(agentInstance, transmissionContext).ConfigureAwait(false);
             try
             {
@@ -378,13 +394,6 @@ public class ServerConnectionContext
         {
             transmissionContext.ReturnAndDisposeStream();
         }
-
-        return;
-
-SendNoNetService:
-        transmissionContext.SendAndForget(BytePool.RentMemory.Empty, (ulong)NetResult.NoNetService);
-        transmissionContext.ReturnAndDisposeStream();
-        return;
     }
 
     private void SetAuthenticationToken(TransmissionContext transmissionContext)
@@ -399,17 +408,11 @@ SendNoNetService:
 
         _ = Task.Run(() =>
         {
-            var result = NetResult.Success;
-            if (this.AuthenticationToken is null)
+            var result = NetResult.InvalidData;
+            if (this.ServerConnection.ValidateAndVerifyWithSalt(token))
             {
-                if (this.ServerConnection.ValidateAndVerifyWithSalt(token))
-                {
-                    this.AuthenticationToken = token;
-                }
-                else
-                {
-                    result = NetResult.InvalidData;
-                }
+                var previous = Interlocked.CompareExchange(ref this.authenticationToken, token, null);
+                result = previous is null || previous.PublicKey.Equals(token.PublicKey) ? NetResult.Success : NetResult.InvalidOperation;
             }
 
             transmissionContext.SendAndForget(result, ConnectionAgreement.AuthenticationTokenId);
@@ -494,14 +497,19 @@ SendNoNetService:
 
     internal void DisposeActual()
     {
-        foreach (var x in this.netServiceItems)
+        NetServiceItem[] items;
+        lock (this.netServiceSync)
+        {// Detach the array instead of clearing it in place, since a concurrent dispatch may be reading it.
+            items = this.netServiceItems;
+            this.netServiceItems = [];
+        }
+
+        foreach (var x in items)
         {
             if (x.Instance is INetObject netObject)
             {
                 netObject.OnConnectionClosed();
             }
         }
-
-        Array.Clear(this.netServiceItems);
     }
 }

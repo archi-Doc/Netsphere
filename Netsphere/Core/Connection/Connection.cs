@@ -76,7 +76,11 @@ public abstract class Connection : IDisposable
 
     public ConnectionAgreement Agreement { get; private set; } = ConnectionAgreement.Default;
 
-    public State CurrentState { get; private set; }
+    public State CurrentState
+    {
+        get => this.currentState;
+        private set => this.currentState = value;
+    }
 
     public abstract bool IsClient { get; }
 
@@ -167,6 +171,7 @@ public abstract class Connection : IDisposable
     #region Embryo
 
     private byte[] embryo = Array.Empty<byte>();
+    private volatile State currentState;
 
     // public ulong ConnectionId => BitConverter.ToUInt64(this.embryo.AsSpan(0)); // Assigned in the constructor.
 
@@ -181,7 +186,6 @@ public abstract class Connection : IDisposable
     #endregion
 
     private SendTransmission.GoshujinClass sendTransmissions = new(); // using (this.sendTransmissions.LockObject.EnterScope())
-    private UnorderedLinkedList<SendTransmission> sendAckedList = new();
 
     // ReceiveTransmissionCode, using (this.receiveTransmissions.LockObject.EnterScope())
     private ReceiveTransmission.GoshujinClass receiveTransmissions = new();
@@ -230,16 +234,7 @@ public abstract class Connection : IDisposable
     internal void UpdateAckedNode(SendTransmission sendTransmission)
     {// lock (Connection.sendTransmissions.SyncObject)
         sendTransmission.AckedMics = Mics.FastSystem;
-        this.sendTransmissions.AckedListChain.AddLast(sendTransmission);
-
-        /*if (sendTransmission.AckedNode is null)
-        {
-            sendTransmission.AckedNode = this.sendAckedList.AddLast(sendTransmission);
-        }
-        else
-        {
-            this.sendAckedList.MoveToLast(sendTransmission.AckedNode);
-        }*/
+        this.sendTransmissions.AckedListChain.AddLast(sendTransmission); // Moves the transmission to the end if it is already linked.
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -446,19 +441,17 @@ Wait:
     internal void CleanSendTransmission()
     {// using (this.sendTransmissions.LockObject.EnterScope())
         // Release send transmissions that have elapsed a certain time since the last ack.
+        // AckedListChain is ordered from the least recently acknowledged transmission (UpdateAckedNode moves it to the end).
         var currentMics = Mics.FastSystem;
-        while (this.sendAckedList.First is { } node)
+        while (this.sendTransmissions.AckedListChain.First is { } transmission)
         {
-            var transmission = node.Value;
             if (currentMics < transmission.AckedMics + NetConstants.TransmissionTimeoutMics)
             {
                 break;
             }
 
             transmission.DisposeTransmission();
-            // node.List.Remove(node);
-            // transmission.AckedNode = null;
-            transmission.Goshujin = null;
+            transmission.Goshujin = null; // Removes the transmission from every chain, including AckedListChain.
         }
     }
 
@@ -903,6 +896,7 @@ Wait:
         ReceiveTransmission? transmission;
         long maxStreamLength = 0;
         ulong dataId = 0;
+        var startStream = false;
         using (this.receiveTransmissions.LockObject.EnterScope())
         {
             if (this.IsClient)
@@ -913,8 +907,8 @@ Wait:
                 }
                 else if (transmission.Mode != NetTransmissionMode.Initial)
                 {// Processing the first packet is limited to the initial state, as the state gets cleared.
-                    this.ConnectionTerminal.AckQueue.AckBlock(this, transmission, 0); // Resend the ACK in case it was not received.
-                    return;
+                    // An incomplete burst must not acknowledge the entire transmission.
+                    goto ProcessGene;
                 }
 
                 if (transmissionMode == 0 && totalGenes <= this.Agreement.MaxBlockGenes)
@@ -933,6 +927,7 @@ Wait:
                     }
 
                     transmission.SetState_ReceivingStream(maxStreamLength);
+                    startStream = true;
                 }
                 else
                 {
@@ -943,8 +938,7 @@ Wait:
             {// Server side
                 if (this.receiveTransmissions.TransmissionIdChain.TryGetValue(transmissionId, out transmission))
                 {// The same TransmissionId already exists.
-                    this.ConnectionTerminal.AckQueue.AckBlock(this, transmission, 0); // Resend the ACK in case it was not received.
-                    return;
+                    goto ProcessGene;
                 }
 
                 this.CleanReceiveTransmission();
@@ -973,6 +967,7 @@ Wait:
 
                     transmission = new(this, transmissionId, default, default);
                     transmission.SetState_ReceivingStream(maxStreamLength);
+                    startStream = true;
                 }
                 else
                 {
@@ -985,12 +980,13 @@ Wait:
             }
         }
 
+ProcessGene:
         this.UpdateLastEventMics();
 
         // FirstGeneFrameCode (DataKind + DataId + Data...)
         transmission.ProcessReceive_Gene(dataControl, 0, toBeShared.Slice(16));
 
-        if (transmission.Mode == NetTransmissionMode.Stream)
+        if (startStream && transmission.Mode == NetTransmissionMode.Stream)
         {// Invoke stream
             if (this is ServerConnection serverConnection)
             {
@@ -1280,7 +1276,8 @@ Wait:
             }
 
             // Since it's within a lock statement, manually clear it.
-            this.sendTransmissions.TransmissionIdChain.Clear();
+            // Every chain must be cleared; otherwise the transmissions stay linked in AckedListChain.
+            this.sendTransmissions.ClearChains();
         }
 
         using (this.receiveTransmissions.LockObject.EnterScope())
@@ -1300,7 +1297,7 @@ Wait:
 
             // Since it's within a lock statement, manually clear it.
             // ReceiveTransmissionsCode
-            this.receiveTransmissions.TransmissionIdChain.Clear();
+            this.receiveTransmissions.ClearChains();
             this.receiveReceivedList.Clear();
             this.receiveDisposedList.Clear();
         }
@@ -1322,7 +1319,8 @@ Wait:
             }
 
             // Since it's within a lock statement, manually clear it.
-            this.sendTransmissions.TransmissionIdChain.Clear();
+            // Every chain must be cleared; otherwise the transmissions stay linked in AckedListChain.
+            this.sendTransmissions.ClearChains();
         }
     }
 

@@ -35,6 +35,8 @@ public class NetFixture : IDisposable
 
                 // ServiceFilter
                 context.AddSingleton<NullFilter>();
+                context.AddSingleton<InjectedTransportFilter>();
+                context.AddSingleton<TransportFilterDependency>();
             })
             .ConfigureNetsphere(context =>
             {

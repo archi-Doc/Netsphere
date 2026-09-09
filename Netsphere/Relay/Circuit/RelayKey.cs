@@ -2,11 +2,12 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Netsphere.Packet;
 
 namespace Netsphere.Relay;
 
 /// <summary>
-/// <see cref="RelayKey"/> is a class that caches encryption information for the relay circuit.
+/// Stores a published snapshot of relay endpoints and encryption keys.
 /// </summary>
 internal class RelayKey
 {
@@ -114,14 +115,19 @@ Exit:
 
     public bool TryEncrypt(int relayNumber, NetAddress destination, ReadOnlySpan<byte> content, out BytePool.RentMemory encrypted, out NetEndpoint relayEndpoint)
     {
-        Debug.Assert(content.Length >= RelayHeader.RelayIdLength);
+        encrypted = default;
+        if (content.Length < PacketHeader.Length ||
+            content.Length > NetConstants.MaxPacketLength - RelayHeader.Length - Aegis128L.MinTagSize)
+        {
+            goto Error;
+        }
 
         // PacketHeaderCode
         content = content.Slice(RelayHeader.RelayIdLength); // Skip relay id
 
         if (relayNumber < 0)
         {// The target relay
-            if (this.NumberOfRelays < -relayNumber)
+            if (this.NumberOfRelays < -(long)relayNumber)
             {
                 goto Error;
             }
@@ -186,6 +192,7 @@ Exit:
         return true;
 
 Error:
+        encrypted.Return();
         encrypted = default;
         relayEndpoint = default;
         return false;

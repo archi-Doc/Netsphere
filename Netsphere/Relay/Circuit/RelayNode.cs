@@ -23,7 +23,7 @@ public sealed partial class RelayNode
         }
 
         this.ClientConnection = clientConnection;
-        this.InnerKeyAndNonce = assignRelayBlock.InnerKeyAndNonce;
+        this.InnerKeyAndNonce = assignRelayBlock.InnerKeyAndNonce.ToArray();
         this.OuterRelayId = assignRelayResponse.OuterRelayId;
     }
 
