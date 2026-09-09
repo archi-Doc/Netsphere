@@ -16,7 +16,13 @@ public class ClientConnectionContext
 
     public ClientConnection Connection { get; }
 
-    public AuthenticationToken? AuthenticationToken { get; internal set; }
+    public AuthenticationToken? AuthenticationToken
+    {
+        get => this.authenticationToken;
+        internal set => this.authenticationToken = value;
+    }
+
+    private volatile AuthenticationToken? authenticationToken;
 
     public bool IsAuthenticationTokenSet
         => this.AuthenticationToken is not null;

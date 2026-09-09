@@ -484,6 +484,11 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         return r.Result;
     }*/
 
+    /// <summary>
+    /// Verifies a token for this connection and caches it only after the server accepts it.
+    /// </summary>
+    /// <param name="token">A token signed with this connection's salt.</param>
+    /// <returns>Success for the established identity, InvalidData for an invalid token, or InvalidOperation for a different identity.</returns>
     public async Task<NetResult> SetAuthenticationToken(AuthenticationToken token)
     {
         if (token.Equals(this.context.AuthenticationToken))
@@ -494,7 +499,11 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         var r = await this.SendAndReceive<AuthenticationToken, NetResult>(token, ConnectionAgreement.AuthenticationTokenId).ConfigureAwait(false);
         if (r.Result == NetResult.Success)
         {
-            this.context.AuthenticationToken = token;
+            if (r.Value == NetResult.Success)
+            {
+                this.context.AuthenticationToken = token;
+            }
+
             return r.Value;
         }
 

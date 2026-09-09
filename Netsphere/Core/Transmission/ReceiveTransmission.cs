@@ -142,9 +142,9 @@ internal sealed partial class ReceiveTransmission : IDisposable
         var received = false;
         try
         {
-            var response = await this.WaitCore(task, timeoutInMilliseconds, cancellationToken).ConfigureAwait(false);
-            received = response.IsSuccess;
-            return response;
+            var outcome = await this.WaitCore(task, timeoutInMilliseconds, cancellationToken).ConfigureAwait(false);
+            received = outcome.Received;
+            return outcome.Response;
         }
         finally
         {
@@ -743,49 +743,51 @@ Cancel:
     private static void QueueCallback(IResponseChannelInternal channel, NetResult result)
         => _ = Task.Run(() => channel.Invoke(result));
 
-    private async ValueTask<NetResponse> WaitCore(Task<NetResponse> task, int timeoutInMilliseconds, CancellationToken cancellationToken)
+    private async ValueTask<(NetResponse Response, bool Received)> WaitCore(Task<NetResponse> task, int timeoutInMilliseconds, CancellationToken cancellationToken)
     {// I don't think this is a smart approach, but...
-        var remainingMilliseconds = timeoutInMilliseconds;
+        var started = Stopwatch.GetTimestamp();
         while (true)
         {
             if (task.IsCompletedSuccessfully)
             {
-                return task.Result;
+                return (task.Result, true);
             }
 
             if (!this.Connection.NetTerminal.IsActive)
             {// NetTerminal
-                return new(NetResult.Closed);
+                return (new(NetResult.Closed), false);
             }
 
             if (!this.Connection.IsActive)
             {// Connection
-                return new(NetResult.Closed);
+                return (new(NetResult.Closed), false);
             }
 
             try
             {
-                var result = await task.WaitAsync(NetConstants.WaitIntervalTimeSpan, cancellationToken).ConfigureAwait(false);
-                return result;
+                var remainingMilliseconds = timeoutInMilliseconds < 0 ? double.PositiveInfinity :
+                    Math.Max(0, timeoutInMilliseconds - Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+                var interval = TimeSpan.FromMilliseconds(Math.Min(remainingMilliseconds, NetConstants.WaitIntervalMilliseconds));
+                var result = await task.WaitAsync(interval, cancellationToken).ConfigureAwait(false);
+                return (result, true);
             }
             catch (TimeoutException)
             {
-                if (remainingMilliseconds < 0)
+                if (timeoutInMilliseconds < 0)
                 {// Wait indefinitely.
                 }
-                else if (remainingMilliseconds > NetConstants.WaitIntervalMilliseconds)
+                else if (Stopwatch.GetElapsedTime(started).TotalMilliseconds < timeoutInMilliseconds)
                 {// Reduce the time and continue waiting.
-                    remainingMilliseconds -= NetConstants.WaitIntervalMilliseconds;
                 }
                 else
                 {// Timeout
-                    return new(NetResult.Timeout);
+                    return (new(NetResult.Timeout), false);
                 }
             }
 
             if (this.IsDisposed)
             {// Transmission
-                return new(NetResult.Closed);
+                return (new(NetResult.Closed), false);
             }
         }
     }

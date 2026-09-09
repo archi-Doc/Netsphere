@@ -94,6 +94,7 @@ public partial class RelayAgent
 
     private long lastCleanMics;
     private long lastRestrictedMics;
+    private bool stopped;
 
     #endregion
 
@@ -122,6 +123,11 @@ public partial class RelayAgent
 
         using (this.items.LockObject.EnterScope())
         {
+            if (this.stopped)
+            {
+                return RelayResult.ConnectionFailure;
+            }
+
             if (this.items.Count >= this.relayControl.MaxRelayExchanges)
             {
                 return RelayResult.RelayExchangeLimit;
@@ -262,9 +268,14 @@ public partial class RelayAgent
 
         // Setup, cleanup, IPv4 and IPv6 reception share exchange and endpoint state.
         using var scope = this.items.LockObject.EnterScope();
+        if (this.stopped)
+        {
+            return false;
+        }
+
         var span = source.Span.Slice(RelayHeader.RelayIdLength);
         var exchange = this.items.RelayIdChain.FindFirst(destinationRelayId);
-        if (exchange is null || !exchange.DecrementAndCheck())
+        if (exchange is null)
         {
             goto Exit;
         }
@@ -329,6 +340,11 @@ public partial class RelayAgent
                 // decrypted = source.RentArray.AsMemory(RelayHeader.Length, span.Length);
                 if (relayHeader.NetAddress == NetAddress.Relay)
                 {// Initiator -> This node
+                    if (!exchange.DecrementAndCheck())
+                    {
+                        goto Exit;
+                    }
+
                     MemoryMarshal.Write(span, endpoint.RelayId); // SourceRelayId
                     span = span.Slice(sizeof(RelayId));
                     MemoryMarshal.Write(span, destinationRelayId); // DestinationRelayId
@@ -370,7 +386,7 @@ public partial class RelayAgent
                     // Close -> EndPointOperation.SetRestricted ?
 
                     var ep2 = this.GetEndPointCore(relayHeader.NetAddress, operation);
-                    if (ep2.EndPoint is not null)
+                    if (ep2.EndPoint is not null && exchange.DecrementAndCheck())
                     {
                         decrypted.IncrementAndShare();
                         this.sendItems.Enqueue(new(ep2.EndPoint, decrypted));
@@ -386,6 +402,11 @@ public partial class RelayAgent
             {// Not decrypted. Relay the packet to the next node.
                 if (exchange.OuterEndpoint.EndPoint is { } ep)
                 {// -> Outer relay
+                    if (!exchange.DecrementAndCheck())
+                    {
+                        goto Exit;
+                    }
+
                     // Outer Encrypt (RelayTagCode)
                     RelayHelper.Encrypt(exchange.OuterKeyAndNonce, ref source);
 
@@ -508,6 +529,11 @@ AcceptIncoming:
 
             if (serverConnection.DestinationEndpoint.EndPoint is { } ep)
             {
+                if (!exchange.DecrementAndCheck())
+                {
+                    goto Exit;
+                }
+
                 MemoryMarshal.Write(source.Span, exchange.InnerRelayId); // SourceRelayId
                 MemoryMarshal.Write(source.Span.Slice(sizeof(RelayId)), serverConnection.DestinationEndpoint.RelayId); // DestinationRelayId
                 source.IncrementAndShare();
@@ -523,6 +549,20 @@ AcceptIncoming:
 Exit:
         decrypted = default;
         return false;
+    }
+
+    internal void Stop()
+    {
+        using (this.items.LockObject.EnterScope())
+        {
+            this.stopped = true;
+            this.items.ClearAll();
+            this.endPointCache.ClearAll();
+            while (this.sendItems.TryDequeue(out var item))
+            {
+                item.MemoryOwner.Return();
+            }
+        }
     }
 
     internal void ProcessSend(NetSender netSender)

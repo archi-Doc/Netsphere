@@ -88,6 +88,7 @@ public sealed partial class PacketTerminal
     private readonly NetTerminal netTerminal;
     private readonly ILogger logger;
     private readonly Item.GoshujinClass items = new();
+    private bool stopped;
 
     public static void CreatePacket<TPacket>(ulong packetId, TPacket packet, out BytePool.RentMemory rentMemory)
         where TPacket : IPacket, ITinyhandSerializable<TPacket>
@@ -174,7 +175,7 @@ public sealed partial class PacketTerminal
         try
         {
             var response = await this.netTerminal.Wait(responseTcs.Task, this.netTerminal.PacketTransmissionTimeout, cancellationToken).ConfigureAwait(false);
-            responseTaken = responseTcs.Task.IsCompletedSuccessfully && response.IsSuccess;
+            responseTaken = responseTcs.Task.IsCompletedSuccessfully && response.Equals(responseTcs.Task.Result);
 
             if (response.IsFailure)
             {
@@ -614,6 +615,12 @@ public sealed partial class PacketTerminal
         var item = new Item(endpoint.EndPoint, packetId, dataToBeMoved, responseTcs, expectedResponseType, relayNumber == 0 ? endpoint : null);
         using (this.items.LockObject.EnterScope())
         {
+            if (this.stopped)
+            {
+                item.MemoryOwner.Return();
+                return NetResult.Closed;
+            }
+
             item.Goshujin = this.items;
 
             // Send immediately (This enhances performance in a local environment, but since it's meaningless in an actual network, it has been disabled)
@@ -695,6 +702,12 @@ public sealed partial class PacketTerminal
         var item = new Item(endpoint.EndPoint, packetId, dataToBeMoved, default);
         using (this.items.LockObject.EnterScope())
         {
+            if (this.stopped)
+            {
+                item.MemoryOwner.Return();
+                return NetResult.Closed;
+            }
+
             item.Goshujin = this.items;
         }
 
@@ -728,10 +741,33 @@ public sealed partial class PacketTerminal
         var item = new Item(endpoint.EndPoint, packetId, dataToBeMoved, responseTcs, expectedResponseType, endpoint);
         using (this.items.LockObject.EnterScope())
         {
+            if (this.stopped)
+            {
+                item.MemoryOwner.Return();
+                return NetResult.Closed;
+            }
+
             item.Goshujin = this.items;
         }
 
         return NetResult.Success;
+    }
+
+    internal void Stop()
+    {
+        Item[] pending;
+        using (this.items.LockObject.EnterScope())
+        {
+            this.stopped = true;
+            pending = this.items.ToArray();
+            this.items.ClearAll();
+        }
+
+        foreach (var item in pending)
+        {
+            item.MemoryOwner.Return();
+            item.ResponseTcs?.TrySetResult(new(NetResult.Closed));
+        }
     }
 
     private void QueueConnectResponse(NetEndpoint endpoint, ConnectPacket request, ulong packetId, bool incomingRelay, int relayNumber)

@@ -46,6 +46,7 @@ public class RelayCircuit
     private readonly NetTerminal netTerminal;
     private readonly ILogger logger;
     private readonly RelayNode.GoshujinClass relayNodes = new();
+    private readonly SemaphoreSlim mutationLock = new(1, 1);
 
     private volatile RelayKey relayKey = new();
     private long lastPingMics;
@@ -74,6 +75,18 @@ public class RelayCircuit
 
     public async Task<RelayResult> AddRelay(AssignRelayBlock assignRelayBlock, AssignRelayResponse assignRelayResponse, ClientConnection clientConnection)
     {
+        if (assignRelayResponse.Result != RelayResult.Success)
+        {
+            return assignRelayResponse.Result;
+        }
+
+        if (assignRelayResponse.InnerRelayId == 0 || assignRelayResponse.OuterRelayId == 0 ||
+            assignRelayResponse.InnerRelayId == assignRelayResponse.OuterRelayId ||
+            assignRelayBlock.InnerKeyAndNonce is not { Length: AssignRelayBlock.KeyAndNonceSize })
+        {
+            return RelayResult.InvalidEndpoint;
+        }
+
         if (clientConnection.DestinationEndpoint.RelayId != 0)
         {
             return RelayResult.InvalidEndpoint;
@@ -85,44 +98,69 @@ public class RelayCircuit
             return RelayResult.InvalidEndpoint;
         }
 
-        var relayId = assignRelayResponse.InnerRelayId;
-        ClientConnection? lastConnection = default;
-        using (this.relayNodes.LockObject.EnterScope())
+        await this.mutationLock.WaitAsync().ConfigureAwait(false);
+        try
         {
-            var result = this.CanAddRelayInternal(relayId, clientConnection.DestinationEndpoint);
-            if (result != RelayResult.Success)
+            var relayId = assignRelayResponse.InnerRelayId;
+            ClientConnection? lastConnection;
+            RelayKey previousKey;
+            using (this.relayNodes.LockObject.EnterScope())
             {
-                return result;
+                var result = this.CanAddRelayInternal(relayId, clientConnection.DestinationEndpoint);
+                if (result != RelayResult.Success)
+                {
+                    return result;
+                }
+
+                if (!clientConnection.IsOpen)
+                {
+                    return RelayResult.ConnectionFailure;
+                }
+
+                lastConnection = this.relayNodes.LinkedListChain.Last?.ClientConnection;
+                previousKey = this.relayKey;
             }
 
-            lastConnection = this.relayNodes.LinkedListChain.Last?.ClientConnection;
+            var node = new RelayNode(assignRelayBlock, assignRelayResponse, clientConnection);
+            if (lastConnection is not null)
+            {
+                var outerEndpoint = new NetEndpoint(relayId, clientConnection.DestinationEndpoint.EndPoint);
+                var block = new SetupRelayBlock(outerEndpoint, node.InnerKeyAndNonce);
+                var response = await lastConnection.SendAndReceive<SetupRelayBlock, SetupRelayResponse>(block, SetupRelayBlock.DataId).ConfigureAwait(false);
+                if (response.Result != NetResult.Success || response.Value is null)
+                {
+                    return RelayResult.ConnectionFailure;
+                }
 
-            this.relayNodes.Add(new(assignRelayBlock, assignRelayResponse, clientConnection));
-            this.ResetRelayKeyInternal();
-        }
+                if (response.Value.Result != RelayResult.Success)
+                {
+                    return response.Value.Result;
+                }
+            }
 
-        clientConnection.MinimumNumberOfRelays = -clientConnection.MinimumNumberOfRelays - 1; // Configure it as a relay connection and specify the relay circuit number to send data through the relay (use NetAddress.Relay).
-        clientConnection.Agreement.MinimumConnectionRetentionMics = assignRelayResponse.RetensionMics;
+            using (this.relayNodes.LockObject.EnterScope())
+            {
+                if (!ReferenceEquals(previousKey, this.relayKey) || !clientConnection.IsOpen || lastConnection is { IsOpen: false })
+                {
+                    return RelayResult.ConnectionFailure;
+                }
 
-        if (lastConnection is null)
-        {
+                clientConnection.MinimumNumberOfRelays = -clientConnection.MinimumNumberOfRelays - 1; // Configure it as a relay connection and specify the relay circuit number to send data through the relay (use NetAddress.Relay).
+                clientConnection.Agreement.MinimumConnectionRetentionMics = assignRelayResponse.RetensionMics;
+                this.relayNodes.Add(node);
+                this.ResetRelayKeyInternal();
+            }
+
             return RelayResult.Success;
         }
-
-        var outerEndpoint = new NetEndpoint(assignRelayResponse.InnerRelayId, clientConnection.DestinationEndpoint.EndPoint);
-        var block = new SetupRelayBlock(outerEndpoint, assignRelayBlock.InnerKeyAndNonce);
-        var r = await lastConnection.SendAndReceive<SetupRelayBlock, SetupRelayResponse>(block, SetupRelayBlock.DataId);
-        if (r.Result != NetResult.Success ||
-            r.Value is null)
+        finally
         {
-            return RelayResult.ConnectionFailure;
+            this.mutationLock.Release();
         }
-
-        return r.Value.Result;
     }
 
     /// <summary>
-    /// Removes closed relay connections and publishes new encryption keys only when the circuit changes.
+    /// Removes a closed relay and all dependent outer hops, publishing new keys only when the circuit changes.
     /// </summary>
     public void Clean()
     {
@@ -133,7 +171,7 @@ public class RelayCircuit
             while (x is not null)
             {
                 var next = x.LinkedListLink.Next;
-                if (!x.ClientConnection.IsOpen)
+                if (changed || !x.ClientConnection.IsOpen)
                 {// Connection is closed
                     if (NetConstants.LogRelay)
                     {
@@ -169,34 +207,15 @@ public class RelayCircuit
 
     public async Task Close()
     {
-        while (true)
+        await this.mutationLock.WaitAsync().ConfigureAwait(false);
+        try
         {
-            using (this.relayNodes.LockObject.EnterScope())
-            {// Close sequentially starting from the outermost node.
-                RelayNode? node = this.relayNodes.LinkedListChain.Last;
-                if (node is null)
-                {
-                    break;
-                }
-
-                node.Remove();
-                if (this.relayNodes.Count == 0)
-                {
-                    break;
-                }
-            }
-
-            // Send packets with a time delay.
-            await Task.Delay(10);
+            await this.CloseCore().ConfigureAwait(false);
         }
-
-        using (this.relayNodes.LockObject.EnterScope())
+        finally
         {
-            this.relayNodes.ClearAll();
-            this.ResetRelayKeyInternal();
+            this.mutationLock.Release();
         }
-
-        this.netTerminal.ConnectionTerminal.CloseRelayedConnections();
     }
 
     public RelayResult CanAddRelay(RelayId relayId, NetEndpoint endpoint)
@@ -266,6 +285,38 @@ public class RelayCircuit
 
     /*internal bool TryEncrypt(int relayNumber, NetAddress destination, ReadOnlySpan<byte> content, out BytePool.RentMemory encrypted, out NetEndpoint relayEndpoint)
         => this.relayKey.TryEncrypt(relayNumber, destination, content, out encrypted, out relayEndpoint);*/
+
+    private async Task CloseCore()
+    {
+        while (true)
+        {
+            using (this.relayNodes.LockObject.EnterScope())
+            {// Close sequentially starting from the outermost node.
+                RelayNode? node = this.relayNodes.LinkedListChain.Last;
+                if (node is null)
+                {
+                    break;
+                }
+
+                node.Remove();
+                if (this.relayNodes.Count == 0)
+                {
+                    break;
+                }
+            }
+
+            // Send packets with a time delay.
+            await Task.Delay(10);
+        }
+
+        using (this.relayNodes.LockObject.EnterScope())
+        {
+            this.relayNodes.ClearAll();
+            this.ResetRelayKeyInternal();
+        }
+
+        this.netTerminal.ConnectionTerminal.CloseRelayedConnections();
+    }
 
     private void ResetRelayKeyInternal()
     {// using (this.relayNodes.LockObject.EnterScope())

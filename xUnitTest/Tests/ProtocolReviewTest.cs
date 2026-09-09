@@ -199,6 +199,10 @@ public class ProtocolReviewTest
 
             Assert.False(agent.ProcessRelay(endpoint, inner, encrypted, out var decrypted));
             Assert.False(decrypted.IsRent);
+            if (rejection != 1)
+            {
+                Assert.Equal(10, agent.ProcessPingRelay(inner)!.RelayPoint);
+            }
         }
         finally
         {
@@ -253,6 +257,7 @@ public class ProtocolReviewTest
             packet.Span.Clear();
             BitConverter.TryWriteBytes(packet.Span, (ushort)1);
             Assert.False(agent.ProcessRelay(exchange.OuterEndpoint, outer, packet, out _));
+            Assert.Equal(10, exchange.RelayPoint);
             var queued = (IEnumerable)typeof(RelayAgent).GetField("sendItems", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(agent)!;
             Assert.Empty(queued.Cast<object>());
         }

@@ -76,7 +76,11 @@ public abstract class Connection : IDisposable
 
     public ConnectionAgreement Agreement { get; private set; } = ConnectionAgreement.Default;
 
-    public State CurrentState { get; private set; }
+    public State CurrentState
+    {
+        get => this.currentState;
+        private set => this.currentState = value;
+    }
 
     public abstract bool IsClient { get; }
 
@@ -167,6 +171,7 @@ public abstract class Connection : IDisposable
     #region Embryo
 
     private byte[] embryo = Array.Empty<byte>();
+    private volatile State currentState;
 
     // public ulong ConnectionId => BitConverter.ToUInt64(this.embryo.AsSpan(0)); // Assigned in the constructor.
 

@@ -25,7 +25,7 @@ public sealed class NetSocket
             var core = (RecvCore)parameter!;
 
             IPEndPoint anyEP;
-            if (core.socket.UnsafeUdpClient?.Client.AddressFamily == AddressFamily.InterNetwork)
+            if (core.addressFamily == AddressFamily.InterNetwork)
             {
                 anyEP = new IPEndPoint(IPAddress.Any, 0); // IPEndPoint.MinPort
             }
@@ -37,11 +37,7 @@ public sealed class NetSocket
             BytePool.RentArray? rentArray = null;
             while (!core.IsTerminated)
             {
-                var udp = core.socket.UnsafeUdpClient;
-                if (udp == null)
-                {
-                    break;
-                }
+                var udp = core.udp;
 
                 try
                 {// nspi 10^5
@@ -54,7 +50,7 @@ public sealed class NetSocket
                         // core.socket.netTerminal.UnitLogger.Get<NetSocket>(LogLevel.Debug)?.Log($"Receive actual {received}");
                     }
 
-                    if (received <= PacketHeader.Length &&
+                    if (received < PacketHeader.Length &&
                         remoteEP is IPEndPoint endpoint)
                     {
                         var address = new NetAddress(endpoint.Address, (ushort)endpoint.Port);
@@ -66,29 +62,36 @@ public sealed class NetSocket
                     else if (received <= NetConstants.MaxPacketLength)
                     {
                         core.socket.netTerminal.ProcessReceive((IPEndPoint)remoteEP, rentArray, received);
-                        if (rentArray.Count > 1)
-                        {// Byte array is used by multiple owners. Return and rent a new one next time.
-                            rentArray = rentArray.Return();
-                        }
                     }
                 }
                 catch
                 {
+                }
+                finally
+                {
+                    if (rentArray is { Count: > 1 })
+                    {// Byte array is used by multiple owners. Return and rent a new one next time.
+                        rentArray = rentArray.Return();
+                    }
                 }
             }
 
             rentArray?.Return();
         }
 
-        public RecvCore(ExecutionGroup parent, NetSocket socket)
+        public RecvCore(ExecutionGroup parent, NetSocket socket, UdpClient udp)
                 : base(parent, Process, ExecutionCoreOptions.DelayedStart)
         {
             // this.Thread.Priority = ThreadPriority.AboveNormal;
             this.Thread.IsBackground = true;
             this.socket = socket;
+            this.udp = udp;
+            this.addressFamily = udp.Client.AddressFamily;
         }
 
-        private NetSocket socket;
+        private readonly NetSocket socket;
+        private readonly UdpClient udp;
+        private readonly AddressFamily addressFamily;
     }
 
     public NetSocket(NetTerminal netTerminal)
@@ -99,26 +102,42 @@ public sealed class NetSocket
     #region FieldAndProperty
 
 #pragma warning disable SA1401 // Fields should be private
-    internal UdpClient? UnsafeUdpClient;
+    internal volatile UdpClient? UnsafeUdpClient;
 #pragma warning restore SA1401 // Fields should be private
 
     private readonly NetTerminal netTerminal;
+    private readonly Lock lifecycleLock = new();
     private RecvCore? recvCore;
 
     #endregion
 
+    /// <summary>
+    /// Starts a stopped socket with a new receive loop. Concurrent starts allow only one caller to succeed.
+    /// </summary>
+    /// <param name="parent">The execution group that owns the receive loop.</param>
+    /// <param name="port">The UDP port, or zero to select an available port.</param>
+    /// <param name="ipv6">Whether to use IPv6.</param>
+    /// <param name="boundPort">The assigned port on success.</param>
+    /// <returns>Whether binding and starting succeeded; false if already running.</returns>
     public bool Start(ExecutionGroup parent, int port, bool ipv6, out int boundPort)
     {
+        using var scope = this.lifecycleLock.EnterScope();
         boundPort = 0;
-        this.recvCore ??= new RecvCore(parent, this);
+        if (this.recvCore is not null)
+        {
+            return false;
+        }
 
         try
         {
             this.PrepareUdpClient(port, ipv6);
             boundPort = ((IPEndPoint)this.UnsafeUdpClient!.Client.LocalEndPoint!).Port;
+            this.recvCore = new RecvCore(parent, this, this.UnsafeUdpClient);
         }
         catch
         {
+            this.UnsafeUdpClient?.Dispose();
+            this.UnsafeUdpClient = null;
             return false;
         }
 
@@ -127,9 +146,14 @@ public sealed class NetSocket
         return true;
     }
 
+    /// <summary>
+    /// Closes the socket and releases its receive loop. Repeated calls are safe.
+    /// </summary>
     public void Stop()
     {
-        this.recvCore?.Dispose();
+        using var scope = this.lifecycleLock.EnterScope();
+        var core = this.recvCore;
+        this.recvCore = null;
 
         try
         {
@@ -142,6 +166,8 @@ public sealed class NetSocket
         catch
         {
         }
+
+        core?.Dispose();
     }
 
     private void PrepareUdpClient(int port, bool ipv6)

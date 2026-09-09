@@ -255,7 +255,11 @@ Console.WriteLine($"{response.Result}: {response.Value}");
 
 `AuthenticationToken`, `CertificateToken<T>`, `INetServiceWithAuthenticate`, and `INetServiceWithConnectBidirectionally` support application-defined authentication and bidirectional access. Encryption alone does not authorize a service call; implement the relevant server policy.
 
+`SetAuthenticationToken` retains the first verified public-key identity on a connection. A different identity is rejected, including concurrent requests; use a new connection to change identities. Failed authentication is not cached as success.
+
 Relay circuits are available through `NetTerminal.IncomingCircuit` and `OutgoingCircuit`. The default `NoRelayControl` disables relay allocation. Applications can supply an `IRelayControl`, such as `CertificateRelayControl`, and configure relay limits. See the [relay test](xUnitTest/Tests/RelayTest.cs).
+
+Circuit additions are published after the preceding relay accepts setup. Failed setup leaves the existing circuit intact. Cleanup removes a closed hop and all outer hops that depend on it. Rejected source endpoints and failed authentication do not consume relay points.
 
 This commented example is retained from the earlier README as a historical snippet:
 

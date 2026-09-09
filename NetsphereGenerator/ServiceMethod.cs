@@ -223,6 +223,20 @@ public class ServiceMethod
     public int GetParameterCount(int decrement)
         => this.method.Method_Parameters.Length - decrement;
 
+    public string GetReturnTypeName()
+    {
+        if (this.method.TryGetMethodSymbol()?.ReturnType is INamedTypeSymbol { TypeArguments.Length: 1 } task)
+        {
+            var format = SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+                SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
+                SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier |
+                SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers);
+            return task.TypeArguments[0].ToDisplayString(format);
+        }
+
+        return this.ReturnObject?.FullNameWithNullable ?? string.Empty;
+    }
+
     public IEnumerable<string> GetParameterFormatterRegistrations(int decrement)
     {
         var parameters = this.method.Method_Parameters;

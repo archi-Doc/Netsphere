@@ -1,5 +1,6 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Netsphere.Core;
 using Netsphere.Crypto;
@@ -187,6 +188,8 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         await this.ConnectionTerminal.Terminate(cancellationToken).ConfigureAwait(false);
 
         this.NetSender.Stop();
+        this.PacketTerminal.Stop();
+        this.RelayAgent.Stop();
 
         this.ExecutionGroup.RequestTermination();
     }
@@ -211,9 +214,14 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 
     internal async Task<NetResponse> Wait(Task<NetResponse> task, TimeSpan timeout, CancellationToken cancellationToken)
     {// I don't think this is a smart approach, but...
-        var remaining = timeout;
+        var started = Stopwatch.GetTimestamp();
         while (true)
         {
+            if (task.IsCompletedSuccessfully)
+            {
+                return task.Result;
+            }
+
             if (!this.IsActive)
             {// NetTerminal
                 return new(NetResult.Closed);
@@ -221,17 +229,18 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
 
             try
             {
-                var result = await task.WaitAsync(NetConstants.WaitIntervalTimeSpan, cancellationToken).ConfigureAwait(false);
+                var remaining = timeout < TimeSpan.Zero ? NetConstants.WaitIntervalTimeSpan : timeout - Stopwatch.GetElapsedTime(started);
+                var interval = remaining <= TimeSpan.Zero ? TimeSpan.Zero : remaining < NetConstants.WaitIntervalTimeSpan ? remaining : NetConstants.WaitIntervalTimeSpan;
+                var result = await task.WaitAsync(interval, cancellationToken).ConfigureAwait(false);
                 return result;
             }
             catch (TimeoutException)
             {
-                if (remaining < TimeSpan.Zero)
+                if (timeout < TimeSpan.Zero)
                 {// Wait indefinitely.
                 }
-                else if (remaining > NetConstants.WaitIntervalTimeSpan)
+                else if (Stopwatch.GetElapsedTime(started) < timeout)
                 {// Reduce the time and continue waiting.
-                    remaining -= NetConstants.WaitIntervalTimeSpan;
                 }
                 else
                 {// Timeout

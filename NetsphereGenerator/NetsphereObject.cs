@@ -505,9 +505,10 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
     internal void GenerateFrontend_Method(ScopingStringBuilder ssb, GeneratorInformation info, ServiceMethod method)
     {
-        var genericString = method.ReturnObject == null ? string.Empty : $"<{method.ReturnObject.FullNameWithNullable}>";
+        var returnTypeName = method.GetReturnTypeName();
+        var genericString = method.ReturnObject == null ? string.Empty : $"<{returnTypeName}>";
         var taskString = $"Task{genericString}";
-        var deserializeString = method.ReturnObject == null ? "NetResult" : method.ReturnObject.FullNameWithNullable;
+        var deserializeString = method.ReturnObject == null ? "NetResult" : returnTypeName;
         var decrement = method.HasCancellationTokenParameter ? 1 : 0;
 
         var asyncPrefix = "async ";
@@ -817,28 +818,28 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             var previousAsync = true;
             if (filters != null)
             {
-                ServiceFilterGroup.GenerateInitialize(ssb, "c0.ConnectionContext.ServiceProvider", filters);
+                ServiceFilterGroup.GenerateInitialize(ssb, "c0.ServerConnection.GetContext().ServiceProvider", filters);
                 ssb.AppendLine();
 
-                var sb = new StringBuilder();
-                var n = 1;
-                for (var i = filters.Length - 1; i >= 0; i--, n++)
+                code = $"Core(({serviceInterface.FullName})obj, c{filters.Length})";
+                for (var i = filters.Length - 1; i >= 0; i--)
                 {
+                    var n = i + 1;
                     var item = filters[i];
                     if (i != filters.Length)
                     {
                         var filterType = item.CallContextObject == null ? string.Empty : $"({item.CallContextObject.FullName})";
                         if (item.IsAsync == previousAsync)
                         {
-                            code = $"{item.Identifier}.{NetsphereBody.ServiceFilterInvokeName}({filterType}c0, c{n} => {code})";
+                            code = $"{item.Identifier}.{NetsphereBody.ServiceFilterInvokeName}({filterType}c{i}, c{n} => {code})";
                         }
                         else if (item.IsAsync)
                         {
-                            code = $"{item.Identifier}.{NetsphereBody.ServiceFilterInvokeName}({filterType}c0, async c{n} => {code})";
+                            code = $"{item.Identifier}.{NetsphereBody.ServiceFilterInvokeName}({filterType}c{i}, async c{n} => {code})";
                         }
                         else
                         {
-                            code = $"{item.Identifier}.{NetsphereBody.ServiceFilterInvokeName}({filterType}c0, c{n} => {code}.Wait())";
+                            code = $"{item.Identifier}.{NetsphereBody.ServiceFilterInvokeName}({filterType}c{i}, c{n} => {code}.Wait())";
                         }
 
                         previousAsync = item.IsAsync;
