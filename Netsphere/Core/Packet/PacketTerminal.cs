@@ -398,14 +398,7 @@ public sealed partial class PacketTerminal
                         return;
                     }
 
-                    Task.Run(() =>
-                    {
-                        var packet = new ConnectPacketResponse(this.netBase.DefaultAgreement, endpoint);
-                        this.netTerminal.ConnectionTerminal.PrepareServerSide(endpoint, p, packet, relayNumber);
-                        CreatePacket(packetId, packet, out var rentMemory); // CreatePacketCode (no relay)
-                        // this.SendPacketWithoutRelay(endpoint, rentMemory, default);
-                        this.SendPacketWithRelay(endpoint, rentMemory, incomingRelay, relayNumber);
-                    });
+                    this.QueueConnectResponse(endpoint, p, packetId, incomingRelay, relayNumber);
 
                     return;
                 }
@@ -739,5 +732,17 @@ public sealed partial class PacketTerminal
         }
 
         return NetResult.Success;
+    }
+
+    private void QueueConnectResponse(NetEndpoint endpoint, ConnectPacket request, ulong packetId, bool incomingRelay, int relayNumber)
+    {
+        _ = Task.Run(() =>
+        {
+            var packet = new ConnectPacketResponse(this.netBase.DefaultAgreement, endpoint);
+            this.netTerminal.ConnectionTerminal.PrepareServerSide(endpoint, request, packet, relayNumber);
+            CreatePacket(packetId, packet, out var rentMemory); // CreatePacketCode (no relay)
+            // this.SendPacketWithoutRelay(endpoint, rentMemory, default);
+            this.SendPacketWithRelay(endpoint, rentMemory, incomingRelay, relayNumber);
+        });
     }
 }

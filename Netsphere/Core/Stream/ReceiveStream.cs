@@ -88,6 +88,12 @@ public class ReceiveStream : IReceiveStreamInternal // , IDisposable
         this.DisposeImmediately();
     }
 
+    /// <summary>
+    /// Reads stream bytes into the supplied buffer.
+    /// </summary>
+    /// <param name="buffer">The destination, which must remain available until the task completes.</param>
+    /// <param name="cancellationToken">Stops the local read operation.</param>
+    /// <returns>The result and byte count. A Completed result may include final bytes.</returns>
     public async Task<(NetResult Result, int Written)> Receive(Memory<byte> buffer, CancellationToken cancellationToken = default)
     {
         try

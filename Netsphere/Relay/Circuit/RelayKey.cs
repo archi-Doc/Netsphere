@@ -7,7 +7,7 @@ using Netsphere.Packet;
 namespace Netsphere.Relay;
 
 /// <summary>
-/// <see cref="RelayKey"/> is a class that caches encryption information for the relay circuit.
+/// Stores a published snapshot of relay endpoints and encryption keys.
 /// </summary>
 internal class RelayKey
 {

@@ -133,7 +133,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
             this.receivedNetUnion = null;
             // Disposal may run while the connection's non-reentrant owner lock is held.
             // A callback is allowed to start another request on the same connection.
-            _ = Task.Run(() => channel.Invoke(result));
+            QueueCallback(channel, result);
         }
     }
 
@@ -739,6 +739,9 @@ Cancel:
         this.Connection.RemoveTransmission(this);
         return (NetResult.Canceled, written);
     }
+
+    private static void QueueCallback(IResponseChannelInternal channel, NetResult result)
+        => _ = Task.Run(() => channel.Invoke(result));
 
     private async ValueTask<NetResponse> WaitCore(Task<NetResponse> task, int timeoutInMilliseconds, CancellationToken cancellationToken)
     {// I don't think this is a smart approach, but...

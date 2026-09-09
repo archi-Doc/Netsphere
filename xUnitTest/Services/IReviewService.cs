@@ -13,6 +13,12 @@ public interface IReviewService : INetService
 
     Task<Memory<byte>> EchoMemory(Memory<byte> memory);
 
+    Task<ReadOnlyMemory<byte>> EchoReadOnlyMemory(ReadOnlyMemory<byte> memory);
+
+    Task<byte[]?> EchoArray(byte[] memory);
+
+    Task<Memory<byte>> SliceMemory(Memory<byte> memory);
+
     Task<ReceiveStream?> Open(CancellationToken cancellationToken);
 
     Task<NetResultAndValue<int>> Result();
@@ -29,6 +35,12 @@ public class ReviewService : IReviewService
     public Task<Memory<byte>> Memory() => Task.FromResult(new byte[] { 1, 2, 3 }.AsMemory());
 
     public Task<Memory<byte>> EchoMemory(Memory<byte> memory) => Task.FromResult(memory);
+
+    public Task<ReadOnlyMemory<byte>> EchoReadOnlyMemory(ReadOnlyMemory<byte> memory) => Task.FromResult(memory);
+
+    public Task<byte[]?> EchoArray(byte[] memory) => Task.FromResult<byte[]?>(memory);
+
+    public Task<Memory<byte>> SliceMemory(Memory<byte> memory) => Task.FromResult(memory.Slice(memory.Length / 2));
 
     public Task<ReceiveStream?> Open(CancellationToken cancellationToken) => Task.FromResult<ReceiveStream?>(null);
 

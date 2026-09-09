@@ -1,7 +1,10 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Path,
-    [string]$Module = 'Netsphere'
+    [string]$Module = 'Netsphere',
+    [ValidateSet('Handwritten', 'Generated', 'All')]
+    [string]$SourceKind = 'Handwritten',
+    [string]$FilePattern = '*'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,11 +14,14 @@ if ($null -eq $package) {
     throw "Module '$Module' was not found in '$Path'."
 }
 
-# Count each source line once, including async methods, but exclude generated files.
+# Count each source line once, including async methods.
 $files = @{}
 foreach ($class in $package.classes.class) {
     $filename = [string]$class.filename
-    if ($filename -match '[\\/](obj|bin|Generated)[\\/]') {
+    $generated = $filename -match '[\\/](obj|bin|Generated)[\\/]|[\\/]gen\.[^\\/]+\.cs$|\.g\.cs$'
+    if (($SourceKind -eq 'Handwritten' -and $generated) -or
+        ($SourceKind -eq 'Generated' -and -not $generated) -or
+        $filename -notlike $FilePattern) {
         continue
     }
 
@@ -46,6 +52,7 @@ $coveredTotal = ($rows | Measure-Object -Property CoveredLines -Sum).Sum
 $lineTotal = ($rows | Measure-Object -Property TotalLines -Sum).Sum
 [pscustomobject]@{
     Module = $Module
+    SourceKind = $SourceKind
     CoveredLines = $coveredTotal
     TotalLines = $lineTotal
     LineCoverage = if ($lineTotal) { [math]::Round(100 * $coveredTotal / $lineTotal, 2) } else { 0 }

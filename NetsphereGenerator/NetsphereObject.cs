@@ -632,7 +632,12 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             {
                 var cancellationToken = method.HasCancellationTokenParameter ? $", {NetsphereBody.ArgumentName}{method.ParameterLength}" : string.Empty;
                 ssb.AppendLine($"var response = await (({NetsphereBody.IClientConnectionInternalName})this.ClientConnection).RpcSendAndReceive(owner, {method.IdString}{cancellationToken}).ConfigureAwait(false);");
-                ssb.AppendLine("var transferResponse = false;");
+                var transfersResponse = method.ReturnType == ServiceMethod.Type.RentMemory || method.ReturnType == ServiceMethod.Type.RentReadOnlyMemory;
+                if (transfersResponse)
+                {
+                    ssb.AppendLine("var transferResponse = false;");
+                }
+
                 var scopeResponse = ssb.ScopeBrace("try");
                 using (var scopeNoNetService = ssb.ScopeBrace("if (response.Result == NetResult.Success && response.Value.IsEmpty)"))
                 {
@@ -696,9 +701,18 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
                 scopeResponse.Dispose();
                 using (ssb.ScopeBrace("finally"))
-                using (ssb.ScopeBrace("if (!transferResponse)"))
                 {
-                    ssb.AppendLine("response.Value.Return();");
+                    if (transfersResponse)
+                    {
+                        using (ssb.ScopeBrace("if (!transferResponse)"))
+                        {
+                            ssb.AppendLine("response.Value.Return();");
+                        }
+                    }
+                    else
+                    {
+                        ssb.AppendLine("response.Value.Return();");
+                    }
                 }
             }
 
@@ -1030,11 +1044,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             method.ReturnType == ServiceMethod.Type.Memory ||
             method.ReturnType == ServiceMethod.Type.ReadOnlyMemory)
         {// byte[]/Memory/ReadOnlyMemory
-            ssb.AppendLine("ReadOnlyMemory<byte> responseMemory = result;");
-            ssb.AppendLine("var owner2 = Arc.Collections.BytePool.Default.Rent(responseMemory.Length).AsMemory(0, responseMemory.Length);");
-            ssb.AppendLine("responseMemory.CopyTo(owner2.Memory);");
-            this.Generate_ReturnRentMemory(ssb);
-            ssb.AppendLine("context.RentMemory = owner2;");
+            ssb.AppendLine("context.SetResponseMemory(result);");
         }
         else if (method.ReturnType == ServiceMethod.Type.RentMemory)
         {// BytePool.RentMemory result;

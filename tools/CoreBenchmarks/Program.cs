@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Netsphere;
 using Netsphere.Core;
 using Netsphere.Packet;
+using Netsphere.Relay;
 
 var outputPath = Path.GetFullPath(args.Length == 0 ? "core-benchmark.json" : args[0]);
 var console = Console.Out;
@@ -69,6 +70,16 @@ try
         memory.Return();
     });
 
+    PacketTerminal.CreatePacket(ulong.MaxValue, new PingPacketResponse(connection.DestinationEndpoint, "benchmark", 0), out var unsolicitedResponse);
+    try
+    {
+        Measure("Receive unmatched ping response", 100_000, () => netUnit.NetTerminal.PacketTerminal.ProcessReceive(connection.DestinationEndpoint, 0, false, 0, (ushort)PacketType.PingResponse, unsolicitedResponse, 0));
+    }
+    finally
+    {
+        unsolicitedResponse.Return();
+    }
+
     var input = new byte[1024];
     var encrypted = new byte[1040];
     Measure("Encrypt 1024 bytes", 100_000, () => connection.Encrypt(1, 1, input, encrypted, out _));
@@ -76,6 +87,35 @@ try
     using var transmission = new SendTransmission(connection, uint.MaxValue);
     transmission.Dispose();
     Measure("Process duplicate burst ACK", 30_000, () => transmission.ProcessReceive_AckBlock(0, 0, Span<byte>.Empty, 0));
+
+    Measure("Create and dispose receiver without callback", 100_000, () =>
+    {
+        using var receiver = new ReceiveTransmission(connection, uint.MaxValue, null, null);
+    });
+    using var disposedReceiver = new ReceiveTransmission(connection, uint.MaxValue, null, null);
+    disposedReceiver.Dispose();
+    Measure("Dispose receiver again", 100_000, disposedReceiver.Dispose);
+
+    var circuit = new RelayCircuit(netUnit.NetTerminal, false);
+    Measure("Clean unchanged empty relay circuit", 100_000, circuit.Clean);
+
+    using var server = new ServerConnection(connection);
+    var context = new TransmissionContext(server, 42, 1, 0, BytePool.Default.Rent(1024).AsMemory(0, 1024));
+    try
+    {
+        Measure("Response 1024 bytes: rent/copy/return", 100_000, () =>
+        {
+            var owner = BytePool.Default.Rent(input.Length).AsMemory(0, input.Length);
+            input.CopyTo(owner.Span);
+            context.Return();
+            context.RentMemory = owner;
+        });
+        Measure("Response 1024 bytes: reuse owned buffer", 100_000, () => context.SetResponseMemory(input));
+    }
+    finally
+    {
+        context.Return();
+    }
 }
 finally
 {
@@ -84,6 +124,7 @@ finally
 }
 
 var json = JsonSerializer.Serialize(new { Runtime = Environment.Version.ToString(), OS = Environment.OSVersion.ToString(), Samples = 7, Results = results }, new JsonSerializerOptions { WriteIndented = true });
+Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
 await File.WriteAllTextAsync(outputPath, json);
 Console.WriteLine(json);
 

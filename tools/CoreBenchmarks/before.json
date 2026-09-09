@@ -1,0 +1,61 @@
+{
+  "Runtime": "10.0.12",
+  "OS": "Microsoft Windows NT 10.0.26200.0",
+  "Samples": 7,
+  "Results": [
+    {
+      "Name": "IPv4 TryFormat",
+      "Iterations": 500000,
+      "NanosecondsPerOperation": 19.29,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Locked ConcurrentQueue: 32 enqueue/dequeue pairs",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 524.15,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Locked Queue: 32 enqueue/dequeue pairs",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 352.75,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Create ping packet",
+      "Iterations": 30000,
+      "NanosecondsPerOperation": 183.69,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Encrypt 1024 bytes",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 186.77,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Process duplicate burst ACK",
+      "Iterations": 30000,
+      "NanosecondsPerOperation": 28.91,
+      "BytesPerOperation": 0
+    },
+    {
+      "Name": "Create and dispose receiver without callback",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 95.47,
+      "BytesPerOperation": 208
+    },
+    {
+      "Name": "Dispose receiver again",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 69.29,
+      "BytesPerOperation": 32
+    },
+    {
+      "Name": "Clean unchanged empty relay circuit",
+      "Iterations": 100000,
+      "NanosecondsPerOperation": 139.74,
+      "BytesPerOperation": 128
+    }
+  ]
+}

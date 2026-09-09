@@ -13,11 +13,13 @@ Netsphere is a UDP-based network library for C# with generated RPC, serialized b
 - [Service lifetime and filters](#service-lifetime-and-filters)
 - [Options and connection limits](#options-and-connection-limits)
 - [Blocks and streams](#blocks-and-streams)
+- [Memory ownership and concurrency](#memory-ownership-and-concurrency)
 - [ResponseChannel](#responsechannel)
 - [Identity, authentication, and relays](#identity-authentication-and-relays)
 - [Supporting utilities](#supporting-utilities)
 - [Troubleshooting](#troubleshooting)
 - [Building and testing](#building-and-testing)
+- [Performance measurements](#performance-measurements)
 
 ## Requirements and installation
 
@@ -144,6 +146,7 @@ This example uses loopback and a newly generated key on each server run. For rem
 - Mark the shared interface with `[NetService]` and inherit `INetService`.
 - Mark the implementation with `[NetObject]`, register it, and enable it through `NetTerminal.Services`.
 - Use Tinyhand-serializable arguments and response values. Keep contract definitions consistent between client and server.
+- Rebuild both endpoints when updating the generator. Generated wire formats, including specialized byte-memory handling, must match; compatibility with older generated proxies is not guaranteed.
 - Methods return `Task`, `Task<T>`, or use the [ResponseChannel](#responsechannel) form. A cancellation token on a Task-based method must be the final parameter.
 - Prefer `Task<NetResult>` or `Task<NetResultAndValue<T>>` when callers need an explicit status. A plain `Task<T>` does not expose transport status separately from its value.
 
@@ -155,7 +158,7 @@ Implementations are resolved lazily and cached for each server connection. Their
 
 `TransmissionContext.Current` exposes the active request and its server connection while a handler runs. Enable or disable services for that connection through `TransmissionContext.Current.ServerConnection.GetContext()`. `NetTerminal.Services` sets the defaults for new connections.
 
-Apply `[NetServiceFilter<TFilter>]` to an implementation class or method. Filters implement `IServiceFilter` and receive the request context and continuation. `Order` controls execution order; `Arguments` are passed to `SetArguments`. Generated filters are shared by implementation type, so keep request-specific state in local variables or the request context. See the [filter examples](xUnitTest/Services/IFilterTestService.cs).
+Apply `[NetServiceFilter<TFilter>]` to an implementation class or method. Filters implement `IServiceFilter` and receive the request context and continuation. Class and method filters are combined in ascending `Order`; `Arguments` are passed to `SetArguments`. A filter with a parameterless constructor is created for each invocation. Other filters are resolved from DI and follow the registered lifetime. Shared DI instances must handle concurrent calls and argument initialization. Filters also run for `ResponseChannel` methods. See the [filter examples](xUnitTest/Services/IFilterTestService.cs).
 
 ## Options and connection limits
 
@@ -188,13 +191,30 @@ For typed blocks outside RPC, register an `INetResponder` and use `ClientConnect
 | Stream direction | Service return type | Server operation |
 | --- | --- | --- |
 | Server to client | `Task<ReceiveStream?>` | `GetSendStream(...)`, then `Send` and `Complete` |
+| Client to server | `Task<SendStream?>` | `GetReceiveStream()`, then `Receive` |
 | Client to server with a response | `Task<SendStreamAndReceive<T>?>` | `GetReceiveStream<T>()`, then `Receive` and `SendAndDispose` |
 
-Server operations use `TransmissionContext.Current`. For client-to-server streaming methods, the final request parameter is a `long` maximum stream length. The client sends chunks and calls `CompleteSendAndReceive`. When receiving, consume the reported `Written` bytes, including those returned with `NetResult.Completed`. Stop using a stream after an error and pass cancellation tokens where appropriate.
+Server operations use `TransmissionContext.Current`. For client-to-server streaming methods, the final request parameter is a `long` maximum stream length. The client sends chunks and calls `Complete` or `CompleteSendAndReceive`, according to the stream type. When receiving, consume the reported `Written` bytes, including those returned with `NetResult.Completed`. Stop using a stream after an error and pass cancellation tokens where appropriate.
 
 See the complete [stream service](xUnitTest/Services/IStreamService.cs) and [client tests](xUnitTest/Tests/StreamTest.cs) for both directions and data verification.
 
-Low-level APIs may return `BytePool.RentMemory` or `NetResponse`. Return owned pooled buffers after use; copying a value does not create another owned reference.
+## Memory ownership and concurrency
+
+| Value | Lifetime and responsibility |
+| --- | --- |
+| RPC `byte[]`, `Memory<byte>`, or `ReadOnlyMemory<byte>` response | The client receives an independent copy that remains valid after the call. |
+| RPC `Memory<byte>` or `ReadOnlyMemory<byte>` argument inside a handler | Borrowed request storage; do not retain it after the handler returns. Returning it or a slice as the response is supported. |
+| RPC `BytePool.RentMemory` or `RentReadOnlyMemory` response | Ownership transfers to the client, which must return the lease after use. |
+| Low-level `NetResponse` | Call `Return()` exactly once after consuming its buffer. |
+| Stream send or receive buffer | Keep it available and do not modify send data until the operation finishes. |
+
+Raw byte-array responses use no null marker: an empty payload is returned as `null`. Use a serialized wrapper when callers must distinguish an empty array from `null`.
+
+Copying a pooled-memory struct does not acquire another lease. Use `IncrementAndShare()` when another owner needs its own reference, and return every acquired lease exactly once. Generated byte-memory responses reuse an exclusively owned request buffer when it fits; otherwise they copy before releasing the request.
+
+Calls on a connection may overlap. Protect mutable service state, shared DI filters, and responder state. Stream operations serialize concurrent sends or reads, but their arrival order is not guaranteed; await each operation when ordering matters. A `TransmissionContext` belongs to one request and must not be mutated concurrently.
+
+A generated method's trailing `CancellationToken` controls the client's local operation. It is not serialized or propagated to the server handler, which currently receives `default`. Cancellation or timeout does not prove that remote work stopped. Use an application-level cancellation protocol if the server must stop that work.
 
 ## ResponseChannel
 
@@ -227,7 +247,7 @@ var response = await received.Task.WaitAsync(TimeSpan.FromSeconds(5));
 Console.WriteLine($"{response.Result}: {response.Value}");
 ```
 
-`WaitForReceiveCompletion` waits for the receive count to reach zero; it does not guarantee that a callback has finished. Keep callbacks short because they run on the receive path.
+`WaitForReceiveCompletion` waits for the receive count to reach zero; it does not guarantee that a callback has finished. Callbacks may run on the receive path, on the thread pool during transmission closure, or during a local send failure. Keep them short and await a callback-owned signal when completion matters.
 
 ## Identity, authentication, and relays
 
@@ -273,10 +293,27 @@ To collect coverage:
 
 ```shell
 dotnet tool restore
-dotnet build xUnitTest/xUnitTest.csproj -c Debug
-dotnet tool run dotnet-coverage collect -f cobertura -o coverage.xml dotnet xUnitTest/bin/Debug/net10.0/xUnitTest.dll
+dotnet build xUnitTest/xUnitTest.csproj -c Debug -t:Rebuild -p:EmitCompilerGeneratedFiles=true -p:CompilerGeneratedFilesOutputPath=obj/CoverageGenerated
+dotnet tool run dotnet-coverage collect -f cobertura -o artifacts/coverage.xml dotnet xUnitTest/bin/Debug/net10.0/xUnitTest.dll
 ```
 
-Use `tools/Summarize-Coverage.ps1 -Path coverage.xml` to summarize handwritten Netsphere code. `tools/CoreBenchmarks` contains local microbenchmarks; run them separately from network tests because both use the diagnostic terminal.
+In PowerShell, summarize handwritten runtime code and generated RPC code separately:
+
+```powershell
+./tools/Summarize-Coverage.ps1 -Path artifacts/coverage.xml
+./tools/Summarize-Coverage.ps1 -Path artifacts/coverage.xml -Module xUnitTest -SourceKind Generated -FilePattern '*gen.Netsphere.*.cs'
+```
+
+The script merges duplicate source lines from async state machines. These are line coverage measurements, not proof that every branch, race, or network-failure sequence was exercised. Generated code is covered in the consuming assembly; the generator itself executes during compilation.
+
+## Performance measurements
+
+Run the microbenchmarks in Release mode, separately from tests because both use the diagnostic terminal:
+
+```shell
+dotnet run --project tools/CoreBenchmarks/CoreBenchmarks.csproj -c Release -- artifacts/core-benchmark.json
+```
+
+The harness warms each case and reports the median of seven samples, with elapsed nanoseconds and allocated bytes per operation on the measuring thread. It covers formatting, queues, packet creation, encryption, transmission cleanup, relay cleanup, and response-buffer reuse. It does not measure allocations on other threads or end-to-end network throughput. Pool misses, payload sizes, filters, and asynchronous work can still allocate. See [PERFORMANCE_REVIEW.md](PERFORMANCE_REVIEW.md) for the measured changes and coverage gaps.
 
 The repository also contains [QuickStartServer](QuickStartServer), [QuickStartClient](QuickStartClient), and [NetsphereTest](NetsphereTest) examples. Netsphere is licensed under the [MIT license](LICENSE).

@@ -3,7 +3,7 @@
 namespace Netsphere;
 
 /// <summary>
-/// Defines initialization shared by network service filters.
+/// Accepts arguments configured by a service filter attribute.
 /// </summary>
 public interface IServiceFilterBase
 {
@@ -13,8 +13,9 @@ public interface IServiceFilterBase
 }
 
 /// <summary>
-/// Intercepts asynchronous network service calls.
+/// Intercepts network service calls, including ResponseChannel handlers.
 /// </summary>
+/// <remarks>Await the continuation before accessing the response. DI-provided instances may serve concurrent requests.</remarks>
 public interface IServiceFilter : IServiceFilterBase
 {
     public Task Invoke(TransmissionContext context, Func<TransmissionContext, Task> invoker);

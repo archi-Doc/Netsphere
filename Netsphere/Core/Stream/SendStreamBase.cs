@@ -82,6 +82,12 @@ public abstract class SendStreamBase
         return result;
     }
 
+    /// <summary>
+    /// Sends a chunk within the stream's remaining length.
+    /// </summary>
+    /// <param name="buffer">The source bytes. Keep them unchanged until the returned task completes.</param>
+    /// <param name="cancellationToken">Stops the local send operation.</param>
+    /// <returns>The transport result for this chunk.</returns>
     public Task<NetResult> Send(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
         => this.SendInternal(DataControl.Valid, buffer, cancellationToken);
 

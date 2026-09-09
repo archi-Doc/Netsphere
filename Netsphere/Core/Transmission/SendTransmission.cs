@@ -555,6 +555,11 @@ internal sealed partial class SendTransmission : IDisposable
 
     internal void ProcessReceive_AckBlock(int maxReceivePosition, int successiveReceivedPosition, scoped Span<byte> span, ushort numberOfPairs)
     {// using (SendTransmissions.lockObject.EnterScope())
+        if (this.Mode == NetTransmissionMode.Disposed)
+        {
+            return;
+        }
+
         var completeFlag = false;
         int lossPosition = -1;
         var congestionControl = this.Connection.GetCongestionControl();

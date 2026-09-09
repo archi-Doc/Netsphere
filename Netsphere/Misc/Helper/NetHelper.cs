@@ -303,13 +303,25 @@ public static class NetHelper
         }
     }
 
+    /// <summary>
+    /// Serializes a transport result into a one-byte pooled lease.
+    /// </summary>
+    /// <param name="value">The result code.</param>
+    /// <param name="rentMemory">The owned buffer; return it after use.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SerializeNetResult(NetResult value, out BytePool.RentMemory rentMemory)
     {
-        rentMemory = BytePool.Default.Rent(1).AsMemory();
+        rentMemory = BytePool.Default.Rent(1).AsMemory(0, 1);
         rentMemory.Span[0] = (byte)value;
     }
 
+    /// <summary>
+    /// Serializes a value with Tinyhand into an owned pooled buffer.
+    /// </summary>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <param name="value">The value to serialize.</param>
+    /// <param name="rentMemory">The lease to return after use, or an empty value on failure.</param>
+    /// <returns>Whether serialization succeeded.</returns>
     public static bool TrySerialize<T>(T value, out BytePool.RentMemory rentMemory)
     {
         var writer = TinyhandWriter.CreateFromBytePool();
@@ -330,6 +342,13 @@ public static class NetHelper
         }
     }
 
+    /// <summary>
+    /// Serializes a value with a four-byte payload length prefix for stream transport.
+    /// </summary>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <param name="value">The value to serialize.</param>
+    /// <param name="rentMemory">The owned prefix and payload; return the lease after use.</param>
+    /// <returns>Whether serialization succeeded; failure returns an empty lease.</returns>
     public static bool TrySerializeWithLength<T>(T value, out BytePool.RentMemory rentMemory)
     {
         var writer = TinyhandWriter.CreateFromBytePool();
@@ -346,6 +365,10 @@ public static class NetHelper
         {
             rentMemory = default;
             return false;
+        }
+        finally
+        {
+            writer.Dispose();
         }
     }
 
@@ -418,29 +441,29 @@ public static class NetHelper
     }
 
     /// <summary>
-    /// Validates the object members and verifies that the signature is appropriate with the specified salt.
+    /// Validates the object and verifies its signature and expected salt.
     /// </summary>
     /// <typeparam name="T">The type of the object.</typeparam>
     /// <param name="value">The object to be verified.</param>
     /// <param name="salt">The salt value to compare with the object's salt.</param>
-    /// <returns><see langword="true"/> if the object members are valid and the signature is appropriate; otherwise, <see langword="false"/>.</returns>
+    /// <returns>Whether validation, salt comparison, and signature verification succeeded.</returns>
     public static bool ValidateAndVerify<T>(this T value, ulong salt)
         where T : ITinyhandSerializable<T>, ISignAndVerify
         => value.Salt == salt && ValidateAndVerify(value);
 
     /// <summary>
-    /// Validates the object members and verifies that the signature is appropriate with the specified connection (EmbryoSalt).
+    /// Validates the object and verifies its signature against the connection salt.
     /// </summary>
     /// <typeparam name="T">The type of the object.</typeparam>
     /// <param name="value">The object to be verified.</param>
     /// <param name="connection">The connection to compare with the object's salt.</param>
-    /// <returns><see langword="true"/> if the object members are valid and the signature is appropriate; otherwise, <see langword="false"/>.</returns>
+    /// <returns>Whether validation, salt comparison, and signature verification succeeded.</returns>
     public static bool ValidateAndVerify<T>(this T value, Connection connection)
        where T : ITinyhandSerializable<T>, ISignAndVerify
        => value.Salt == connection.EmbryoSalt && ValidateAndVerify(value);
 
     /// <summary>
-    /// Validates the object members and verifies that the signature is appropriate.
+    /// Validates the object and verifies its signature.
     /// </summary>
     /// <param name="value">The object to be verified.</param>
     /// <typeparam name="T">The type of the object.</typeparam>
@@ -458,10 +481,8 @@ public static class NetHelper
         try
         {
             TinyhandSerializer.SerializeObject(ref writer, value, TinyhandSerializerOptions.Signature);
-            var rentMemory = writer.FlushAndGetRentMemory();
-            var result = value.PublicKey.Verify(rentMemory.Span, value.Signature);
-            rentMemory.Return();
-            return result;
+            writer.FlushAndGetReadOnlySpan(out var span, out _);
+            return value.PublicKey.Verify(span, value.Signature);
         }
         finally
         {

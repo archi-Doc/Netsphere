@@ -101,9 +101,12 @@ public class ServiceFilterGroup
                 ssb.AppendLine($"var {x.Identifier} = {serviceProvider}?.GetService(typeof({x.Object.FullName})) as {x.Object.FullName};");
             }
 
-            using (var scopeNull = ssb.ScopeBrace($"if ({x.Identifier} == null)"))
+            if (!hasDefaultConstructor)
             {
-                ssb.AppendLine($"throw new InvalidOperationException($\"Could not create an instance of the net filter '{x.Object.FullName}'.\");");
+                using (var scopeNull = ssb.ScopeBrace($"if ({x.Identifier} == null)"))
+                {
+                    ssb.AppendLine($"throw new InvalidOperationException($\"Could not create an instance of the net filter '{x.Object.FullName}'.\");");
+                }
             }
 
             if (x.Arguments != null)
@@ -126,7 +129,6 @@ public class ServiceFilterGroup
         var errorFlag = false;
         var filterList = this.ServiceFilter.FilterList;
         var items = new Item[filterList.Count];
-        var dictionary = new Dictionary<NetServiceFilterAttributeMock, Item>();
         for (var i = 0; i < filterList.Count; i++)
         {
             var obj = this.Object.Body.Add(filterList[i].FilterType!);
@@ -153,8 +155,6 @@ public class ServiceFilterGroup
 
             var item = new Item(obj, callContextObject, this.Object.Identifier.GetIdentifier(), argument, filterList[i].Order, isAsync);
             items[i] = item;
-
-            dictionary[filterList[i]] = item;
         }
 
         if (errorFlag)
@@ -183,19 +183,6 @@ public class ServiceFilterGroup
 
         return null;
     }*/
-
-    public void GenerateDefinition(ScopingStringBuilder ssb)
-    {
-        if (this.Items == null)
-        {
-            return;
-        }
-
-        foreach (var x in this.Items)
-        {
-            ssb.AppendLine($"private static {x.Object.FullName}? {x.Identifier};");
-        }
-    }
 
     private NetsphereObject? GetFilterObject(NetsphereObject obj, out bool isAsync)
     {

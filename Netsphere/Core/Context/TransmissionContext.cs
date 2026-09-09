@@ -48,6 +48,9 @@ public sealed class TransmissionContext : ITransmissionContextInternal
 
     public ulong DataId { get; }
 
+    /// <summary>
+    /// Gets or sets the owned request or response buffer. Return the previous lease before replacing it.
+    /// </summary>
     public BytePool.RentMemory RentMemory { get; set; }
 
     public NetResult Result { get; set; }
@@ -71,6 +74,31 @@ public sealed class TransmissionContext : ITransmissionContextInternal
     public void Return()
     {
         this.RentMemory = this.RentMemory.Return();
+    }
+
+    /// <summary>
+    /// Copies a response, reusing the request buffer when it has exclusive ownership and sufficient space.
+    /// </summary>
+    /// <param name="response">The response bytes, which may overlap the request buffer.</param>
+    /// <remarks>Call from the request handler before sending. Do not access this context concurrently.</remarks>
+    public void SetResponseMemory(ReadOnlyMemory<byte> response)
+    {
+        if (response.IsEmpty)
+        {
+            this.Return();
+        }
+        else if (this.RentMemory.RentArray is { Count: 1 } && response.Length <= this.RentMemory.Length)
+        {
+            response.Span.CopyTo(this.RentMemory.Span);
+            this.RentMemory = this.RentMemory.Slice(0, response.Length);
+        }
+        else
+        {
+            var owner = BytePool.Default.Rent(response.Length).AsMemory(0, response.Length);
+            response.CopyTo(owner.Memory);
+            this.Return();
+            this.RentMemory = owner;
+        }
     }
 
     public NetResult SendAndForget<TSend>(TSend data, ulong dataId = 0)

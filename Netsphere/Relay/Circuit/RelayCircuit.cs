@@ -1,6 +1,5 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading;
@@ -122,30 +121,36 @@ public class RelayCircuit
         return r.Value.Result;
     }
 
+    /// <summary>
+    /// Removes closed relay connections and publishes new encryption keys only when the circuit changes.
+    /// </summary>
     public void Clean()
     {
         using (this.relayNodes.LockObject.EnterScope())
         {
-            TemporaryList<RelayNode> deleteList = default;
-            foreach (var x in this.relayNodes)
+            var changed = false;
+            var x = this.relayNodes.LinkedListChain.First;
+            while (x is not null)
             {
+                var next = x.LinkedListLink.Next;
                 if (!x.ClientConnection.IsOpen)
                 {// Connection is closed
-                    deleteList.Add(x);
+                    if (NetConstants.LogRelay)
+                    {
+                        this.logger.GetWriter(LogLevel.Information)?.Write($"Removed (Clean) {x.ToString()}");
+                    }
+
+                    x.Remove();
+                    changed = true;
                 }
+
+                x = next;
             }
 
-            foreach (var x in deleteList)
+            if (changed)
             {
-                if (NetConstants.LogRelay)
-                {
-                    this.logger.GetWriter(LogLevel.Information)?.Write($"Removed (Clean) {x.ToString()}");
-                }
-
-                x.Remove();
+                this.ResetRelayKeyInternal();
             }
-
-            this.ResetRelayKeyInternal();
         }
     }
 
@@ -156,11 +161,8 @@ public class RelayCircuit
             if (this.lastPingMics + PingIntervalMics < Mics.FastSystem)
             {
                 this.lastPingMics = Mics.FastSystem;
-                var r = await this.netTerminal.PacketTerminal.SendAndReceive<PingRelayPacket, PingRelayResponse>(NetAddress.Relay, new(), this.NumberOfRelays, cancellationToken, EndpointResolution.PreferIpv6, this.IsIncoming);
+                await this.netTerminal.PacketTerminal.SendAndReceive<PingRelayPacket, PingRelayResponse>(NetAddress.Relay, new(), this.NumberOfRelays, cancellationToken, EndpointResolution.PreferIpv6, this.IsIncoming);
                 // Console.WriteLine(r.Result);
-                if (r.Result != NetResult.Success)
-                {
-                }
             }
         }
     }
@@ -228,7 +230,7 @@ public class RelayCircuit
             endpointArray = this.relayNodes.Select(x => x.Endpoint).ToArray();
         }
 
-        var dictionary = new ConcurrentDictionary<int, PingRelayResponse>();
+        var responses = new PingRelayResponse?[endpointArray.Length];
         using var cts = new CancellationTokenSource();
         cts.CancelAfter(NetConstants.DefaultPacketTransmissionTimeout);
         var task = Parallel.ForAsync(0, endpointArray.Length, cts.Token, async (i, cancellationToken) =>
@@ -238,7 +240,7 @@ public class RelayCircuit
             if (rr.Result == NetResult.Success &&
             rr.Value is { } response)
             {
-                dictionary.TryAdd(i, response);
+                responses[i] = response;
             }
         });
 
@@ -253,12 +255,9 @@ public class RelayCircuit
         var sb = new StringBuilder();
         for (var i = 0; i < endpointArray.Length; i++)
         {
-            if (dictionary.TryGetValue(i, out var response))
+            if (responses[i] is { } response)
             {
                 sb.AppendLine($"{i}: {endpointArray[i].ToString()} {response.ToString()}");
-            }
-            else
-            {
             }
         }
 
@@ -267,10 +266,6 @@ public class RelayCircuit
 
     /*internal bool TryEncrypt(int relayNumber, NetAddress destination, ReadOnlySpan<byte> content, out BytePool.RentMemory encrypted, out NetEndpoint relayEndpoint)
         => this.relayKey.TryEncrypt(relayNumber, destination, content, out encrypted, out relayEndpoint);*/
-
-    internal async Task Terminate(CancellationToken cancellationToken)
-    {
-    }
 
     private void ResetRelayKeyInternal()
     {// using (this.relayNodes.LockObject.EnterScope())
