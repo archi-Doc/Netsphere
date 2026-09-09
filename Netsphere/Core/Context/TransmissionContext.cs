@@ -101,6 +101,26 @@ public sealed class TransmissionContext : ITransmissionContextInternal
         }
     }
 
+    /// <summary>
+    /// Replaces the request buffer with an owned response buffer, accepting a response that aliases the request.
+    /// </summary>
+    /// <param name="response">The response lease. It may be the borrowed request lease or a slice of it.</param>
+    /// <remarks>Call from the request handler before sending. Do not access this context concurrently.</remarks>
+    public void SetResponseRentMemory(BytePool.RentMemory response)
+    {
+        var request = this.RentMemory;
+        if (request.RentArray is { Count: 1 } &&
+            ReferenceEquals(request.RentArray, response.RentArray))
+        {// The handler returned the borrowed request lease itself. Adopt the returned range instead of releasing the array.
+            this.RentMemory = response;
+            return;
+        }
+
+        this.RentMemory = default;
+        request.Return();
+        this.RentMemory = response;
+    }
+
     public NetResult SendAndForget<TSend>(TSend data, ulong dataId = 0)
     {
         if (!this.ServerConnection.IsActive)

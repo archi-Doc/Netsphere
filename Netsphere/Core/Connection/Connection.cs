@@ -186,7 +186,6 @@ public abstract class Connection : IDisposable
     #endregion
 
     private SendTransmission.GoshujinClass sendTransmissions = new(); // using (this.sendTransmissions.LockObject.EnterScope())
-    private UnorderedLinkedList<SendTransmission> sendAckedList = new();
 
     // ReceiveTransmissionCode, using (this.receiveTransmissions.LockObject.EnterScope())
     private ReceiveTransmission.GoshujinClass receiveTransmissions = new();
@@ -235,16 +234,7 @@ public abstract class Connection : IDisposable
     internal void UpdateAckedNode(SendTransmission sendTransmission)
     {// lock (Connection.sendTransmissions.SyncObject)
         sendTransmission.AckedMics = Mics.FastSystem;
-        this.sendTransmissions.AckedListChain.AddLast(sendTransmission);
-
-        /*if (sendTransmission.AckedNode is null)
-        {
-            sendTransmission.AckedNode = this.sendAckedList.AddLast(sendTransmission);
-        }
-        else
-        {
-            this.sendAckedList.MoveToLast(sendTransmission.AckedNode);
-        }*/
+        this.sendTransmissions.AckedListChain.AddLast(sendTransmission); // Moves the transmission to the end if it is already linked.
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -451,19 +441,17 @@ Wait:
     internal void CleanSendTransmission()
     {// using (this.sendTransmissions.LockObject.EnterScope())
         // Release send transmissions that have elapsed a certain time since the last ack.
+        // AckedListChain is ordered from the least recently acknowledged transmission (UpdateAckedNode moves it to the end).
         var currentMics = Mics.FastSystem;
-        while (this.sendAckedList.First is { } node)
+        while (this.sendTransmissions.AckedListChain.First is { } transmission)
         {
-            var transmission = node.Value;
             if (currentMics < transmission.AckedMics + NetConstants.TransmissionTimeoutMics)
             {
                 break;
             }
 
             transmission.DisposeTransmission();
-            // node.List.Remove(node);
-            // transmission.AckedNode = null;
-            transmission.Goshujin = null;
+            transmission.Goshujin = null; // Removes the transmission from every chain, including AckedListChain.
         }
     }
 
@@ -1288,7 +1276,8 @@ ProcessGene:
             }
 
             // Since it's within a lock statement, manually clear it.
-            this.sendTransmissions.TransmissionIdChain.Clear();
+            // Every chain must be cleared; otherwise the transmissions stay linked in AckedListChain.
+            this.sendTransmissions.ClearChains();
         }
 
         using (this.receiveTransmissions.LockObject.EnterScope())
@@ -1308,7 +1297,7 @@ ProcessGene:
 
             // Since it's within a lock statement, manually clear it.
             // ReceiveTransmissionsCode
-            this.receiveTransmissions.TransmissionIdChain.Clear();
+            this.receiveTransmissions.ClearChains();
             this.receiveReceivedList.Clear();
             this.receiveDisposedList.Clear();
         }
@@ -1330,7 +1319,8 @@ ProcessGene:
             }
 
             // Since it's within a lock statement, manually clear it.
-            this.sendTransmissions.TransmissionIdChain.Clear();
+            // Every chain must be cleared; otherwise the transmissions stay linked in AckedListChain.
+            this.sendTransmissions.ClearChains();
         }
     }
 

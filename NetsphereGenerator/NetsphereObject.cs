@@ -1048,14 +1048,12 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             ssb.AppendLine("context.SetResponseMemory(result);");
         }
         else if (method.ReturnType == ServiceMethod.Type.RentMemory)
-        {// BytePool.RentMemory result;
-            this.Generate_ReturnRentMemory(ssb);
-            ssb.AppendLine("context.RentMemory = result;");
+        {// BytePool.RentMemory result; the handler may return the borrowed request lease.
+            ssb.AppendLine("context.SetResponseRentMemory(result);");
         }
         else if (method.ReturnType == ServiceMethod.Type.RentReadOnlyMemory)
-        {// BytePool.RentReadOnlyMemory result;
-            this.Generate_ReturnRentMemory(ssb);
-            ssb.AppendLine("context.RentMemory = result.UnsafeMemory;");
+        {// BytePool.RentReadOnlyMemory result; the handler may return the borrowed request lease.
+            ssb.AppendLine("context.SetResponseRentMemory(result.UnsafeMemory);");
         }
         else if (method.ReturnType == ServiceMethod.Type.ReceiveStream ||
             method.ReturnType == ServiceMethod.Type.SendStream ||

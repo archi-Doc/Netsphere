@@ -1,5 +1,6 @@
 // Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using Arc.Collections;
 using Netsphere;
 
 namespace xUnitTest.NetsphereTest;
@@ -8,6 +9,8 @@ namespace xUnitTest.NetsphereTest;
 public interface ITransportReviewService : INetService
 {
     Task<int> Echo(int value);
+
+    Task<BytePool.RentMemory> EchoRent(BytePool.RentMemory memory);
 
     void Channel(ref ResponseChannel<int> channel);
 
@@ -23,6 +26,9 @@ public interface ITransportReviewService : INetService
 public class TransportReviewService : ITransportReviewService
 {
     public Task<int> Echo(int value) => Task.FromResult(value);
+
+    // Returns the borrowed request lease, which the generated backend must not release before it is sent.
+    public Task<BytePool.RentMemory> EchoRent(BytePool.RentMemory memory) => Task.FromResult(memory);
 
     public void Channel(ref ResponseChannel<int> channel) => channel.SetResponse(42);
 

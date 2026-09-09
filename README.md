@@ -204,6 +204,7 @@ See the complete [stream service](xUnitTest/Services/IStreamService.cs) and [cli
 | --- | --- |
 | RPC `byte[]`, `Memory<byte>`, or `ReadOnlyMemory<byte>` response | The client receives an independent copy that remains valid after the call. |
 | RPC `Memory<byte>` or `ReadOnlyMemory<byte>` argument inside a handler | Borrowed request storage; do not retain it after the handler returns. Returning it or a slice as the response is supported. |
+| RPC `BytePool.RentMemory` or `RentReadOnlyMemory` argument inside a handler | Borrowed request storage; do not retain it after the handler returns. Returning it, a slice of it, or an `IncrementAndShare()` reference as the response is supported. |
 | RPC `BytePool.RentMemory` or `RentReadOnlyMemory` response | Ownership transfers to the client, which must return the lease after use. |
 | Low-level `NetResponse` | Call `Return()` exactly once after consuming its buffer. |
 | Stream send or receive buffer | Keep it available and do not modify send data until the operation finishes. |

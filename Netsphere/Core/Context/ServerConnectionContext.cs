@@ -497,14 +497,19 @@ public class ServerConnectionContext
 
     internal void DisposeActual()
     {
-        foreach (var x in this.netServiceItems)
+        NetServiceItem[] items;
+        lock (this.netServiceSync)
+        {// Detach the array instead of clearing it in place, since a concurrent dispatch may be reading it.
+            items = this.netServiceItems;
+            this.netServiceItems = [];
+        }
+
+        foreach (var x in items)
         {
             if (x.Instance is INetObject netObject)
             {
                 netObject.OnConnectionClosed();
             }
         }
-
-        Array.Clear(this.netServiceItems);
     }
 }

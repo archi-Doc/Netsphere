@@ -163,7 +163,9 @@ internal class NetSender
     {
         this.netSocketIpv4.Stop();
         this.netSocketIpv6.Stop();
-        this.sendCore?.Dispose();
+        var core = this.sendCore;
+        this.sendCore = null; // A disposed core cannot be restarted, so drop it and create a new one on the next start.
+        core?.Dispose();
         using (this.lockObject.EnterScope())
         {
             ReturnQueuedMemory(this.itemsIpv4);
