@@ -11,19 +11,19 @@ public class ServiceMethod
     public const string ByteArrayName = "byte[]";
     public const string MemoryName = "System.Memory<byte>";
     public const string ReadOnlyMemoryName = "System.ReadOnlyMemory<byte>";
-    public const string RentMemoryName = "Arc.Collections.BytePool.RentedMemory";
-    public const string RentReadOnlyMemoryName = "Arc.Collections.BytePool.RentedReadOnlyMemory";
+    public const string RentedMemoryFullName = "Arc.Collections.BytePool.RentedMemory";
+    public const string RentedReadOnlyMemoryFullName = "Arc.Collections.BytePool.RentedReadOnlyMemory";
     public const string ReceiveStreamName = "Netsphere.ReceiveStream";
     public const string SendStreamName = "Netsphere.SendStream";
     public const string SendStreamAndReceiveName = "Netsphere.SendStreamAndReceive<TReceive>";
     public const string NetResultName = "Netsphere.NetResult";
     public const string NetResultAndValueName = "Netsphere.NetResultAndValue<TValue>";
-    public const string ConnectBidirectionallyName = "Netsphere.INetServiceWithConnectBidirectionally.ConnectBidirectionally(Netsphere.Crypto.CertificateToken<Netsphere.ConnectionAgreement>)";
-    public const string UpdateAgreementName = "Netsphere.INetServiceWithUpdateAgreement.UpdateAgreement(Netsphere.Crypto.CertificateToken<Netsphere.ConnectionAgreement>)";
-    public const string ResponseChannelName = "ResponseChannel<";
-    public const string ResponseChannelFullName = "Netsphere.ResponseChannel<";
+    public const string ConnectBidirectionallyMethodFullName = "Netsphere.INetServiceWithConnectBidirectionally.ConnectBidirectionally(Netsphere.Crypto.CertificateToken<Netsphere.ConnectionAgreement>)";
+    public const string UpdateAgreementMethodFullName = "Netsphere.INetServiceWithUpdateAgreement.UpdateAgreement(Netsphere.Crypto.CertificateToken<Netsphere.ConnectionAgreement>)";
+    public const string ResponseChannelPrefix = "ResponseChannel<";
+    public const string ResponseChannelFullNamePrefix = "Netsphere.ResponseChannel<";
 
-    public enum Type
+    public enum PayloadKind
     {
         Other,
         NetResult,
@@ -31,22 +31,22 @@ public class ServiceMethod
         ByteArray,
         Memory,
         ReadOnlyMemory,
-        RentMemory,
-        RentReadOnlyMemory,
+        RentedMemory,
+        RentedReadOnlyMemory,
         ReceiveStream,
         SendStream,
         SendStreamAndReceive,
         ResponseChannel,
     }
 
-    public enum MethodKind
+    public enum ServiceMethodKind
     {
         Other,
         UpdateAgreement,
         ConnectBidirectionally,
     }
 
-    public static ServiceMethod? Create(NetsphereObject obj, NetsphereObject method)
+    public static ServiceMethod? Create(NetsphereObject serviceInterface, NetsphereObject method)
     {
         var returnObject = method.Method_ReturnObject;
         if (returnObject == null)
@@ -60,13 +60,13 @@ public class ServiceMethod
         else
         {
             var fullName = returnObject.OriginalDefinition?.FullName;
-            if (fullName == NetsphereBody.TaskFullName2)
+            if (fullName == NetsphereBody.GenericTaskFullName)
             {// Task<TResult>
             }
             else if (fullName is null &&
                 method.Method_Parameters.Length > 0 &&
-                (method.Method_Parameters[method.Method_Parameters.Length - 1].StartsWith(ServiceMethod.ResponseChannelName) ||
-                method.Method_Parameters[method.Method_Parameters.Length - 1].StartsWith(ServiceMethod.ResponseChannelFullName)))
+                (method.Method_Parameters[method.Method_Parameters.Length - 1].StartsWith(ServiceMethod.ResponseChannelPrefix) ||
+                method.Method_Parameters[method.Method_Parameters.Length - 1].StartsWith(ServiceMethod.ResponseChannelFullNamePrefix)))
             {// void Method(int x, ResponseChannel<TReceive> channel);
             }
             else
@@ -82,19 +82,19 @@ public class ServiceMethod
 
         var serviceMethod = new ServiceMethod(method);
         serviceMethod.MethodId = (uint)Arc.Crypto.FarmHash.Hash64(method.FullName);
-        if (obj.NetServiceAttribute == null)
+        if (serviceInterface.NetServiceAttribute == null)
         {
-            serviceMethod.Id = serviceMethod.MethodId;
+            serviceMethod.FullId = serviceMethod.MethodId;
         }
         else
         {
-            serviceMethod.Id = (ulong)obj.NetServiceAttribute.ServiceId << 32 | serviceMethod.MethodId;
+            serviceMethod.FullId = (ulong)serviceInterface.NetServiceAttribute.ServiceId << 32 | serviceMethod.MethodId;
         }
 
         if (returnObject.Generics_Arguments.Length > 0)
         {
-            serviceMethod.ReturnObject = returnObject.TypeObjectWithNullable?.Generics_ArgumentsWithNullable[0];
-            if (serviceMethod.ReturnObject?.Object is { } rt)
+            serviceMethod.TaskResultObject = returnObject.TypeObjectWithNullable?.Generics_ArgumentsWithNullable[0];
+            if (serviceMethod.TaskResultObject?.Object is { } rt)
             {
                 if (rt.Kind.IsReferenceType() &&
                 method.IsReturnTypeArgument_NotNullable())
@@ -102,23 +102,23 @@ public class ServiceMethod
                     method.Body.AddDiagnostic(NetsphereBody.Warning_NullableReferenceType, method.Location, rt.LocalName);
                 }
 
-                serviceMethod.ReturnType = NameToType(rt.FullName);
-                if (serviceMethod.ReturnType == Type.Other)
+                serviceMethod.ReturnKind = NameToPayloadKind(rt.FullName);
+                if (serviceMethod.ReturnKind == PayloadKind.Other)
                 {
-                    serviceMethod.ReturnType = NameToType(rt.OriginalDefinition?.FullName);
+                    serviceMethod.ReturnKind = NameToPayloadKind(rt.OriginalDefinition?.FullName);
                 }
 
-                if (serviceMethod.ReturnType == Type.NetResultAndValue ||
-                    serviceMethod.ReturnType == Type.SendStreamAndReceive)
+                if (serviceMethod.ReturnKind == PayloadKind.NetResultAndValue ||
+                    serviceMethod.ReturnKind == PayloadKind.SendStreamAndReceive)
                 {
-                    serviceMethod.GenericsType = rt.Generics_Arguments[0].FullName;
+                    serviceMethod.ResultTypeArgumentName = rt.Generics_Arguments[0].FullName;
                 }
             }
         }
 
         if (method.Method_Parameters.Length == 1)
         {
-            serviceMethod.ParameterType = NameToType(method.Method_Parameters[0]);
+            serviceMethod.ParameterKind = NameToPayloadKind(method.Method_Parameters[0]);
         }
 
         if (returnObject.FullName == "void" &&
@@ -128,42 +128,42 @@ public class ServiceMethod
             if (parameters.Length == 0 ||
                 parameters[parameters.Length - 1].RefKind != RefKind.Ref)
             {
-                method.Body.AddDiagnostic(NetsphereBody.Error_MethodForm, method.Location);
+                method.Body.AddDiagnostic(NetsphereBody.Error_ResponseChannelMethodForm, method.Location);
                 return null;
             }
 
-            serviceMethod.ReturnType = Type.ResponseChannel;
-            serviceMethod.ParameterType = Type.ResponseChannel;
+            serviceMethod.ReturnKind = PayloadKind.ResponseChannel;
+            serviceMethod.ParameterKind = PayloadKind.ResponseChannel;
         }
 
-        /*if (serviceMethod.ReturnType == Type.SendStream)
+        /*if (serviceMethod.ReturnKind == PayloadKind.SendStream)
         {
             method.Body.AddDiagnostic(NetsphereBody.Error_SendStreamRemoved, method.Location);
             return null;
         }
         else */
-        if (serviceMethod.ReturnType == Type.SendStream ||
-     serviceMethod.ReturnType == Type.SendStreamAndReceive)
+        if (serviceMethod.ReturnKind == PayloadKind.SendStream ||
+     serviceMethod.ReturnKind == PayloadKind.SendStreamAndReceive)
         {
             if (/*method.Method_Parameters.Length > 1 || */method.Method_Parameters.Length == 0)
             {
-                method.Body.AddDiagnostic(NetsphereBody.Error_SendStreamParam, method.Location);
+                method.Body.AddDiagnostic(NetsphereBody.Error_SendStreamParameter, method.Location);
                 return null;
             }
             else if (method.Method_Parameters[method.Method_Parameters.Length - 1] != "long")
             {
-                method.Body.AddDiagnostic(NetsphereBody.Error_SendStreamParam, method.Location);
+                method.Body.AddDiagnostic(NetsphereBody.Error_SendStreamParameter, method.Location);
                 return null;
             }
         }
 
-        if (method.FullName == UpdateAgreementName)
+        if (method.FullName == UpdateAgreementMethodFullName)
         {
-            serviceMethod.Kind = MethodKind.UpdateAgreement;
+            serviceMethod.Kind = ServiceMethodKind.UpdateAgreement;
         }
-        else if (method.FullName == ConnectBidirectionallyName)
+        else if (method.FullName == ConnectBidirectionallyMethodFullName)
         {
-            serviceMethod.Kind = MethodKind.ConnectBidirectionally;
+            serviceMethod.Kind = ServiceMethodKind.ConnectBidirectionally;
         }
 
         if (method.Method_Parameters.Length > 0)
@@ -178,7 +178,7 @@ public class ServiceMethod
                     }
                     else
                     {
-                        method.Body.AddDiagnostic(NetsphereBody.Error_CancellationToken, method.Location);
+                        method.Body.AddDiagnostic(NetsphereBody.Error_CancellationTokenPosition, method.Location);
                     }
                 }
             }
@@ -198,32 +198,32 @@ public class ServiceMethod
 
     public string LocalName => this.method.LocalName;
 
-    public int ParameterLength => this.method.Method_Parameters.Length;
+    public int ParameterCount => this.method.Method_Parameters.Length;
 
     public uint MethodId { get; private set; }
 
-    public ulong Id { get; private set; }
+    public ulong FullId { get; private set; }
 
-    public string IdString => $"0x{this.Id:x}ul";
+    public string FullIdLiteral => $"0x{this.FullId:x}ul";
 
-    public string MethodString => $"Method_{this.Id:x}";
+    public string GeneratedMethodName => $"Method_{this.FullId:x}";
 
-    public WithNullable<NetsphereObject>? ReturnObject { get; internal set; }
+    public WithNullable<NetsphereObject>? TaskResultObject { get; internal set; }
 
-    public Type ParameterType { get; private set; }
+    public PayloadKind ParameterKind { get; private set; }
 
-    public Type ReturnType { get; private set; }
+    public PayloadKind ReturnKind { get; private set; }
 
-    public string GenericsType { get; private set; } = string.Empty;
+    public string ResultTypeArgumentName { get; private set; } = string.Empty;
 
-    public MethodKind Kind { get; private set; }
+    public ServiceMethodKind Kind { get; private set; }
 
     public bool HasCancellationTokenParameter { get; private set; }
 
-    public int GetParameterCount(int decrement)
-        => this.method.Method_Parameters.Length - decrement;
+    public int GetParameterCount(int excludedTrailingCount)
+        => this.method.Method_Parameters.Length - excludedTrailingCount;
 
-    public string GetReturnTypeName()
+    public string GetTaskResultTypeName()
     {
         if (this.method.TryGetMethodSymbol()?.ReturnType is INamedTypeSymbol { TypeArguments.Length: 1 } task)
         {
@@ -234,20 +234,20 @@ public class ServiceMethod
             return task.TypeArguments[0].ToDisplayString(format);
         }
 
-        return this.ReturnObject?.FullNameWithNullable ?? string.Empty;
+        return this.TaskResultObject?.FullNameWithNullable ?? string.Empty;
     }
 
-    public IEnumerable<string> GetParameterFormatterRegistrations(int decrement)
+    public IEnumerable<string> GetValueTupleTypeArgumentLists(int excludedTrailingCount)
     {
         var parameters = this.method.Method_Parameters;
-        var length = parameters.Length - decrement;
+        var length = parameters.Length - excludedTrailingCount;
         for (var offset = 0; offset < length; offset += 7)
         {
             yield return GetValueTupleTypeArguments(parameters, length, offset);
         }
     }
 
-    public string GetParameters()
+    public string GetParameterDeclarations()
     {// int a1, string a2
         var methodSymbol = this.method.TryGetMethodSymbol();
         if (methodSymbol is null)
@@ -270,24 +270,24 @@ public class ServiceMethod
 
             sb.Append(this.method.Method_Parameters[i]);
             sb.Append(" ");
-            sb.Append(NetsphereBody.ArgumentName);
+            sb.Append(NetsphereBody.ArgumentPrefix);
             sb.Append(i + 1);
         }
 
         return sb.ToString();
     }
 
-    public string GetParameterNames(string name, int decrement)
+    public string GetParameterNames(string prefix, int excludedTrailingCount)
     {// string.Empty, a1, (a1, a2)
         var parameters = this.method.Method_Parameters;
-        var length = parameters.Length - decrement;
+        var length = parameters.Length - excludedTrailingCount;
         if (length <= 0)
         {
             return string.Empty;
         }
         else if (length == 1)
         {
-            return name + "1";
+            return prefix + "1";
         }
         else
         {
@@ -300,7 +300,7 @@ public class ServiceMethod
                     sb.Append(", ");
                 }
 
-                sb.Append(name);
+                sb.Append(prefix);
                 sb.Append(i + 1);
             }
 
@@ -309,9 +309,9 @@ public class ServiceMethod
         }
     }
 
-    public bool TryGetNullCheck(string name, int decrement, out string statement)
+    public bool TryGetNullCheck(string valueName, int excludedTrailingCount, out string condition)
     {
-        statement = string.Empty;
+        condition = string.Empty;
         var methodSymbol = this.method.TryGetMethodSymbol();
         if (methodSymbol == null)
         {
@@ -319,7 +319,7 @@ public class ServiceMethod
         }
 
         var parameters = methodSymbol.Parameters;
-        var length = parameters.Length - decrement;
+        var length = parameters.Length - excludedTrailingCount;
         if (length == 0)
         {
             return false;
@@ -328,7 +328,7 @@ public class ServiceMethod
         {
             if (parameters[0].Type.IsReferenceType && parameters[0].Type.NullableAnnotation == Microsoft.CodeAnalysis.NullableAnnotation.NotAnnotated)
             {
-                statement = $"{name} is null";
+                condition = $"{valueName} is null";
                 return true;
             }
             else
@@ -346,18 +346,18 @@ public class ServiceMethod
                     if (sb == null)
                     {
                         sb = new StringBuilder();
-                        sb.Append($"{name}.Item{i + 1} is null");
+                        sb.Append($"{valueName}.Item{i + 1} is null");
                     }
                     else
                     {
-                        sb.Append($" || {name}.Item{i + 1} is null");
+                        sb.Append($" || {valueName}.Item{i + 1} is null");
                     }
                 }
             }
 
             if (sb != null)
             {
-                statement = sb.ToString();
+                condition = sb.ToString();
                 return true;
             }
             else
@@ -367,10 +367,10 @@ public class ServiceMethod
         }
     }
 
-    public string GetParameterTypes(int decrement)
+    public string GetParameterTypes(int excludedTrailingCount)
     {// (int, string)
         var parameters = this.method.Method_Parameters;
-        var length = parameters.Length - decrement;
+        var length = parameters.Length - excludedTrailingCount;
 
         if (length <= 0)
         {
@@ -399,7 +399,7 @@ public class ServiceMethod
         }
     }
 
-    public string GetTupleNames(string name, int decrement, bool hasCancellationTokenParameter)
+    public string GetTupleItemArguments(string tupleName, int excludedTrailingCount, bool hasCancellationTokenParameter)
     {// value, value.Item1, value.Item2
         var methodSymbol = this.method.TryGetMethodSymbol();
         if (methodSymbol is null)
@@ -408,7 +408,7 @@ public class ServiceMethod
         }
 
         var parameters = this.method.Method_Parameters;
-        var length = parameters.Length - decrement;
+        var length = parameters.Length - excludedTrailingCount;
 
         if (length <= 0)
         {
@@ -426,11 +426,11 @@ public class ServiceMethod
             var prefix = VisceralHelper.RefKindToStringWithSpace(methodSymbol.Parameters[0].RefKind);
             if (hasCancellationTokenParameter)
             {
-                return $"{prefix}{name}, default";
+                return $"{prefix}{tupleName}, default";
             }
             else
             {
-                return prefix + name;
+                return prefix + tupleName;
             }
         }
         else
@@ -448,7 +448,7 @@ public class ServiceMethod
                     sb.Append(VisceralHelper.RefKindToStringWithSpace(methodSymbol.Parameters[i].RefKind));
                 }
 
-                sb.Append(name);
+                sb.Append(tupleName);
                 sb.Append(".Item");
                 sb.Append(i + 1);
             }
@@ -486,30 +486,30 @@ public class ServiceMethod
         return sb.ToString();
     }
 
-    private static Type NameToType(string? name)
+    private static PayloadKind NameToPayloadKind(string? name)
     {
         var result = name switch
         {
-            NetResultName => Type.NetResult,
-            NetResultAndValueName => Type.NetResultAndValue,
-            ByteArrayName => Type.ByteArray,
-            MemoryName => Type.Memory,
-            ReadOnlyMemoryName => Type.ReadOnlyMemory,
-            RentMemoryName => Type.RentMemory,
-            RentReadOnlyMemoryName => Type.RentReadOnlyMemory,
-            ReceiveStreamName => Type.ReceiveStream,
-            SendStreamName => Type.SendStream,
-            SendStreamAndReceiveName => Type.SendStreamAndReceive,
-            _ => Type.Other,
+            NetResultName => PayloadKind.NetResult,
+            NetResultAndValueName => PayloadKind.NetResultAndValue,
+            ByteArrayName => PayloadKind.ByteArray,
+            MemoryName => PayloadKind.Memory,
+            ReadOnlyMemoryName => PayloadKind.ReadOnlyMemory,
+            RentedMemoryFullName => PayloadKind.RentedMemory,
+            RentedReadOnlyMemoryFullName => PayloadKind.RentedReadOnlyMemory,
+            ReceiveStreamName => PayloadKind.ReceiveStream,
+            SendStreamName => PayloadKind.SendStream,
+            SendStreamAndReceiveName => PayloadKind.SendStreamAndReceive,
+            _ => PayloadKind.Other,
         };
 
         if (name is not null &&
-            result == Type.Other)
+            result == PayloadKind.Other)
         {
-            if (name.StartsWith(ResponseChannelName) ||
-                name.StartsWith(ResponseChannelFullName))
+            if (name.StartsWith(ResponseChannelPrefix) ||
+                name.StartsWith(ResponseChannelFullNamePrefix))
             {
-                result = Type.ResponseChannel;
+                result = PayloadKind.ResponseChannel;
             }
         }
 

@@ -16,29 +16,29 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
 {
     public const string CancellationTokenFullName = "System.Threading.CancellationToken";
     public const string TaskFullName = "System.Threading.Tasks.Task";
-    public const string TaskFullName2 = "System.Threading.Tasks.Task<TResult>";
+    public const string GenericTaskFullName = "System.Threading.Tasks.Task<TResult>";
     public const string GeneratorName = "NetsphereGenerator";
-    public const string FrontendClassName = "Frontend_"; // "__gen_frontend__";
-    public const string BackendClassName = "Backend_";
-    public const string ArgumentName = "a";
+    public const string FrontendClassPrefix = "Frontend_"; // "__gen_frontend__";
+    public const string BackendClassPrefix = "Backend_";
+    public const string ArgumentPrefix = "a";
     public const string NetResultFullName = "Netsphere.NetResult";
     // public const string NetServiceBaseFullName = "Netsphere.NetServiceBase";
     // public const string NetServiceBaseFullName2 = "Netsphere.NetServiceBase<TServerContext>";
     public const string ServiceFilterSyncFullName = "Netsphere.IServiceFilterSync";
-    public const string ServiceFilterSyncFullName2 = "Netsphere.IServiceFilterSync<TCallContext>";
+    public const string GenericServiceFilterSyncFullName = "Netsphere.IServiceFilterSync<TCallContext>";
     public const string ServiceFilterAsyncFullName = "Netsphere.IServiceFilter";
-    public const string ServiceFilterAsyncFullName2 = "Netsphere.IServiceFilter<TCallContext>";
+    public const string GenericServiceFilterAsyncFullName = "Netsphere.IServiceFilter<TCallContext>";
     public const string ServiceFilterBaseName = "IServiceFilterBase";
     public const string ServiceFilterInvokeName = "Invoke";
     public const string ServiceFilterSetArgumentsName = "SetArguments";
-    public const string IClientConnectionInternalName = "Netsphere.Internal.IClientConnectionInternal";
-    public const string ReceiveDelegateAndValueInternalName = "IResponseChannelInternal";
+    public const string IClientConnectionInternalFullName = "Netsphere.Internal.IClientConnectionInternal";
+    public const string IResponseChannelInternalName = "IResponseChannelInternal";
 
-    public static readonly DiagnosticDescriptor Error_AttributePropertyError = new DiagnosticDescriptor(
+    public static readonly DiagnosticDescriptor Error_AttributePropertyType = new DiagnosticDescriptor(
         id: "NSG001", title: "Attribute property type error", messageFormat: "The argument specified does not match the type of the property",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
-    public static readonly DiagnosticDescriptor Error_KeywordUsed = new DiagnosticDescriptor(
+    public static readonly DiagnosticDescriptor Error_DuplicateIdentifier = new DiagnosticDescriptor(
         id: "NSG002", title: "Keyword used", messageFormat: "The type '{0}' already contains a definition for '{1}'",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
@@ -46,7 +46,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
         id: "NSG003", title: "Generic type", messageFormat: "Generic type is not supported",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
-    public static readonly DiagnosticDescriptor Error_INetService = new DiagnosticDescriptor(
+    public static readonly DiagnosticDescriptor Error_NotDerivedFromINetService = new DiagnosticDescriptor(
         id: "NSG004", title: "INetService", messageFormat: "NetObject or NetService must be derived from INetService",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
@@ -78,7 +78,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
         id: "NSG011", title: "No FilterType", messageFormat: "Could not get the filtertype from the specified string",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
-    public static readonly DiagnosticDescriptor Error_FilterTypeConflicted = new DiagnosticDescriptor(
+    public static readonly DiagnosticDescriptor Error_DuplicateFilterType = new DiagnosticDescriptor(
         id: "NSG012", title: "FilterType conflict", messageFormat: "Service filters of the same type has been detected",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
@@ -86,15 +86,15 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
         id: "NSG013", title: "FilterType not derived", messageFormat: "Service filter must implement 'IServiceFilter' or 'IServiceFilterAsync'",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
-    public static readonly DiagnosticDescriptor Error_SendStreamParam = new DiagnosticDescriptor(
+    public static readonly DiagnosticDescriptor Error_SendStreamParameter = new DiagnosticDescriptor(
         id: "NSG014", title: "SendStream param", messageFormat: "Method that returns SendStream type must be declared as 'Method(long maxLength)''",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
-    public static readonly DiagnosticDescriptor Error_MethodForm = new DiagnosticDescriptor(
+    public static readonly DiagnosticDescriptor Error_ResponseChannelMethodForm = new DiagnosticDescriptor(
         id: "NSG015", title: "Method form", messageFormat: "Define methods that use ResponseChannel in the following form: void Method(params, ref ResponseChannel<TResponse> channel);",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
-    public static readonly DiagnosticDescriptor Error_CancellationToken = new DiagnosticDescriptor(
+    public static readonly DiagnosticDescriptor Error_CancellationTokenPosition = new DiagnosticDescriptor(
         id: "NSG016", title: "CancellationToken", messageFormat: "CancellationToken parameters must come last",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
@@ -147,20 +147,20 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
 
     public void Generate(IGeneratorInformation generator, CancellationToken cancellationToken)
     {
-        var assemblyId = string.Empty; // Assembly ID
+        var assemblySuffix = string.Empty; // Assembly ID
         if (!string.IsNullOrEmpty(generator.AssemblyName))
         {
-            assemblyId = VisceralHelper.AssemblyNameToIdentifier("_" + generator.AssemblyName);
+            assemblySuffix = VisceralHelper.AssemblyNameToIdentifier("_" + generator.AssemblyName);
         }
 
-        this.GenerateFrontend(generator, assemblyId);
-        this.GenerateBackend(generator, assemblyId);
+        this.GenerateFrontend(generator, assemblySuffix);
+        this.GenerateBackend(generator, assemblySuffix);
     }
 
-    public void GenerateFrontend(IGeneratorInformation generator, string assemblyId)
+    public void GenerateFrontend(IGeneratorInformation generator, string assemblySuffix)
     {
         ScopingStringBuilder ssb = new();
-        GeneratorInformation info = new();
+        GeneratorState info = new();
 
         var array = this.IdToNetInterface.Values.ToArray();
 
@@ -168,7 +168,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
         ssb.AppendLine($"namespace Netsphere.Generated;");
         ssb.AppendLine();
 
-        using (var scopeClass = ssb.ScopeBrace("internal static class Frontend" + assemblyId))
+        using (var scopeClass = ssb.ScopeBrace("internal static class Frontend" + assemblySuffix))
         {
             ssb.AppendLine("private static bool Initialized;");
             ssb.AppendLine();
@@ -183,7 +183,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                 // Tinyhand's source generator cannot see tuple types introduced by
                 // this generator, so register their closed formatters ourselves.
                 var registrations = new HashSet<string>();
-                foreach (var y in array.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetService)))
+                foreach (var y in array.Where(a => a.ObjectFlags.HasFlag(NetsphereObjectFlags.NetService)))
                 {
                     if (y.ServiceMethods is null)
                     {
@@ -192,12 +192,12 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
 
                     foreach (var method in y.ServiceMethods.Values)
                     {
-                        var decrement = method.ReturnType == ServiceMethod.Type.SendStream ||
-                            method.ReturnType == ServiceMethod.Type.SendStreamAndReceive ?
+                        var decrement = method.ReturnKind == ServiceMethod.PayloadKind.SendStream ||
+                            method.ReturnKind == ServiceMethod.PayloadKind.SendStreamAndReceive ?
                             1 : method.HasCancellationTokenParameter ? 1 : 0;
                         if (method.GetParameterCount(decrement) > 1)
                         {
-                            foreach (var registration in method.GetParameterFormatterRegistrations(decrement))
+                            foreach (var registration in method.GetValueTupleTypeArgumentLists(decrement))
                             {
                                 registrations.Add(registration);
                             }
@@ -215,15 +215,15 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                     ssb.AppendLine();
                 }
 
-                foreach (var y in array.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetService)))
+                foreach (var y in array.Where(a => a.ObjectFlags.HasFlag(NetsphereObjectFlags.NetService)))
                 {
-                    ssb.AppendLine($"StaticNetService.SetFrontendFactory<{y.FullName}>(static x => new {y.ClassName}(x));");
+                    ssb.AppendLine($"StaticNetService.SetFrontendFactory<{y.FullName}>(static x => new {y.GeneratedClassName}(x));");
                 }
             }
 
             foreach (var y in array)
             {
-                if (y.ObjectFlag.HasFlag(NetsphereObjectFlag.NetService))
+                if (y.ObjectFlags.HasFlag(NetsphereObjectFlags.NetService))
                 {// NetService (Frontend)
                     ssb.AppendLine();
                     y.GenerateFrontend(ssb, info);
@@ -245,10 +245,10 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
         this.FlushDiagnostic();
     }
 
-    public void GenerateBackend(IGeneratorInformation generator, string assemblyId)
+    public void GenerateBackend(IGeneratorInformation generator, string assemblySuffix)
     {
         ScopingStringBuilder ssb = new();
-        GeneratorInformation info = new();
+        GeneratorState info = new();
 
         var array = this.NetObjects.ToArray();
 
@@ -256,7 +256,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
         ssb.AppendLine($"namespace Netsphere.Generated;");
         ssb.AppendLine();
 
-        using (var scopeClass = ssb.ScopeBrace("internal static class Backend" + assemblyId))
+        using (var scopeClass = ssb.ScopeBrace("internal static class Backend" + assemblySuffix))
         {
             ssb.AppendLine("private static bool Initialized;");
             ssb.AppendLine();
@@ -268,13 +268,13 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                 ssb.AppendLine("Initialized = true;");
                 ssb.AppendLine();
 
-                foreach (var y in array.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetObject)))
+                foreach (var y in array.Where(a => a.ObjectFlags.HasFlag(NetsphereObjectFlags.NetObject)))
                 {
                     if (y.ServiceInterfaces != null)
                     {
                         foreach (var z in y.ServiceInterfaces)
                         {
-                            ssb.AppendLine($"{y.ClassName}.Object_{z.NetServiceAttribute!.ServiceId.ToString("x")}();");
+                            ssb.AppendLine($"{y.GeneratedClassName}.Object_{z.NetServiceAttribute!.ServiceId.ToString("x")}();");
                         }
                     }
                 }
@@ -282,7 +282,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
 
             foreach (var y in array)
             {
-                if (y.ObjectFlag.HasFlag(NetsphereObjectFlag.NetObject))
+                if (y.ObjectFlags.HasFlag(NetsphereObjectFlags.NetObject))
                 {// NetObject (Backend)
                     ssb.AppendLine();
                     y.GenerateBackend(ssb, info);
@@ -307,7 +307,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
     /*public void Generate(IGeneratorInformation generator, CancellationToken cancellationToken)
     {
         ScopingStringBuilder ssb = new();
-        GeneratorInformation info = new();
+        GeneratorState info = new();
         List<NetsphereObject> rootObjects = new();
 
         // Namespace
@@ -339,9 +339,9 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                     ssb.AppendLine("Initialized = true;");
                     ssb.AppendLine();
 
-                    foreach (var y in x.Value.Where(a => a.ObjectFlag.HasFlag(NetsphereObjectFlag.NetService)))
+                    foreach (var y in x.Value.Where(a => a.ObjectFlags.HasFlag(NetsphereObjectFlags.NetService)))
                     {
-                        ssb.AppendLine($"StaticNetService.SetFrontendFactory<{y.FullName}>(static x => new {y.ClassName}(x));");
+                        ssb.AppendLine($"StaticNetService.SetFrontendFactory<{y.FullName}>(static x => new {y.GeneratedClassName}(x));");
                     }
                 }
 
@@ -387,7 +387,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
         ssb.AppendLine();
     }
 
-    private void GenerateInitializer(IGeneratorInformation generator, ScopingStringBuilder ssb, GeneratorInformation info)
+    private void GenerateInitializer(IGeneratorInformation generator, ScopingStringBuilder ssb, GeneratorState info)
     {
         // Namespace
         var ns = "Netsphere";
@@ -405,7 +405,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
             }
         }
 
-        info.ModuleInitializerClass.Add("Netsphere.Generator.Generated");
+        info.ModuleInitializerClasses.Add("Netsphere.Generator.Generated");
 
         ssb.AppendLine();
         using (var scopeCrossLink = ssb.ScopeNamespace(ns!))
@@ -421,7 +421,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                 ssb.AppendLine("Initialized = true;");
                 ssb.AppendLine();
 
-                foreach (var x in info.ModuleInitializerClass)
+                foreach (var x in info.ModuleInitializerClasses)
                 {
                     ssb.Append(x, true);
                     ssb.AppendLine(".RegisterMachine();", false);

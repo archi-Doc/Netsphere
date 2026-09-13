@@ -10,7 +10,7 @@ public class NetServiceFilterAttributeMock : Attribute
     public static readonly string SimpleName = "NetServiceFilter";
     public static readonly string StandardName = SimpleName + "Attribute";
     public static readonly string FullName = "Netsphere." + StandardName;
-    public static readonly string StartName = FullName + "<";
+    public static readonly string GenericFullNamePrefix = FullName + "<";
 
     public NetServiceFilterAttributeMock(Location location)
     {
@@ -23,7 +23,7 @@ public class NetServiceFilterAttributeMock : Attribute
 
     public Location Location { get; set; } = Location.None;
 
-    public ISymbol? FilterType { get; set; }
+    public ISymbol? FilterTypeSymbol { get; set; }
 
     public static NetServiceFilterAttributeMock FromArray(object?[] constructorArguments, KeyValuePair<string, object?>[] namedArguments, Location location)
     {

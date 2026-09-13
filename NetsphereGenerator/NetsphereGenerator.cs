@@ -11,7 +11,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Netsphere.Generator;
 
 [Generator]
-public class NetsphereGeneratorV2 : IIncrementalGenerator, IGeneratorInformation
+public class NetsphereGenerator : IIncrementalGenerator, IGeneratorInformation
 {
     public bool AttachDebugger { get; private set; }
 
@@ -70,7 +70,7 @@ public class NetsphereGeneratorV2 : IIncrementalGenerator, IGeneratorInformation
         {
             foreach (var baseType in baseList.Types)
             {
-                if (baseType.ToString() == INetService.StandardName)
+                if (baseType.ToString() == NetServiceInterfaceMock.StandardName)
                 {
                     return typeSyntax;
                 }
@@ -96,7 +96,7 @@ public class NetsphereGeneratorV2 : IIncrementalGenerator, IGeneratorInformation
             return;
         }
 
-        var netServiceSymbol = compilation.GetTypeByMetadataName(INetService.FullName);
+        var netServiceSymbol = compilation.GetTypeByMetadataName(NetServiceInterfaceMock.FullName);
         if (netServiceSymbol == null)
         {
             return;
