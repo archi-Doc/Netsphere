@@ -131,8 +131,52 @@ public class TransmissionLifetimeReviewTest
         Assert.Equal(0, array.ReferenceCount);
     }
 
-    [Fact]
-    public void IndependentRentMemoryResponseReleasesTheRequestLease()
+    [Theory]
+    [InlineData(0, 64, false)]
+    [InlineData(8, 16, false)]
+    [InlineData(64, 0, false)]
+    [InlineData(0, 64, true)]
+    [InlineData(8, 16, true)]
+    [InlineData(64, 0, true)]
+    public void BorrowedRentMemoryResponsePreservesTheLeaseWhileTheReceiverStillOwnsTheBuffer(int offset, int length, bool responseReturnedFirst)
+    {
+        using var client = this.CreateConnection();
+        using var server = new ServerConnection(client);
+        var request = BytePool.Default.Rent(64).AsMemory(0, 64);
+        request.Span.Fill(7);
+        var array = request.Owner!;
+        var context = new TransmissionContext(server, 42, 1, 0, request);
+
+        // ReceiveTransmission and the socket may still own the packet when the handler finishes.
+        var receiverLease = request.IncrementAndShare();
+        context.SetResponseRentMemory(request.Slice(offset, length));
+
+        Assert.Equal(2, array.ReferenceCount);
+        Assert.Same(array, context.RentMemory.Owner);
+        Assert.Equal(length, context.RentMemory.Length);
+
+        if (responseReturnedFirst)
+        {
+            context.Return();
+            Assert.Equal(1, array.ReferenceCount);
+            Assert.All(receiverLease.Span.ToArray(), b => Assert.Equal((byte)7, b));
+            receiverLease.Return();
+        }
+        else
+        {
+            receiverLease.Return();
+            Assert.Equal(1, array.ReferenceCount);
+            Assert.All(context.RentMemory.Span.ToArray(), b => Assert.Equal((byte)7, b));
+            context.Return();
+        }
+
+        Assert.Equal(0, array.ReferenceCount);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void IndependentRentMemoryResponseReleasesTheRequestLease(bool explicitlyOwned)
     {
         using var client = this.CreateConnection();
         using var server = new ServerConnection(client);
@@ -141,31 +185,44 @@ public class TransmissionLifetimeReviewTest
         var context = new TransmissionContext(server, 42, 1, 0, request);
         var response = BytePool.Default.Rent(8).AsMemory(0, 8);
 
-        context.SetResponseRentMemory(response);
+        if (explicitlyOwned)
+        {
+            context.SetResponseOwnedRentMemory(response);
+        }
+        else
+        {
+            context.SetResponseRentMemory(response);
+        }
 
         Assert.Equal(0, requestArray.ReferenceCount);
         Assert.Same(response.Owner, context.RentMemory.Owner);
         Assert.Equal(1, response.Owner!.ReferenceCount);
 
         context.Return();
+        Assert.Equal(0, response.Owner.ReferenceCount);
     }
 
-    [Fact]
-    public void SharedRentMemoryResponseReleasesOnlyTheRequestReference()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SharedRentMemoryResponseReleasesOnlyTheRequestReference(bool receiverStillOwnsBuffer)
     {
         using var client = this.CreateConnection();
         using var server = new ServerConnection(client);
         var request = BytePool.Default.Rent(64).AsMemory(0, 64);
         var array = request.Owner!;
         var context = new TransmissionContext(server, 42, 1, 0, request);
+        var receiverLease = receiverStillOwnsBuffer ? request.IncrementAndShare() : default;
 
         // The handler acquired its own reference before returning the same buffer.
-        context.SetResponseRentMemory(request.IncrementAndShare());
+        context.SetResponseOwnedRentMemory(request.IncrementAndShare());
 
-        Assert.Equal(1, array.ReferenceCount);
+        Assert.Equal(receiverStillOwnsBuffer ? 2 : 1, array.ReferenceCount);
         Assert.Same(array, context.RentMemory.Owner);
 
         context.Return();
+        Assert.Equal(receiverStillOwnsBuffer ? 1 : 0, array.ReferenceCount);
+        receiverLease.Return();
         Assert.Equal(0, array.ReferenceCount);
     }
 
