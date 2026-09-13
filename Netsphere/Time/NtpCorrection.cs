@@ -9,7 +9,7 @@ namespace Netsphere.Misc;
 /// <summary>
 /// Queries NTP servers and maintains the clock correction offset.
 /// </summary>
-[TinyhandObject(LockObject = "lockObject", ExplicitKeysOnly = true, UseServiceProvider = true)]
+[TinyhandObject(LockMemberName = "lockObject", ExplicitKeysOnly = true, UseServiceProvider = true)]
 public sealed partial class NtpCorrection
 {
     public const string Filename = "NtpCorrection.tinyhand";
@@ -47,11 +47,11 @@ public sealed partial class NtpCorrection
         [IgnoreMember]
         public long TimeoffsetMilliseconds { get; set; }
 
-        [Link(Type = ChainType.Ordered, AddValue = true)]
+        [Link(Type = ChainType.Ordered, GenerateValue = true)]
         [Key(0)]
         private string hostname = string.Empty;
 
-        [Link(Type = ChainType.Ordered, Accessibility = ValueLinkAccessibility.Public, AddValue = true)]
+        [Link(Type = ChainType.Ordered, Accessibility = ValueLinkAccessibility.Public, GenerateValue = true)]
         [Key(1)]
         private int roundtripMilliseconds = MaxRoundtripMilliseconds;
     }
@@ -138,7 +138,7 @@ Retry:
     public async Task CorrectMicsAndUnitLogger(ILogger? logger = default, CancellationToken cancellationToken = default)
     {
         var offset = await this.SendAndReceiveOffset();
-        LogUnit.SetTimeOffset(offset);
+        LogUnit.SetTimestampOffset(offset);
         if (this.timeoffsetCount <= 1)
         {
             this.meanTimeoffset = (long)offset.TotalMilliseconds;

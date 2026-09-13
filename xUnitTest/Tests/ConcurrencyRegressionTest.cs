@@ -192,7 +192,7 @@ public class ConcurrencyRegressionTest
             transmission.ProcessReceive_Gene(DataControl.Valid, 0, packet);
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
             timeout.CancelAfter(TimeSpan.FromSeconds(1));
-            while (packet.RentArray!.Count != 1)
+            while (packet.Owner!.ReferenceCount != 1)
             {
                 await Task.Delay(1, timeout.Token);
             }
@@ -220,7 +220,7 @@ public class ConcurrencyRegressionTest
                 packet.Span.Clear();
                 await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => Task.Run(() => transmission.ProcessReceive_Gene(DataControl.Valid, 0, packet), TestContext.Current.CancellationToken)));
                 Assert.Equal(1, received);
-                Assert.Equal(1, packet.RentArray!.Count);
+                Assert.Equal(1, packet.Owner!.ReferenceCount);
             }
             finally
             {
@@ -262,7 +262,7 @@ public class ConcurrencyRegressionTest
             for (var iteration = 0; iteration < 200; iteration++)
             {
                 var packet = BytePool.Default.Rent(32).AsMemory(0, 32);
-                var owner = packet.RentArray!;
+                var owner = packet.Owner!;
                 var gene = new SendGene(transmission);
                 gene.SetSend(packet);
                 await Task.WhenAll(
@@ -271,7 +271,7 @@ public class ConcurrencyRegressionTest
                 Assert.Null(gene.Node);
                 Assert.False(gene.Send_NotThreadSafe(sender, 0));
                 sender.Stop();
-                Assert.Equal(0, owner.Count);
+                Assert.Equal(0, owner.ReferenceCount);
             }
         }
         finally
@@ -331,7 +331,7 @@ public class ConcurrencyRegressionTest
         {
             packet.Span.Clear();
             transmission.ProcessReceive_Gene(DataControl.Valid, 0, packet);
-            Assert.Equal(1, packet.RentArray!.Count);
+            Assert.Equal(1, packet.Owner!.ReferenceCount);
         }
         finally
         {
@@ -401,7 +401,7 @@ public class ConcurrencyRegressionTest
             Assert.Equal(NetResult.Canceled, result.Result);
             Assert.Equal(cancelBeforeRead ? 0 : 1, result.Written);
             Assert.True(transmission.IsDisposed);
-            Assert.Equal(1, packet.RentArray!.Count);
+            Assert.Equal(1, packet.Owner!.ReferenceCount);
         }
         finally
         {

@@ -84,7 +84,7 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
         using var hasher = Blake3Hasher.New();
         hasher.Update(baseSeedKey.seed);
         hasher.Update(additional);
-        hasher.Finalize(hash);
+        hasher.FinalizeHash(hash);
 
         return new(hash, baseSeedKey.KeyOrientation);
     }
@@ -118,12 +118,12 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
         }
 
         var span2 = span.Slice(0, bracketPosition);
-        var decodedLength = Base64Url.GetDecodedLength(span2);
+        var decodedLength = FastBase64Url.GetDecodedLength(span2);
         var spanowner = new SpanOwner<byte>(stackalloc byte[BaseHelper.StackallocThreshold], decodedLength);
         try
         {
             var seedSpan = spanowner.Span;
-            if (!Base64Url.TryDecode(span2, seedSpan, out _))
+            if (!FastBase64Url.TryDecode(span2, seedSpan, out _))
             {
                 return false;
             }
@@ -181,9 +181,9 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
         {
             Span<byte> encryptionSecretKey = stackalloc byte[CryptoBox.SecretKeySize];
             Span<byte> encryptionPublicKey = stackalloc byte[CryptoBox.PublicKeySize];
-            CryptoBox.CreateKey(seed, encryptionSecretKey, encryptionPublicKey);
+            CryptoBox.CreateKeyPair(seed, encryptionSecretKey, encryptionPublicKey);
             var key2 = new EncryptionPublicKey(key);
-            if (CryptoDual.BoxPublicKey_Equals(key, encryptionPublicKey))
+            if (CryptoDual.BoxPublicKeyEquals(key, encryptionPublicKey))
             {
                 read = initialLength - span.Length + parsedLength;
                 return true;
@@ -193,7 +193,7 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
         {
             Span<byte> signatureSecretKey = stackalloc byte[CryptoSign.SecretKeySize];
             Span<byte> signaturePublicKey = stackalloc byte[CryptoSign.PublicKeySize];
-            CryptoSign.CreateKey(seed, signatureSecretKey, signaturePublicKey);
+            CryptoSign.CreateKeyPair(seed, signatureSecretKey, signaturePublicKey);
             if (key.SequenceEqual(signaturePublicKey))
             {
                 read = initialLength - span.Length + parsedLength;
@@ -248,7 +248,7 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
             var signPublic = new byte[CryptoSign.PublicKeySize];
             var boxSecret = new byte[CryptoBox.SecretKeySize];
             var boxPublic = new byte[CryptoBox.PublicKeySize];
-            CryptoDual.CreateKey(this.seed, signSecret, signPublic, boxSecret, boxPublic);
+            CryptoDual.CreateKeyPair(this.seed, signSecret, signPublic, boxSecret, boxPublic);
 
             this.signatureSecretKey = signSecret;
             this.signaturePublicKey = signPublic;
@@ -336,13 +336,13 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
 
     public void DeriveKeyMaterial(EncryptionPublicKey publicKey, Span<byte> keyMaterial)
     {
-        if (keyMaterial.Length != CryptoBox.KeyMaterialSize)
+        if (keyMaterial.Length != CryptoBox.SharedSecretSize)
         {
-            BaseHelper.ThrowSizeMismatchException(nameof(keyMaterial), CryptoBox.KeyMaterialSize);
+            BaseHelper.ThrowSizeMismatchException(nameof(keyMaterial), CryptoBox.SharedSecretSize);
         }
 
         this.PrepareKey();
-        CryptoBox.DeriveKeyMaterial(this.encryptionSecretKey, publicKey.AsSpan(), keyMaterial);
+        CryptoBox.DeriveSharedSecret(this.encryptionSecretKey, publicKey.AsSpan(), keyMaterial);
     }
 
     public bool Equals(SeedKey? other)
@@ -378,7 +378,7 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
         span = span.Slice(SeedKeyHelper.PrivateKeyBracket.Length);
 
         // Base64.Url.FromByteArrayToSpan(seedSpan, span, out var w);
-        var w = Base64Url.Encode(seedSpan, span);
+        var w = FastBase64Url.Encode(seedSpan, span);
         span = span.Slice(w);
 
         SeedKeyHelper.PrivateKeyBracket.CopyTo(span);

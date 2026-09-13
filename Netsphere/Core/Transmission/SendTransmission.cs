@@ -218,7 +218,7 @@ internal sealed partial class SendTransmission : IDisposable
             {// Block or Stream
                 while (this.sendGeneSerial < this.GeneSerialMax)
                 {
-                    if (this.genes.GeneSerialListChain.Get(this.sendGeneSerial++) is { } gene)
+                    if (this.genes.GeneSerialListChain.GetOrDefault(this.sendGeneSerial++) is { } gene)
                     {
                         if (gene.CurrentState == SendGene.State.Initial)
                         {
@@ -250,7 +250,7 @@ internal sealed partial class SendTransmission : IDisposable
         }
     }
 
-    internal NetResult SendBlock(uint dataKind, ulong dataId, BytePool.RentMemory block, TaskCompletionSource<NetResult>? sentTcs)
+    internal NetResult SendBlock(uint dataKind, ulong dataId, BytePool.RentedMemory block, TaskCompletionSource<NetResult>? sentTcs)
     {
         using (this.lockObject.EnterScope())
         {
@@ -420,7 +420,7 @@ internal sealed partial class SendTransmission : IDisposable
             }
 
             var gene = new SendGene(this);
-            BytePool.RentMemory rentMemory;
+            BytePool.RentedMemory rentMemory;
             if (this.GeneSerialMax == 0)
             {// First gene
                 this.CreateFirstPacket_Stream(dataControl, 0, stream.DataId, ReadOnlySpan<byte>.Empty, out rentMemory);
@@ -585,7 +585,7 @@ internal sealed partial class SendTransmission : IDisposable
             // [chain.StartPosition, successiveReceivedPosition)
             for (int i = chain.StartPosition, end = Math.Min(successiveReceivedPosition, chain.EndPosition); i < end; i++)
             {
-                if (chain.Get(i) is { } gene)
+                if (chain.GetOrDefault(i) is { } gene)
                 {
                     if (gene.CurrentState == SendGene.State.Sent)
                     {// Exclude resent genes as they do not allow for accurate RTT measurement.
@@ -632,7 +632,7 @@ internal sealed partial class SendTransmission : IDisposable
                 // [startGene, endGene)
                 for (int i = Math.Max(startGene, chain.StartPosition), end = Math.Min(endGene, chain.EndPosition); i < end; i++)
                 {
-                    if (chain.Get(i) is { } gene)
+                    if (chain.GetOrDefault(i) is { } gene)
                     {
                         if (gene.CurrentState == SendGene.State.Sent)
                         {// Exclude resent genes as they do not allow for accurate RTT measurement.
@@ -660,7 +660,7 @@ internal sealed partial class SendTransmission : IDisposable
                 {// Time Threshold
                     var threshold = (Math.Max(this.Connection.SmoothedRtt, this.Connection.LatestRtt) * 9) >> 3;
                     if (chain.StartPosition > 0 &&
-                        chain.Get(chain.StartPosition - 1) is { } g1 &&
+                        chain.GetOrDefault(chain.StartPosition - 1) is { } g1 &&
                         (Mics.FastSystem - g1.SentMics) > threshold)
                     {
                         if (startGene > lossPosition)
@@ -668,7 +668,7 @@ internal sealed partial class SendTransmission : IDisposable
                             lossPosition = startGene;
                         }
                     }
-                    else if (chain.Get(chain.StartPosition) is { } g2 &&
+                    else if (chain.GetOrDefault(chain.StartPosition) is { } g2 &&
                         (Mics.FastSystem - g2.SentMics) > threshold)
                     {
                         if (startGene > lossPosition)
@@ -705,7 +705,7 @@ internal sealed partial class SendTransmission : IDisposable
 
                 for (int i = startPosition, end = Math.Min(lossPosition, c.EndPosition); i < end; i++)
                 {
-                    if (c.Get(i) is { } gene)
+                    if (c.GetOrDefault(i) is { } gene)
                     {
                         gene.CongestionControl.LossDetected(gene);
                     }
@@ -854,7 +854,7 @@ Loop:
                     // Debug.Assert(chain.CanAdd); // Consumed < items.Length;
                     int size;
                     var gene = new SendGene(this);
-                    BytePool.RentMemory rentMemory;
+                    BytePool.RentedMemory rentMemory;
                     if (this.GeneSerialMax == 0)
                     {// First gene
                         size = Math.Min(buffer.Length, FirstGeneFrame.MaxGeneLength);
@@ -927,7 +927,7 @@ Exit:
         }
     }
 
-    private void CreateFirstPacket_Block(int totalGene, uint dataKind, ulong dataId, ReadOnlySpan<byte> block, out BytePool.RentMemory rentMemory)
+    private void CreateFirstPacket_Block(int totalGene, uint dataKind, ulong dataId, ReadOnlySpan<byte> block, out BytePool.RentedMemory rentMemory)
     {
         Debug.Assert(block.Length <= FirstGeneFrame.MaxGeneLength);
 
@@ -963,7 +963,7 @@ Exit:
         this.Connection.CreatePacket(frameHeader, block, out rentMemory);
     }
 
-    private void CreateFirstPacket_Stream(DataControl dataControl, long maxStreamLength, ulong dataId, ReadOnlySpan<byte> block, out BytePool.RentMemory rentMemory)
+    private void CreateFirstPacket_Stream(DataControl dataControl, long maxStreamLength, ulong dataId, ReadOnlySpan<byte> block, out BytePool.RentedMemory rentMemory)
     {
         Debug.Assert(block.Length <= FirstGeneFrame.MaxGeneLength);
 
@@ -996,7 +996,7 @@ Exit:
         this.Connection.CreatePacket(frameHeader, block, out rentMemory);
     }
 
-    private void CreateFollowingPacket(DataControl dataControl, int dataPosition, ReadOnlySpan<byte> block, out BytePool.RentMemory rentMemory)
+    private void CreateFollowingPacket(DataControl dataControl, int dataPosition, ReadOnlySpan<byte> block, out BytePool.RentedMemory rentMemory)
     {
         Debug.Assert(block.Length <= FollowingGeneFrame.MaxGeneLength);
 

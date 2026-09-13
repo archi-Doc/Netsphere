@@ -69,7 +69,7 @@ public class NetFixture : IDisposable
 
     public void Dispose()
     {
-        this.unit.Context.SendTerminate().Wait();
+        this.unit.Context.SendTerminateAsync().Wait();
     }
 
     public NetUnit NetUnit { get; }

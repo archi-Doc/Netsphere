@@ -90,7 +90,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
     #endregion
 
     public Task<bool> Delay100ms(CancellationToken cancellationToken = default)
-        => this.ExecutionGroup.Delay(100, cancellationToken);
+        => this.ExecutionGroup.TryDelay(100, cancellationToken);
 
     public bool TryCreateEndpoint(ref NetAddress address, EndpointResolution endpointResolution, out NetEndpoint endPoint)
         => this.NetStats.TryCreateEndpoint(ref address, endpointResolution, out endPoint);
@@ -149,7 +149,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         this.NodePublicKey = nodePrivateKey.GetEncryptionPublicKey();
     }
 
-    async Task IUnitPreparable.Prepare(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitPreparable.PrepareAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
         if (this.Port == 0)
         {
@@ -169,18 +169,18 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         this.NodePublicKey = this.NodeSeedKey.GetEncryptionPublicKey();
     }
 
-    async Task IUnitExecutable.Start(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitExecutable.StartAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
         this.State = UnitState.Active;
 
         await this.NetSender.StartAsync(this.ExecutionGroup);
     }
 
-    async Task IUnitExecutable.Stop(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitExecutable.StopAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
-    async Task IUnitExecutable.Terminate(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitExecutable.TerminateAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
         // Close all connections
         this.State = UnitState.Disposed;
@@ -273,7 +273,7 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         this.RelayAgent.ProcessSend(netSender);
     }
 
-    internal unsafe void ProcessReceive(IPEndPoint endPoint, BytePool.RentArray toBeShared, int packetSize)
+    internal unsafe void ProcessReceive(IPEndPoint endPoint, BytePool.RentedArray toBeShared, int packetSize)
     {// Checked: packetSize
         if (packetSize < PacketHeader.Length || packetSize > NetConstants.MaxPacketLength || packetSize > toBeShared.Array.Length)
         {

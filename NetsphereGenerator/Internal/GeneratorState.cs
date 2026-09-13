@@ -4,15 +4,15 @@ using Arc.Visceral;
 
 namespace Netsphere.Generator;
 
-public class GeneratorInformation
+public class GeneratorState
 {
     public int FormatterCount { get; set; } = 1;
 
-    public List<string> ModuleInitializerClass { get; } = new();
+    public List<string> ModuleInitializerClasses { get; } = new();
 
     public bool TryGetBlock(string blockKey, out GeneratorBlock block) => this.keyToBlock.TryGetValue(blockKey, out block);
 
-    public bool CreateBlock(string blockKey, out GeneratorBlock block)
+    public bool TryCreateBlock(string blockKey, out GeneratorBlock block)
     {
         if (this.TryGetBlock(blockKey, out block))
         {// Already exists.
@@ -29,7 +29,7 @@ public class GeneratorInformation
     {
         foreach (var x in this.keyToBlock.Values)
         {
-            ssb.Append(x.SSB);
+            ssb.Append(x.Ssb);
         }
     }
 
@@ -43,12 +43,12 @@ public class GeneratorBlock
 
     public int SerialNumber { get; }
 
-    public ScopingStringBuilder SSB { get; }
+    public ScopingStringBuilder Ssb { get; }
 
     public GeneratorBlock(string blockKey, int serialNumber)
     {
         this.BlockKey = blockKey;
         this.SerialNumber = serialNumber;
-        this.SSB = new();
+        this.Ssb = new();
     }
 }

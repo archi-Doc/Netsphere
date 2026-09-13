@@ -28,12 +28,12 @@ public partial class PublicIPMachine : Machine
         {
             SaveFormat = SaveFormat.Utf8,
             FileConfiguration = new GlobalFileConfiguration(Filename),
-            NumberOfFileHistories = 0,
+            NumberOfHistoryFiles = 0,
         };
 
         this.crystal = crystalControl.GetOrCreateCrystal<Data>(configuration);
 
-        // this.DefaultTimeout = TimeSpan.FromSeconds(5);
+        // this.DefaultInterval = TimeSpan.FromSeconds(5);
     }
 
     [StateMethod(0)]

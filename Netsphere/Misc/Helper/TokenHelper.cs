@@ -18,7 +18,7 @@ public static class TokenHelper
         where T : ITinyhandSerializable<T>
     {
         var rentMemory = TinyhandSerializer.SerializeObjectToRentMemory(value);
-        var length = 3 + Base64Url.GetEncodedLength(rentMemory.Length); // {identifier+base64}
+        var length = 3 + FastBase64Url.GetEncodedLength(rentMemory.Length); // {identifier+base64}
         rentMemory.Return();
         return length;
     }
@@ -46,12 +46,12 @@ public static class TokenHelper
         }
 
         source = source.Slice(2, last - 2);
-        var length = Base64Url.GetDecodedLength(source);
+        var length = FastBase64Url.GetDecodedLength(source);
         var spanowner = new SpanOwner<byte>(stackalloc byte[BaseHelper.StackallocThreshold], length);
         try
         {
             var span = spanowner.Span;
-            if (!Base64Url.TryDecode(source, span, out _))
+            if (!FastBase64Url.TryDecode(source, span, out _))
             {
                 return false;
             }
@@ -76,7 +76,7 @@ public static class TokenHelper
     {
         written = 0;
         var b = TinyhandSerializer.SerializeObject(value);
-        var length = 3 + Base64Url.GetEncodedLength(b.Length);
+        var length = 3 + FastBase64Url.GetEncodedLength(b.Length);
 
         if (destination.Length < length)
         {
@@ -84,7 +84,7 @@ public static class TokenHelper
         }
 
         var span = destination.Slice(2);
-        var w = Base64Url.Encode(b, span);
+        var w = FastBase64Url.Encode(b, span);
 
         destination[0] = StartChar;
         destination[1] = identifier;
@@ -98,6 +98,6 @@ public static class TokenHelper
     public static string ToBase64<T>(T value, char identifier)
         where T : ITinyhandSerializable<T>
     {
-        return "{" + identifier + Base64Url.EncodeToString(TinyhandSerializer.SerializeObject(value)) + "}";
+        return "{" + identifier + FastBase64Url.EncodeToString(TinyhandSerializer.SerializeObject(value)) + "}";
     }
 }

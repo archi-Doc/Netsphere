@@ -11,7 +11,7 @@ internal class NetsphereUnitContext : INetsphereUnitContext, IUnitCustomContext
 
     internal Dictionary<Type, ObjectTypeAndServiceDescriptor> NetServices { get; } = new();
 
-    void IUnitCustomContext.ProcessContext(IUnitConfigurationContext context)
+    void IUnitCustomContext.Configure(IUnitConfigurationContext context)
     {
         context.SetOptions(this);
 

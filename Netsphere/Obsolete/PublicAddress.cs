@@ -65,7 +65,7 @@ public partial class PublicAddress
         }
 
         [Key(0)]
-        [Link(Primary = true, Type = ChainType.Unordered, AddValue = false)]
+        [Link(Primary = true, Type = ChainType.Unordered, GenerateValue = false)]
         public IPAddress? Address { get; private set; }
 
         [Key(1)]

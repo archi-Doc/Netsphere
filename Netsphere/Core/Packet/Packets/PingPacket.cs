@@ -47,7 +47,7 @@ public sealed partial class PingPacketResponse : IPacket
         this.NetsphereId = netsphereId;
     }
 
-    [Key(0, AddProperty = "Message", PropertyAccessibility = PropertyAccessibility.ProtectedSetter)]
+    [Key(0, PropertyName = "Message", PropertyAccessibility = PropertyAccessibility.ProtectedSetter)]
     [MaxLength(PingPacket.MaxMessageLength)]
     private string _message = string.Empty;
 

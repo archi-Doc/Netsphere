@@ -90,7 +90,7 @@ public readonly partial struct EncryptionPublicKey : IValidatable, IEquatable<En
     public SignaturePublicKey ConvertToSignaturePublicKey()
     {
         var key = default(SignaturePublicKey);
-        CryptoDual.PublicKey_BoxToSign(this.AsSpan(), key.UnsafeAsSpan());
+        CryptoDual.ConvertBoxPublicKeyToSign(this.AsSpan(), key.UnsafeAsSpan());
         return key;
     }
 

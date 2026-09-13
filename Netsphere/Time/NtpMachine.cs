@@ -20,7 +20,7 @@ public partial class NtpMachine : Machine
         this.NetUnit = netUnit;
         this.ntpCorrection = ntpCorrection;
 
-        this.DefaultTimeout = TimeSpan.FromSeconds(5);
+        this.DefaultInterval = TimeSpan.FromSeconds(5);
     }
 
     public NetBase NetBase { get; }
@@ -82,7 +82,7 @@ public partial class NtpMachine : Machine
     private void SetLoggerTimeOffset()
     {
         var offset = this.ntpCorrection.GetTimeOffset();
-        LogUnit.SetTimeOffset(TimeSpan.FromMilliseconds(offset.MeanTimeoffset));
+        LogUnit.SetTimestampOffset(TimeSpan.FromMilliseconds(offset.MeanTimeoffset));
     }
 
     private ILogger<NtpMachine> logger;

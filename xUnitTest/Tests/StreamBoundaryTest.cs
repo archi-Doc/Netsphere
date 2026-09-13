@@ -117,7 +117,7 @@ public class StreamBoundaryTest
             packet.Span[12] = 42;
             transmission.ProcessReceive_Gene(DataControl.Valid, 0, packet);
             Assert.Equal(42, actual);
-            Assert.Equal(1, packet.RentArray!.Count);
+            Assert.Equal(1, packet.Owner!.ReferenceCount);
         }
         finally
         {

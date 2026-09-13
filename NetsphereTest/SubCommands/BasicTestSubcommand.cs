@@ -88,7 +88,7 @@ public class BasicTestSubcommand : ISimpleCommand<BasicTestOptions>
 
 public record BasicTestOptions
 {
-    [SimpleOption("Node", Description = "Node address", Required = true)]
+    [SimpleOption("Node", Description = "Node address", IsRequired = true)]
     public string NetNode { get; init; } = string.Empty;
 
     public override string ToString() => $"{this.NetNode}";

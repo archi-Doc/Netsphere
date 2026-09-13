@@ -8,25 +8,25 @@ namespace Netsphere.Generator;
 
 public class ServiceFilterGroup
 {
-    public ServiceFilterGroup(NetsphereObject obj, ServiceFilter serviceFilter)
+    public ServiceFilterGroup(NetsphereObject ownerObject, ServiceFilterSet filterSet)
     {
-        this.Object = obj;
-        this.ServiceFilter = serviceFilter;
+        this.OwnerObject = ownerObject;
+        this.FilterSet = filterSet;
     }
 
-    public class Item
+    public class FilterItem
     {
-        public Item(NetsphereObject obj, NetsphereObject? callContextObject, string identifier, string? argument, int order, bool isAsync)
+        public FilterItem(NetsphereObject filterObject, NetsphereObject? callContextObject, string identifier, string? arguments, int order, bool isAsync)
         {
-            this.Object = obj;
+            this.FilterObject = filterObject;
             this.CallContextObject = callContextObject;
             this.Identifier = identifier;
-            this.Arguments = argument;
+            this.Arguments = arguments;
             this.Order = order;
             this.IsAsync = isAsync;
         }
 
-        public NetsphereObject Object { get; private set; }
+        public NetsphereObject FilterObject { get; private set; }
 
         public NetsphereObject? CallContextObject { get; private set; }
 
@@ -39,9 +39,9 @@ public class ServiceFilterGroup
         public bool IsAsync { get; private set; }
     }
 
-    public static Item[]? FromClassAndMethod(ServiceFilterGroup? classFilters, ServiceFilterGroup? methodFilters)
+    public static FilterItem[]? CombineItems(ServiceFilterGroup? classFilters, ServiceFilterGroup? methodFilters)
     {
-        Item[]? items = null;
+        FilterItem[]? items = null;
 
         if (classFilters?.Items != null)
         {
@@ -69,7 +69,7 @@ public class ServiceFilterGroup
         return items;
     }
 
-    public static void GenerateInitialize(ScopingStringBuilder ssb, string serviceProvider, Item[]? items)
+    public static void GenerateFilterInstances(ScopingStringBuilder ssb, string serviceProvider, FilterItem[]? items)
     {
         if (items == null)
         {
@@ -79,9 +79,9 @@ public class ServiceFilterGroup
         foreach (var x in items)
         {
             var hasDefaultConstructor = false;
-            foreach (var a in x.Object.GetMembers(VisceralTarget.Method))
+            foreach (var a in x.FilterObject.GetMembers(VisceralTarget.Method))
             {
-                if (a.Method_IsConstructor && a.ContainingObject == x.Object)
+                if (a.Method_IsConstructor && a.ContainingObject == x.FilterObject)
                 {// Constructor
                     if (a.Method_Parameters.Length == 0)
                     {
@@ -91,21 +91,21 @@ public class ServiceFilterGroup
                 }
             }
 
-            // ssb.AppendLine($"this.{x.Identifier} = ({x.Object.FullName}){context}.ServiceFilters.GetOrAdd(typeof({x.Object.FullName}), x => (IServiceFilter){newInstance});");
+            // ssb.AppendLine($"this.{x.Identifier} = ({x.FilterObject.FullName}){context}.ServiceFilters.GetOrAdd(typeof({x.FilterObject.FullName}), x => (IServiceFilter){newInstance});");
             if (hasDefaultConstructor)
             {
-                ssb.AppendLine($"var {x.Identifier} = new {x.Object.FullName}();");
+                ssb.AppendLine($"var {x.Identifier} = new {x.FilterObject.FullName}();");
             }
             else
             {
-                ssb.AppendLine($"var {x.Identifier} = {serviceProvider}?.GetService(typeof({x.Object.FullName})) as {x.Object.FullName};");
+                ssb.AppendLine($"var {x.Identifier} = {serviceProvider}?.GetService(typeof({x.FilterObject.FullName})) as {x.FilterObject.FullName};");
             }
 
             if (!hasDefaultConstructor)
             {
                 using (var scopeNull = ssb.ScopeBrace($"if ({x.Identifier} == null)"))
                 {
-                    ssb.AppendLine($"throw new InvalidOperationException($\"Could not create an instance of the net filter '{x.Object.FullName}'.\");");
+                    ssb.AppendLine($"throw new InvalidOperationException($\"Could not create an instance of the net filter '{x.FilterObject.FullName}'.\");");
                 }
             }
 
@@ -116,27 +116,27 @@ public class ServiceFilterGroup
         }
     }
 
-    public NetsphereObject Object { get; }
+    public NetsphereObject OwnerObject { get; }
 
-    public ServiceFilter ServiceFilter { get; }
+    public ServiceFilterSet FilterSet { get; }
 
-    public Item[]? Items { get; private set; }
+    public FilterItem[]? Items { get; private set; }
 
     // public Dictionary<NetServiceFilterAttributeMock, Item>? AttributeToItem { get; private set; }
 
     public void CheckAndPrepare()
     {
         var errorFlag = false;
-        var filterList = this.ServiceFilter.FilterList;
-        var items = new Item[filterList.Count];
+        var filterList = this.FilterSet.FilterList;
+        var items = new FilterItem[filterList.Count];
         for (var i = 0; i < filterList.Count; i++)
         {
-            var obj = this.Object.Body.Add(filterList[i].FilterType!);
+            var obj = this.OwnerObject.Body.Add(filterList[i].FilterTypeSymbol!);
             bool isAsync = false;
             var filterObject = obj == null ? null : this.GetFilterObject(obj, out isAsync);
             if (obj == null || filterObject == null)
             {
-                this.Object.Body.AddDiagnostic(NetsphereBody.Error_FilterTypeNotDerived, filterList[i].Location);
+                this.OwnerObject.Body.AddDiagnostic(NetsphereBody.Error_FilterTypeNotDerived, filterList[i].Location);
                 errorFlag = true;
                 continue;
             }
@@ -153,7 +153,7 @@ public class ServiceFilterGroup
                 argument = filterList[i].Arguments;
             }
 
-            var item = new Item(obj, callContextObject, this.Object.Identifier.GetIdentifier(), argument, filterList[i].Order, isAsync);
+            var item = new FilterItem(obj, callContextObject, this.OwnerObject.Identifier.GetIdentifier(), argument, filterList[i].Order, isAsync);
             items[i] = item;
         }
 
@@ -169,7 +169,7 @@ public class ServiceFilterGroup
         }
     }
 
-    /*public Item? GetIdentifier(NetServiceFilterAttributeMock? filterAttribute)
+    /*public FilterItem? GetIdentifier(NetServiceFilterAttributeMock? filterAttribute)
     {
         if (this.AttributeToItem == null || filterAttribute == null)
         {
@@ -191,11 +191,11 @@ public class ServiceFilterGroup
         {
             if (x.Generics_IsGeneric)
             {// Generic
-                if (x.OriginalDefinition?.FullName == NetsphereBody.ServiceFilterSyncFullName2)
+                if (x.OriginalDefinition?.FullName == NetsphereBody.GenericServiceFilterSyncFullName)
                 {
                     return x;
                 }
-                else if (x.OriginalDefinition?.FullName == NetsphereBody.ServiceFilterAsyncFullName2)
+                else if (x.OriginalDefinition?.FullName == NetsphereBody.GenericServiceFilterAsyncFullName)
                 {
                     isAsync = true;
                     return x;

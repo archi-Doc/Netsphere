@@ -41,8 +41,8 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 // context.AddSingleton<RemoteControlAgent>();
 
                 // Logger
-                context.ClearLoggerResolver();
-                context.AddLoggerResolver(x =>
+                context.ClearLogOutputResolvers();
+                context.AddLogOutputResolver(x =>
                 {// Log source/level -> Resolver() -> Output/filter
                     if (x.LogLevel == LogLevel.Debug)
                     {
@@ -50,26 +50,26 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
                         return;
                     }
 
-                    x.SetOutput<ConsoleAndFileLogger>();
+                    x.SetOutput<ConsoleAndFileLogOutput>();
                 });
             });
 
             this.PostConfigure(context =>
             {
                 var logfile = "Logs/Log.txt";
-                context.SetOptions(context.GetOptions<FileLoggerOptions>() with
-                {// FileLoggerOptions
-                    Path = Path.Combine(context.DataDirectory, logfile),
-                    MaxLogCapacity = 2,
+                context.SetOptions(context.GetOrCreateOptions<FileLogOutputOptions>() with
+                {// FileLogOutputOptions
+                    FilePath = Path.Combine(context.DataDirectory, logfile),
+                    MaxLogCapacityInMegabytes = 2,
                 });
 
-                context.SetOptions(context.GetOptions<ConsoleLoggerOptions>() with
-                {// ConsoleLoggerOptions
+                context.SetOptions(context.GetOrCreateOptions<ConsoleLogOutputOptions>() with
+                {// ConsoleLogOutputOptions
                 });
 
-                var netOptions = context.GetOptions<NetOptions>();
+                var netOptions = context.GetOrCreateOptions<NetOptions>();
                 var args = SimpleParserHelper.GetCommandLineArguments();
-                var cmd = SimpleParserHelper.PeekCommand(args);
+                var cmd = SimpleParserHelper.PeekCommandName(args);
                 if (string.IsNullOrEmpty(cmd) || cmd == "server")
                 {// Server command (default)
                     netOptions = netOptions with { EnableServer = true, };
@@ -104,7 +104,7 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
             /*var args = SimpleParserHelper.GetCommandLineArguments();
             int port = 0;
             bool enableServer = false;
-            var cmd = SimpleParserHelper.PeekCommand(args);
+            var cmd = SimpleParserHelper.PeekCommandName(args);
             if (string.IsNullOrEmpty(cmd) || cmd == "server")
             {// Server command (default)
                 enableServer = true;
@@ -126,10 +126,10 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
             var parserOptions = SimpleParserOptions.Standard with
             {
                 ServiceProvider = this.Context.ServiceProvider,
-                RequireStrictCommandName = false,
-                RequireStrictOptionName = false,
+                RequireCommandName = false,
+                RejectUnknownOptionNames = false,
             };
-            await SimpleParser.ParseAndExecute(this.Context.Commands, args, parserOptions);
+            await SimpleParser.ParseAndExecute(this.Context.CommandTypes, args, parserOptions);
 
             await this.Terminate();
         }
@@ -141,19 +141,19 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
         this.logger = logger;
     }
 
-    async Task IUnitPreparable.Prepare(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitPreparable.PrepareAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
-    async Task IUnitExecutable.Start(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitExecutable.StartAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
-    async Task IUnitExecutable.Stop(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitExecutable.StopAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
-    async Task IUnitExecutable.Terminate(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitExecutable.TerminateAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 

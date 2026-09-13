@@ -35,7 +35,7 @@ public partial class RelayAgent
             this.EndPoint = endPoint;
         }
 
-        [Link(Type = ChainType.Unordered, AddValue = false)]
+        [Link(Type = ChainType.Unordered, GenerateValue = false)]
         public NetAddress NetAddress { get; }
 
         public IPEndPoint? EndPoint { get; }
@@ -258,10 +258,10 @@ public partial class RelayAgent
         }
     }
 
-    internal bool ProcessRelay(NetEndpoint endpoint, RelayId destinationRelayId, BytePool.RentMemory source, out BytePool.RentMemory decrypted)
+    internal bool ProcessRelay(NetEndpoint endpoint, RelayId destinationRelayId, BytePool.RentedMemory source, out BytePool.RentedMemory decrypted)
     {// This is all the code that performs the actual relay processing.
         decrypted = default;
-        if (source.RentArray is null || source.Length < Packet.PacketHeader.Length || source.Length > NetConstants.MaxPacketLength)
+        if (source.Owner is null || source.Length < Packet.PacketHeader.Length || source.Length > NetConstants.MaxPacketLength)
         {// Invalid data
             return false;
         }
@@ -337,7 +337,7 @@ public partial class RelayAgent
 
                 span = span.Slice(RelayHeader.Length - RelayHeader.PlainLength - RelayHeader.RelayIdLength);
                 decrypted = source.Slice(RelayHeader.Length);
-                // decrypted = source.RentArray.AsMemory(RelayHeader.Length, span.Length);
+                // decrypted = source.Owner.AsMemory(RelayHeader.Length, span.Length);
                 if (relayHeader.NetAddress == NetAddress.Relay)
                 {// Initiator -> This node
                     if (!exchange.DecrementAndCheck())
@@ -496,12 +496,12 @@ AcceptIncoming:
             if (sourceRelayId == 0)
             {// RelayId(Source/Destination), RelayHeader, Content(span)
                 if (source.Length > NetConstants.MaxPacketLength - RelayHeader.Length - Aegis128L.MinTagSize ||
-                    source.RentArray!.Array.Length < source.Length + RelayHeader.Length + Aegis128L.MinTagSize)
+                    source.Owner!.Array.Length < source.Length + RelayHeader.Length + Aegis128L.MinTagSize)
                 {
                     goto Exit;
                 }
 
-                var sourceSpan = source.RentArray!.Array.AsSpan(RelayHeader.RelayIdLength);
+                var sourceSpan = source.Owner!.Array.AsSpan(RelayHeader.RelayIdLength);
                 span.CopyTo(sourceSpan.Slice(RelayHeader.Length));
 
                 var contentLength = span.Length;
@@ -513,7 +513,7 @@ AcceptIncoming:
 
                 sourceSpan = sourceSpan.Slice(contentLength);
 
-                source = source.RentArray.AsMemory(0, RelayHeader.RelayIdLength + RelayHeader.Length + contentLength);
+                source = source.Owner.AsMemory(0, RelayHeader.RelayIdLength + RelayHeader.Length + contentLength);
                 span = source.Span.Slice(RelayHeader.RelayIdLength);
             }
 

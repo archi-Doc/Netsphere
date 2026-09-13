@@ -158,7 +158,7 @@ internal partial class AckBuffer
     {
         const int maxLength = PacketHeader.MaxFrameLength - 2;
 
-        BytePool.RentArray? rentArray = default;
+        BytePool.RentedArray? rentArray = default;
         Span<byte> span = default;
 
         while (ackQueue.TryDequeue(out var item))

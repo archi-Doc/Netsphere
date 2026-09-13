@@ -6,15 +6,15 @@ using Microsoft.CodeAnalysis;
 
 namespace Netsphere.Generator;
 
-public class ServiceFilter
+public class ServiceFilterSet
 {
-    public static ServiceFilter? CreateFromObject(NetsphereObject obj)
+    public static ServiceFilterSet? CreateFromObject(NetsphereObject obj)
     {
         List<NetServiceFilterAttributeMock>? filterList = null;
         var errorFlag = false;
         foreach (var x in obj.AllAttributes)
         {
-            if (x.FullName.StartsWith(NetServiceFilterAttributeMock.StartName) && x.FullName.EndsWith(">"))
+            if (x.FullName.StartsWith(NetServiceFilterAttributeMock.GenericFullNamePrefix) && x.FullName.EndsWith(">"))
             {
                 NetsphereObject? genericType = default;
                 // MachineObjectAttributeMock? atr = default;
@@ -36,12 +36,12 @@ public class ServiceFilter
                     }
                     catch (InvalidCastException)
                     {
-                        obj.Body.AddDiagnostic(NetsphereBody.Error_AttributePropertyError, x.Location);
+                        obj.Body.AddDiagnostic(NetsphereBody.Error_AttributePropertyType, x.Location);
                         errorFlag = true;
                         continue;
                     }
 
-                    attr.FilterType = typeSymbol;
+                    attr.FilterTypeSymbol = typeSymbol;
                     filterList ??= new();
                     filterList.Add(attr);
 
@@ -63,12 +63,12 @@ public class ServiceFilter
             }
             catch (InvalidCastException)
             {
-                obj.Body.AddDiagnostic(NetsphereBody.Error_AttributePropertyError, x.Location);
+                obj.Body.AddDiagnostic(NetsphereBody.Error_AttributePropertyType, x.Location);
                 errorFlag = true;
                 continue;
             }
 
-            if (attr.FilterType == null)
+            if (attr.FilterTypeSymbol == null)
             {
                 obj.Body.AddDiagnostic(NetsphereBody.Error_NoFilterType, x.Location);
                 errorFlag = true;
@@ -93,9 +93,9 @@ public class ServiceFilter
         var checker2 = new HashSet<ISymbol>();
         foreach (var item in filterList)
         {
-            if (item.FilterType != null && !checker2.Add(item.FilterType))
+            if (item.FilterTypeSymbol != null && !checker2.Add(item.FilterTypeSymbol))
             {
-                obj.Body.AddDiagnostic(NetsphereBody.Error_FilterTypeConflicted, item.Location);
+                obj.Body.AddDiagnostic(NetsphereBody.Error_DuplicateFilterType, item.Location);
                 errorFlag = true;
             }
         }
@@ -105,43 +105,43 @@ public class ServiceFilter
             return null;
         }
 
-        return new ServiceFilter(filterList, checker2);
+        return new ServiceFilterSet(filterList, checker2);
     }
 
-    public ServiceFilter()
+    public ServiceFilterSet()
     {
         this.FilterList = new();
         this.FilterSet = new();
     }
 
-    public ServiceFilter(List<NetServiceFilterAttributeMock> filterList, HashSet<ISymbol> filterSet)
+    public ServiceFilterSet(List<NetServiceFilterAttributeMock> filterList, HashSet<ISymbol> filterSet)
     {
         this.FilterList = filterList;
         this.FilterSet = filterSet;
     }
 
-    public ServiceFilter(ServiceFilter serviceFilter)
+    public ServiceFilterSet(ServiceFilterSet filterSet)
     {
-        this.FilterList = new(serviceFilter.FilterList);
-        this.FilterSet = new(serviceFilter.FilterSet);
+        this.FilterList = new(filterSet.FilterList);
+        this.FilterSet = new(filterSet.FilterSet);
     }
 
-    public void TryAdd(ServiceFilter serviceFilter)
+    public void AddRange(ServiceFilterSet filterSet)
     {
-        foreach (var x in serviceFilter.FilterList)
+        foreach (var x in filterSet.FilterList)
         {
-            this.FilterSet.Add(x.FilterType!);
+            this.FilterSet.Add(x.FilterTypeSymbol!);
             this.FilterList.Add(x);
         }
     }
 
-    public void TryMerge(ServiceFilter serviceFilter)
+    public void Merge(ServiceFilterSet filterSet)
     {
-        foreach (var x in serviceFilter.FilterList)
+        foreach (var x in filterSet.FilterList)
         {
-            if (!this.FilterSet.Contains(x.FilterType!))
+            if (!this.FilterSet.Contains(x.FilterTypeSymbol!))
             {
-                this.FilterSet.Add(x.FilterType!);
+                this.FilterSet.Add(x.FilterTypeSymbol!);
                 this.FilterList.Add(x);
             }
         }

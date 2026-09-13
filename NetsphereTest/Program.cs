@@ -59,10 +59,10 @@ public class Program
 
         // NetUnit.QuickStart(true, () => new TestServerContext(), () => new TestCallContext(), "test", options, true);
 
-        AppCloseHandler.Set(() =>
+        AppCloseHandler.Register(() =>
         {// Closing the console window or terminating the process.
             root?.RequestTermination(); // Send a termination signal to the root.
-            root?.WaitForTermination(TimeSpan.FromSeconds(2)).Wait();
+            root?.WaitForTerminationAsync(TimeSpan.FromSeconds(2)).Wait();
         });
 
         Console.CancelKeyPress += (s, e) =>
@@ -90,7 +90,7 @@ public class Program
         var builder = new NetUnit.Builder()
             .PreConfigure(context =>
             {
-                var originalOptions = context.GetOptions<NetOptions>();
+                var originalOptions = context.GetOrCreateOptions<NetOptions>();
                 NetOptions? options = default;
                 if (context.Arguments.TryGetOptionValue("ns", out var nsArg))
                 {
@@ -119,13 +119,13 @@ public class Program
                 // Other
 
                 // Resolver
-                context.ClearLoggerResolver();
-                context.AddLoggerResolver(context =>
+                context.ClearLogOutputResolvers();
+                context.AddLogOutputResolver(context =>
                 {
                     if (context.LogLevel == LogLevel.Debug)
                     {
-                        context.SetOutput<FileLogger<FileLoggerOptions>>();
-                        // context.SetOutput<EmptyLogger>();
+                        context.SetOutput<FileLogOutput<FileLogOutputOptions>>();
+                        // context.SetOutput<EmptyLogOutput>();
                         return;
                     }
 
@@ -146,13 +146,13 @@ public class Program
                     }
                     else*/
                     {
-                        context.SetOutput<ConsoleLogger>();
+                        context.SetOutput<ConsoleLogOutput>();
                     }
                 });
             })
             .PostConfigure(context =>
             {
-                var netOptions = context.GetOptions<NetOptions>();
+                var netOptions = context.GetOrCreateOptions<NetOptions>();
                 if (string.IsNullOrEmpty(netOptions.NodeSecretKey) &&
                 Environment.GetEnvironmentVariable("node_privatekey") is { } nodePrivateKey)
                 {
@@ -163,17 +163,17 @@ public class Program
                 context.SetOptions(netOptions);
 
                 var logfile = "Logs/Debug.txt";
-                var fileLoggerOptions = context.GetOptions<FileLoggerOptions>();
+                var fileLoggerOptions = context.GetOrCreateOptions<FileLogOutputOptions>();
                 context.SetOptions(fileLoggerOptions with
                 {
-                    Path = Path.Combine(context.DataDirectory, logfile),
-                    MaxLogCapacity = 10,
+                    FilePath = Path.Combine(context.DataDirectory, logfile),
+                    MaxLogCapacityInMegabytes = 10,
                     FormatterOptions = fileLoggerOptions.FormatterOptions with { TimestampFormat = "mm:ss.ffffff K", },// "yyyy-MM-dd HH:mm:ss.ffffff K";
                     ClearLogsAtStartup = true,
-                    MaxQueue = 100_000,
+                    MaxQueueLength = 100_000,
                 });
 
-                var consoleLoggerOptions = context.GetOptions<ConsoleLoggerOptions>();
+                var consoleLoggerOptions = context.GetOrCreateOptions<ConsoleLogOutputOptions>();
                 context.SetOptions(consoleLoggerOptions with
                 {
                     EnableBuffering = true,
@@ -202,18 +202,18 @@ public class Program
         var parserOptions = SimpleParserOptions.Standard with
         {
             ServiceProvider = unit.Context.ServiceProvider,
-            RequireStrictCommandName = false,
-            RequireStrictOptionName = false,
+            RequireCommandName = false,
+            RejectUnknownOptionNames = false,
         };
 
-        await SimpleParser.ParseAndExecute(unit.Context.Commands, args, parserOptions); // Main process
+        await SimpleParser.ParseAndExecute(unit.Context.CommandTypes, args, parserOptions); // Main process
 
         root.RequestTermination();
         if (unit.Context.ServiceProvider.GetService<LogUnit>() is { } unitLogger)
         {
-            await unitLogger.FlushAndTerminate();
+            await unitLogger.FlushAndTerminateAsync();
         }
 
-        await root.WaitForTermination(); // Wait for the termination infinitely.
+        await root.WaitForTerminationAsync(); // Wait for the termination infinitely.
     }
 }

@@ -12,7 +12,7 @@ public class Program
     {
         var builder = new NetUnit.Builder().Configure(context =>
         {
-            context.AddLoggerResolver(x =>
+            context.AddLogOutputResolver(x =>
             {// Log source/level -> Resolver() -> Output/filter
                 if (x.LogLevel == LogLevel.Debug)
                 {
@@ -20,7 +20,7 @@ public class Program
                     return;
                 }
 
-                x.SetOutput<ConsoleLogger>();
+                x.SetOutput<ConsoleLogOutput>();
             });
         });
 

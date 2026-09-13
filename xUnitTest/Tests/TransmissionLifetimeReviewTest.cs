@@ -117,18 +117,18 @@ public class TransmissionLifetimeReviewTest
         using var client = this.CreateConnection();
         using var server = new ServerConnection(client);
         var request = BytePool.Default.Rent(64).AsMemory(0, 64);
-        var array = request.RentArray!;
+        var array = request.Owner!;
         var context = new TransmissionContext(server, 42, 1, 0, request);
 
         // The handler returns the borrowed request lease, as ITestService3.SendMemoryOwner does.
         context.SetResponseRentMemory(request.Slice(0, 8));
 
-        Assert.Equal(1, array.Count);
-        Assert.Same(array, context.RentMemory.RentArray);
+        Assert.Equal(1, array.ReferenceCount);
+        Assert.Same(array, context.RentMemory.Owner);
         Assert.Equal(8, context.RentMemory.Length);
 
         context.Return();
-        Assert.Equal(0, array.Count);
+        Assert.Equal(0, array.ReferenceCount);
     }
 
     [Fact]
@@ -137,15 +137,15 @@ public class TransmissionLifetimeReviewTest
         using var client = this.CreateConnection();
         using var server = new ServerConnection(client);
         var request = BytePool.Default.Rent(64).AsMemory(0, 64);
-        var requestArray = request.RentArray!;
+        var requestArray = request.Owner!;
         var context = new TransmissionContext(server, 42, 1, 0, request);
         var response = BytePool.Default.Rent(8).AsMemory(0, 8);
 
         context.SetResponseRentMemory(response);
 
-        Assert.Equal(0, requestArray.Count);
-        Assert.Same(response.RentArray, context.RentMemory.RentArray);
-        Assert.Equal(1, response.RentArray!.Count);
+        Assert.Equal(0, requestArray.ReferenceCount);
+        Assert.Same(response.Owner, context.RentMemory.Owner);
+        Assert.Equal(1, response.Owner!.ReferenceCount);
 
         context.Return();
     }
@@ -156,17 +156,17 @@ public class TransmissionLifetimeReviewTest
         using var client = this.CreateConnection();
         using var server = new ServerConnection(client);
         var request = BytePool.Default.Rent(64).AsMemory(0, 64);
-        var array = request.RentArray!;
+        var array = request.Owner!;
         var context = new TransmissionContext(server, 42, 1, 0, request);
 
         // The handler acquired its own reference before returning the same buffer.
         context.SetResponseRentMemory(request.IncrementAndShare());
 
-        Assert.Equal(1, array.Count);
-        Assert.Same(array, context.RentMemory.RentArray);
+        Assert.Equal(1, array.ReferenceCount);
+        Assert.Same(array, context.RentMemory.Owner);
 
         context.Return();
-        Assert.Equal(0, array.Count);
+        Assert.Equal(0, array.ReferenceCount);
     }
 
     [Fact]

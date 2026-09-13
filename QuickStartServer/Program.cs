@@ -14,10 +14,10 @@ public class Program
 
     public static async Task Main()
     {
-        AppCloseHandler.Set(() =>
+        AppCloseHandler.Register(() =>
         {// Closing the console window or terminating the process.
             root?.RequestTermination(); // Send a termination signal to the root.
-            root?.WaitForTermination(TimeSpan.FromSeconds(2)).Wait();
+            root?.WaitForTerminationAsync(TimeSpan.FromSeconds(2)).Wait();
         });
 
         Console.CancelKeyPress += (s, e) =>
@@ -33,7 +33,7 @@ public class Program
             })
             .PostConfigure(context =>
             {
-                context.SetOptions(context.GetOptions<NetOptions>() with
+                context.SetOptions(context.GetOrCreateOptions<NetOptions>() with
                 {
                     NodeName = "Test server",
                     Port = 1981, // Specify the port number.
@@ -58,10 +58,10 @@ public class Program
 
         await Console.Out.WriteLineAsync($"{options.NodeName}: {node.ToString()}");
         await Console.Out.WriteLineAsync("Ctrl+C to exit");
-        await root.Delay(Timeout.InfiniteTimeSpan); // Wait until the server shuts down.
+        await root.TryDelay(Timeout.InfiniteTimeSpan); // Wait until the server shuts down.
         await unit.Terminate(); // Perform the termination process for the unit.
 
         root.RequestTermination();
-        await root.WaitForTermination(); // Wait for the termination infinitely.
+        await root.WaitForTerminationAsync(); // Wait for the termination infinitely.
     }
 }

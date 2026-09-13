@@ -11,7 +11,7 @@ namespace Lp.NetServices;
 [NetObject]
 public class RemoteBenchRunnerAgent : IRemoteBenchRunner, INetServiceHandler
 {
-    public RemoteBenchRunnerAgent(FileLogger<FileLoggerOptions> fileLogger, ILogger<RemoteBenchRunnerAgent> logger, NetTerminal netTerminal, NtpCorrection ntpCorrection)
+    public RemoteBenchRunnerAgent(FileLogOutput<FileLogOutputOptions> fileLogger, ILogger<RemoteBenchRunnerAgent> logger, NetTerminal netTerminal, NtpCorrection ntpCorrection)
     {
         this.fileLogger = fileLogger;
         this.logger = logger;
@@ -21,7 +21,7 @@ public class RemoteBenchRunnerAgent : IRemoteBenchRunner, INetServiceHandler
 
     #region FieldAndProperty
 
-    private readonly IFileLogger fileLogger;
+    private readonly IFileLogOutput fileLogger;
     private readonly ILogger logger;
     private readonly NetTerminal netTerminal;
     private readonly NtpCorrection ntpCorrection;

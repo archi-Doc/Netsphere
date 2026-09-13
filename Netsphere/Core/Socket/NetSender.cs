@@ -11,7 +11,7 @@ internal class NetSender
 
     internal readonly struct Item
     {
-        public Item(IPEndPoint endPoint, BytePool.RentMemory toBeMoved)
+        public Item(IPEndPoint endPoint, BytePool.RentedMemory toBeMoved)
         {
             this.EndPoint = endPoint;
             this.MemoryOwner = toBeMoved;
@@ -19,7 +19,7 @@ internal class NetSender
 
         public readonly IPEndPoint EndPoint;
 
-        public readonly BytePool.RentMemory MemoryOwner;
+        public readonly BytePool.RentedMemory MemoryOwner;
     }
 
     public NetSender(NetTerminal netTerminal, NetBase netBase, ILogger<NetSender> logger)
@@ -71,7 +71,7 @@ internal class NetSender
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Send_NotThreadSafe(IPEndPoint? endPoint, BytePool.RentMemory toBeMoved)
+    public void Send_NotThreadSafe(IPEndPoint? endPoint, BytePool.RentedMemory toBeMoved)
     {
         if (endPoint is null)
         {

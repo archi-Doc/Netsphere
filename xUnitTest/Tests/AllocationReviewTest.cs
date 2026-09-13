@@ -167,11 +167,11 @@ public class AllocationReviewTest
             Assert.Equal(response, context.RentMemory.Span.ToArray());
             if (responseLength is > 0 and <= 8)
             {
-                Assert.Same(request.RentArray, context.RentMemory.RentArray);
+                Assert.Same(request.Owner, context.RentMemory.Owner);
             }
             else
             {
-                Assert.Equal(0, request.RentArray!.Count);
+                Assert.Equal(0, request.Owner!.ReferenceCount);
             }
         }
         finally
@@ -195,12 +195,12 @@ public class AllocationReviewTest
             Assert.Equal(new byte[] { 2, 3, 4, 5 }, context.RentMemory.Span.ToArray());
             if (shared)
             {
-                Assert.NotSame(other.RentArray, context.RentMemory.RentArray);
+                Assert.NotSame(other.Owner, context.RentMemory.Owner);
                 Assert.Equal(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7 }, other.Span.ToArray());
             }
             else
             {
-                Assert.Same(request.RentArray, context.RentMemory.RentArray);
+                Assert.Same(request.Owner, context.RentMemory.Owner);
             }
         }
         finally

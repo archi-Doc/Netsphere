@@ -6,7 +6,7 @@ namespace Netsphere.Interfaces;
 
 public static class RemoteDataHelper
 {
-    public static async Task SendLog(NetTerminal netTerminal, IFileLogger? fileLogger, string? remoteNode, string? remotePrivateKey, string identifier)
+    public static async Task SendLog(NetTerminal netTerminal, IFileLogOutput? fileLogger, string? remoteNode, string? remotePrivateKey, string identifier)
     {
         if (fileLogger is null ||
             string.IsNullOrEmpty(remoteNode) ||
@@ -25,7 +25,7 @@ public static class RemoteDataHelper
         NetResultAndValue<NetResult> r3 = default;
         try
         {
-            await fileLogger.Flush(false);
+            await fileLogger.FlushAsync(false);
 
             var path = fileLogger.GetCurrentPath();
             using var fileStream = File.OpenRead(path);

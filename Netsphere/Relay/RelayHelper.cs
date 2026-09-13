@@ -41,7 +41,7 @@ public static class RelayHelper
     /// <param name="source">The owned packet buffer. Its contents may change on authentication failure.</param>
     /// <param name="span">The salt and decrypted payload, excluding the relay identifiers.</param>
     /// <returns>Whether the packet was authenticated and decrypted.</returns>
-    public static bool TryDecrypt(byte[] keyAndNonce, scoped ref BytePool.RentMemory source, out Span<byte> span)
+    public static bool TryDecrypt(byte[] keyAndNonce, scoped ref BytePool.RentedMemory source, out Span<byte> span)
     {// source=Relay source id(2), destination id(2), salt(4), Data, Tag(16)
         if (keyAndNonce.Length != (Aegis128L.KeySize + Aegis128L.NonceSize) ||
             source.Length < RelayHeader.RelayIdLength + sizeof(uint) + Aegis128L.MinTagSize)
@@ -59,14 +59,14 @@ public static class RelayHelper
         sourceSpan = sourceSpan.Slice(RelayHeader.RelayIdLength + sizeof(uint));
         if (Aegis128L.TryDecrypt(sourceSpan.Slice(0, sourceSpan.Length - Aegis128L.MinTagSize), sourceSpan, nonce16, key16))
         {
-            // Console.WriteLine($"Aegis128L Decrypt {sourceSpan.Length}, Nonce:{Hex.FromByteArrayToString(nonce16)}, Key:{Hex.FromByteArrayToString(key16)} : Success");
+            // Console.WriteLine($"Aegis128L Decrypt {sourceSpan.Length}, Nonce:{Hex.FromBytesToString(nonce16)}, Key:{Hex.FromBytesToString(key16)} : Success");
             source = source.Slice(0, source.Length - Aegis128L.MinTagSize);
             span = source.Span.Slice(RelayHeader.RelayIdLength);
             return true;
         }
         else
         {
-            // Console.WriteLine($"Aegis128L Decrypt {sourceSpan.Length}, Nonce:{Hex.FromByteArrayToString(nonce16)}, Key:{Hex.FromByteArrayToString(key16)} : Failure");
+            // Console.WriteLine($"Aegis128L Decrypt {sourceSpan.Length}, Nonce:{Hex.FromBytesToString(nonce16)}, Key:{Hex.FromBytesToString(key16)} : Failure");
             span = default;
             return false;
         }
@@ -78,7 +78,7 @@ public static class RelayHelper
     /// <param name="keyAndNonce">The 16-byte key followed by the 16-byte base nonce.</param>
     /// <param name="source">An owned pooled packet with 16 spare bytes after its slice.</param>
     /// <remarks>Invalid keys, short packets, unpooled buffers, and insufficient capacity leave the packet unchanged.</remarks>
-    public static void Encrypt(byte[] keyAndNonce, scoped ref BytePool.RentMemory source)
+    public static void Encrypt(byte[] keyAndNonce, scoped ref BytePool.RentedMemory source)
     {// source=Relay source id(2), destination id(2), salt(4), Data
         if (keyAndNonce.Length != (Aegis128L.KeySize + Aegis128L.NonceSize) ||
             source.Length < RelayHeader.RelayIdLength + sizeof(uint))
@@ -93,7 +93,7 @@ public static class RelayHelper
         keyAndNonce.AsSpan(Aegis128L.KeySize, Aegis128L.NonceSize).CopyTo(nonce16);
         MemoryMarshal.AsRef<uint>(nonce16) ^= MemoryMarshal.Read<uint>(sourceSpan.Slice(RelayHeader.RelayIdLength));
 
-        if (source.RentArray is not { } rentArray)
+        if (source.Owner is not { } rentArray)
         {
             // span = default;
             return;
@@ -108,6 +108,6 @@ public static class RelayHelper
         source = rentArray.AsMemory(offset, source.Length + Aegis128L.MinTagSize);
         sourceSpan = source.Span.Slice(RelayHeader.RelayIdLength + sizeof(uint));
         Aegis128L.Encrypt(sourceSpan, sourceSpan.Slice(0, sourceSpan.Length - Aegis128L.MinTagSize), nonce16, key16);
-        // Console.WriteLine($"Aegis128L Encrypt {sourceSpan.Length}, Nonce:{Hex.FromByteArrayToString(nonce16)}, Key:{Hex.FromByteArrayToString(key16)}");
+        // Console.WriteLine($"Aegis128L Encrypt {sourceSpan.Length}, Nonce:{Hex.FromBytesToString(nonce16)}, Key:{Hex.FromBytesToString(key16)}");
     }
 }

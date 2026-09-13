@@ -4,6 +4,6 @@ using BigMachines;
 
 namespace Playground;
 
-[BigMachineObject(Inclusive = true)]
+[BigMachineObject(IncludeAllMachines = true)]
 [AddMachine<Netsphere.Machines.NtpMachine>]
 public partial class BigMachine;

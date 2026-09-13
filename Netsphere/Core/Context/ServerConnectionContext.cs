@@ -261,7 +261,7 @@ public class ServerConnectionContext
                         }
                         else
                         {// Failure
-                            transmissionContext.SendAndForget(BytePool.RentMemory.Empty, (ulong)result);
+                            transmissionContext.SendAndForget(BytePool.RentedMemory.Empty, (ulong)result);
                         }
                     }
                 }
@@ -271,7 +271,7 @@ public class ServerConnectionContext
             }
             catch
             {// Unknown exception
-                transmissionContext.SendAndForget(BytePool.RentMemory.Empty, (ulong)NetResult.UnknownError);
+                transmissionContext.SendAndForget(BytePool.RentedMemory.Empty, (ulong)NetResult.UnknownError);
             }
             finally
             {
@@ -349,7 +349,7 @@ public class ServerConnectionContext
             (var serviceMethod, var agentInstance) = this.TryGetServiceMethod(transmissionContext.DataId);
             if (serviceMethod is null)
             {
-                transmissionContext.SendAndForget(BytePool.RentMemory.Empty, (ulong)NetResult.NoNetService);
+                transmissionContext.SendAndForget(BytePool.RentedMemory.Empty, (ulong)NetResult.NoNetService);
                 return;
             }
 

@@ -510,7 +510,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         return r.Result;
     }
 
-    async Task<(NetResult Result, ulong DataId, BytePool.RentMemory Value)> IClientConnectionInternal.RpcSendAndReceive(BytePool.RentMemory data, ulong dataId, CancellationToken cancellationToken)
+    async Task<(NetResult Result, ulong DataId, BytePool.RentedMemory Value)> IClientConnectionInternal.RpcSendAndReceive(BytePool.RentedMemory data, ulong dataId, CancellationToken cancellationToken)
     {
         if (!this.IsActive)
         {
@@ -562,7 +562,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         return new(NetResult.Success, response.DataId, response.Received);
     }
 
-    void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, IResponseChannelInternal netUnion)
+    void IClientConnectionInternal.RpcSendAndReceive2(BytePool.RentedMemory data, ulong dataId, IResponseChannelInternal netUnion)
     {
         if (!this.IsActive)
         {
@@ -593,7 +593,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         }
     }
 
-    async Task<(NetResult Result, ReceiveStream? Stream)> IClientConnectionInternal.RpcSendAndReceiveStream(BytePool.RentMemory data, ulong dataId, CancellationToken cancellationToken)
+    async Task<(NetResult Result, ReceiveStream? Stream)> IClientConnectionInternal.RpcSendAndReceiveStream(BytePool.RentedMemory data, ulong dataId, CancellationToken cancellationToken)
     {
         if (!this.IsActive)
         {

@@ -6,7 +6,7 @@ namespace Lp.Subcommands;
 
 public record RestartOptions
 {
-    [SimpleOption("RunnerNode", Description = "Runner nodes", Required = true)]
+    [SimpleOption("RunnerNode", Description = "Runner nodes", IsRequired = true)]
     public string RunnerNode { get; init; } = string.Empty;
 
     [SimpleOption(NetConstants.RemoteSecretKeyName, Description = "Secret signature key for remote operation", ReadFromEnvironment = true)]

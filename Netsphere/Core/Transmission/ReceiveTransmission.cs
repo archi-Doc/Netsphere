@@ -226,7 +226,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
         }
     }
 
-    internal void ProcessReceive_Gene(DataControl dataControl, int dataPosition, BytePool.RentMemory toBeShared)
+    internal void ProcessReceive_Gene(DataControl dataControl, int dataPosition, BytePool.RentedMemory toBeShared)
     {// this.Mode == NetTransmissionMode.Burst or NetTransmissionMode.Block or NetTransmissionMode.Stream
         var completeFlag = false;
         var burst = false;
@@ -234,7 +234,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
         IResponseChannelInternal? receivedNetUnion = null;
         uint dataKind = 0;
         ulong dataId = 0;
-        BytePool.RentMemory rentMemory = default;
+        BytePool.RentedMemory rentMemory = default;
         using (this.lockObject.EnterScope())
         {
             if (dataPosition < 0 || dataControl < DataControl.Valid || dataControl > DataControl.Cancel)
@@ -337,7 +337,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
                 }
 
                 /*else if (this.Mode == NetTransmissionMode.Block)
-                { //  Check anyway in chain.Get(dataPosition).
+                { //  Check anyway in chain.GetOrDefault(dataPosition).
                     if (dataPosition < 0 ||
                     dataPosition >= this.totalGene)
                     {// Out of range
@@ -345,7 +345,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
                     }
                 }*/
 
-                if (chain.Get(dataPosition) is { } gene)
+                if (chain.GetOrDefault(dataPosition) is { } gene)
                 {
                     gene.SetRecv(dataControl, toBeShared);
 
@@ -356,7 +356,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
                             this.successiveReceivedPosition++;
                         }
 
-                        while (chain.Get(this.successiveReceivedPosition) is { } g && g.IsReceived)
+                        while (chain.GetOrDefault(this.successiveReceivedPosition) is { } g && g.IsReceived)
                         {
                             this.successiveReceivedPosition++;
                         }
@@ -437,7 +437,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
         {// Receive complete
             this.Connection.RemoveTransmission(this);
 
-            if (rentMemory.IsRent)
+            if (rentMemory.IsRented)
             {
                 try
                 {
@@ -481,7 +481,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
         }
     }
 
-    internal void ProcessReceive_GeneComplete(out uint dataKind, out ulong dataId, out BytePool.RentMemory toBeMoved)
+    internal void ProcessReceive_GeneComplete(out uint dataKind, out ulong dataId, out BytePool.RentedMemory toBeMoved)
     {// using (this.lockObject.EnterScope())
         if (this.genes is null)
         {// Single send/recv
@@ -538,7 +538,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
         else
         {// Multiple send/recv
             // First
-            var firstGene = this.genes.DataPositionListChain.Get(0);
+            var firstGene = this.genes.DataPositionListChain.GetOrDefault(0);
             if (firstGene is null)
             {
                 goto Abort;
@@ -553,7 +553,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
             var length = firstSpan.Length;
 
             // Last
-            var lastGene = this.genes.DataPositionListChain.Get(this.totalGene - 1);
+            var lastGene = this.genes.DataPositionListChain.GetOrDefault(this.totalGene - 1);
             if (lastGene is null)
             {
                 goto Abort;
@@ -567,7 +567,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
             span = span.Slice(firstSpan.Length);
             for (var i = 1; i < this.totalGene; i++)
             {
-                var gene = this.genes.DataPositionListChain.Get(i);
+                var gene = this.genes.DataPositionListChain.GetOrDefault(i);
                 if (gene is null)
                 {
                     toBeMoved.Return();
@@ -632,7 +632,7 @@ Abort:
                     return (NetResult.Closed, written);
                 }
 
-                while (chain.Get(stream.CurrentGene) is { } gene)
+                while (chain.GetOrDefault(stream.CurrentGene) is { } gene)
                 {
                     if (stream.ReceivedLength >= stream.MaxStreamLength)
                     {// Complete

@@ -25,7 +25,7 @@ public partial class NodeControlMachine : Machine
         this.netBase = netBase;
         this.netUnit = netUnit;
         this.nodeControl = nodeControl;
-        this.DefaultTimeout = TimeSpan.FromSeconds(1);
+        this.DefaultInterval = TimeSpan.FromSeconds(1);
     }
 
     private readonly ILogger logger;

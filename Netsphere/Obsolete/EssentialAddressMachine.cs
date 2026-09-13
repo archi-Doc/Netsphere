@@ -21,7 +21,7 @@ public partial class EssentialAddressMachine : Machine
         this.netBase = netBase;
         this.netUnit = netUnit;
         this.netStats = netStats;
-        this.DefaultTimeout = TimeSpan.FromSeconds(1);
+        this.DefaultInterval = TimeSpan.FromSeconds(1);
     }
 
     private readonly ILogger logger;
