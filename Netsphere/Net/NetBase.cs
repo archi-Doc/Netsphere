@@ -45,11 +45,11 @@ public class NetBase : UnitBase, IUnitPreparable
 
     internal Func<ClientConnection, ClientConnectionContext> NewClientConnectionContext { get; set; }
 
-    internal Func<ulong, PacketType, ReadOnlyMemory<byte>, BytePool.RentMemory?>? RespondPacketFunc { get; set; }
+    internal Func<ulong, PacketType, ReadOnlyMemory<byte>, BytePool.RentedMemory?>? RespondPacketFunc { get; set; }
 
     #endregion
 
-    public async Task Prepare(UnitContext unitContext, CancellationToken cancellationTokene)
+    public async Task PrepareAsync(UnitContext unitContext, CancellationToken cancellationTokene)
     {
         // Set port number
         this.IsPortNumberSpecified = this.NetOptions.Port >= NetConstants.MinPort &&
@@ -76,7 +76,7 @@ public class NetBase : UnitBase, IUnitPreparable
         }
     }
 
-    public void SetRespondPacketFunc(Func<ulong, PacketType, ReadOnlyMemory<byte>, BytePool.RentMemory?> func)
+    public void SetRespondPacketFunc(Func<ulong, PacketType, ReadOnlyMemory<byte>, BytePool.RentedMemory?> func)
     {
         this.RespondPacketFunc = func;
     }

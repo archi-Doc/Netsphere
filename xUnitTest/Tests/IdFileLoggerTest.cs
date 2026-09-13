@@ -31,7 +31,7 @@ public class IdFileLoggerTest
             var logUnit = this.fixture.NetUnit.ServiceProvider.GetRequiredService<LogUnit>();
             using var worker = new IdFileLoggerWorker(this.fixture.NetUnit.NetTerminal.ExecutionGroup, logUnit.RootLogService, new IdFileLoggerOptions
             {
-                Path = Path.Combine(directory, prefix + extension),
+                FilePath = Path.Combine(directory, prefix + extension),
                 ClearLogsAtStartup = true,
             });
             await worker.Sync();

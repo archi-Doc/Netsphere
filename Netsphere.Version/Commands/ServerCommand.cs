@@ -69,7 +69,7 @@ internal class ServerCommand : ISimpleCommand<ServerOptions>
             else if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers == ConsoleModifiers.Control)
             {// Stop and quit
                 await runner.Command.StopAll();
-                runner.TerminateMachine();
+                runner.Terminate();
             }*/
 
             if (ntpCorrectionCount++ >= NtpCorrectionCount)
@@ -80,7 +80,7 @@ internal class ServerCommand : ISimpleCommand<ServerOptions>
         }
     }
 
-    private static BytePool.RentMemory? RespondPacketFunc(ulong packetId, PacketType packetType, ReadOnlyMemory<byte> packet)
+    private static BytePool.RentedMemory? RespondPacketFunc(ulong packetId, PacketType packetType, ReadOnlyMemory<byte> packet)
     {
         UpdateVersionResponse? updateResponse = default;
 

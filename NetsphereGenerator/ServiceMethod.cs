@@ -11,8 +11,8 @@ public class ServiceMethod
     public const string ByteArrayName = "byte[]";
     public const string MemoryName = "System.Memory<byte>";
     public const string ReadOnlyMemoryName = "System.ReadOnlyMemory<byte>";
-    public const string RentMemoryName = "Arc.Collections.BytePool.RentMemory";
-    public const string RentReadOnlyMemoryName = "Arc.Collections.BytePool.RentReadOnlyMemory";
+    public const string RentMemoryName = "Arc.Collections.BytePool.RentedMemory";
+    public const string RentReadOnlyMemoryName = "Arc.Collections.BytePool.RentedReadOnlyMemory";
     public const string ReceiveStreamName = "Netsphere.ReceiveStream";
     public const string SendStreamName = "Netsphere.SendStream";
     public const string SendStreamAndReceiveName = "Netsphere.SendStreamAndReceive<TReceive>";

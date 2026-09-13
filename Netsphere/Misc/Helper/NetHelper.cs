@@ -64,7 +64,7 @@ public static class NetHelper
             }
 
             writer.FlushAndGetReadOnlySpan(out var span, out _);
-            var identifier = new Identifier(Blake3.Get256_UInt64(span));
+            var identifier = new Identifier(Blake3.Get256UInt64(span));
             return identifier;
         }
         finally
@@ -82,7 +82,7 @@ public static class NetHelper
         {
             TinyhandSerializer.SerializeObject(ref writer, value, TinyhandSerializerOptions.Signature);
             writer.FlushAndGetReadOnlySpan(out var span, out _);
-            var identifier = new Identifier(Blake3.Get256_UInt64(span));
+            var identifier = new Identifier(Blake3.Get256UInt64(span));
             return identifier;
         }
         finally
@@ -309,7 +309,7 @@ public static class NetHelper
     /// <param name="value">The result code.</param>
     /// <param name="rentMemory">The owned buffer; return it after use.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void SerializeNetResult(NetResult value, out BytePool.RentMemory rentMemory)
+    public static void SerializeNetResult(NetResult value, out BytePool.RentedMemory rentMemory)
     {
         rentMemory = BytePool.Default.Rent(1).AsMemory(0, 1);
         rentMemory.Span[0] = (byte)value;
@@ -322,7 +322,7 @@ public static class NetHelper
     /// <param name="value">The value to serialize.</param>
     /// <param name="rentMemory">The lease to return after use, or an empty value on failure.</param>
     /// <returns>Whether serialization succeeded.</returns>
-    public static bool TrySerialize<T>(T value, out BytePool.RentMemory rentMemory)
+    public static bool TrySerialize<T>(T value, out BytePool.RentedMemory rentMemory)
     {
         var writer = TinyhandWriter.CreateFromBytePool();
         try
@@ -349,7 +349,7 @@ public static class NetHelper
     /// <param name="value">The value to serialize.</param>
     /// <param name="rentMemory">The owned prefix and payload; return the lease after use.</param>
     /// <returns>Whether serialization succeeded; failure returns an empty lease.</returns>
-    public static bool TrySerializeWithLength<T>(T value, out BytePool.RentMemory rentMemory)
+    public static bool TrySerializeWithLength<T>(T value, out BytePool.RentedMemory rentMemory)
     {
         var writer = TinyhandWriter.CreateFromBytePool();
         try
@@ -372,7 +372,7 @@ public static class NetHelper
         }
     }
 
-    public static bool Deserialize<T>(BytePool.RentMemory rentMemory, out T? value)
+    public static bool Deserialize<T>(BytePool.RentedMemory rentMemory, out T? value)
     {
         try
         {
@@ -386,10 +386,10 @@ public static class NetHelper
         }
     }
 
-    public static bool TryDeserialize<T>(BytePool.RentMemory rentMemory, [MaybeNullWhen(false)] out T value)
+    public static bool TryDeserialize<T>(BytePool.RentedMemory rentMemory, [MaybeNullWhen(false)] out T value)
         => TinyhandSerializer.TryDeserialize<T>(rentMemory.Memory.Span, out value, TinyhandSerializerOptions.Standard);
 
-    public static bool TryDeserialize<T>(BytePool.RentReadOnlyMemory rentMemory, [MaybeNullWhen(false)] out T value)
+    public static bool TryDeserialize<T>(BytePool.RentedReadOnlyMemory rentMemory, [MaybeNullWhen(false)] out T value)
         => TinyhandSerializer.TryDeserialize<T>(rentMemory.Memory.Span, out value, TinyhandSerializerOptions.Standard);
 
     public static void Sign<T>(this SeedKey seedKey, T value)
@@ -496,7 +496,7 @@ public static class NetHelper
     public static string ToBase64<T>(this T value)
         where T : ITinyhandSerializable<T>
     {
-        return Base64Url.EncodeToString(TinyhandSerializer.SerializeObject(value));
+        return FastBase64Url.EncodeToString(TinyhandSerializer.SerializeObject(value));
     }
 
     public static string To4Hex(this ulong gene) => $"{(ushort)gene:x4}";

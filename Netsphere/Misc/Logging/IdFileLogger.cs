@@ -12,11 +12,11 @@ public class IdFileLogger<TOption> : BufferedLogOutput
     public IdFileLogger(ExecutionGroup parent, LogUnit logUnit, ILogService logService, TOption options)
         : base(logUnit)
     {
-        if (string.IsNullOrEmpty(Path.GetDirectoryName(options.Path)))
+        if (string.IsNullOrEmpty(Path.GetDirectoryName(options.FilePath)))
         {
             options = options with
             {
-                Path = Path.Combine(Directory.GetCurrentDirectory(), options.Path),
+                FilePath = Path.Combine(Directory.GetCurrentDirectory(), options.FilePath),
             };
         }
 
@@ -27,13 +27,13 @@ public class IdFileLogger<TOption> : BufferedLogOutput
 
     public override void Output(LogEvent logEvent)
     {
-        if (this.options.MaxQueue <= 0 || this.worker.Count < this.options.MaxQueue)
+        if (this.options.MaxQueueLength <= 0 || this.worker.Count < this.options.MaxQueueLength)
         {
             this.worker.Add(new(logEvent));
         }
     }
 
-    public override Task<int> Flush(bool terminate) => this.worker.Flush(terminate);
+    public override Task<int> FlushAsync(bool terminate) => this.worker.Flush(terminate);
 
     private IdFileLoggerWorker worker;
     private TOption options;

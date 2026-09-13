@@ -26,7 +26,7 @@ public sealed class TransmissionContext : ITransmissionContextInternal
 
     internal static AsyncLocal<TransmissionContext?> AsyncLocal = new();
 
-    internal TransmissionContext(ServerConnection serverConnection, uint transmissionId, uint dataKind, ulong dataId, BytePool.RentMemory toBeShared)
+    internal TransmissionContext(ServerConnection serverConnection, uint transmissionId, uint dataKind, ulong dataId, BytePool.RentedMemory toBeShared)
     {
         this.ServerConnection = serverConnection;
         this.TransmissionId = transmissionId;
@@ -51,7 +51,7 @@ public sealed class TransmissionContext : ITransmissionContextInternal
     /// <summary>
     /// Gets or sets the owned request or response buffer. Return the previous lease before replacing it.
     /// </summary>
-    public BytePool.RentMemory RentMemory { get; set; }
+    public BytePool.RentedMemory RentMemory { get; set; }
 
     public NetResult Result { get; set; }
 
@@ -87,7 +87,7 @@ public sealed class TransmissionContext : ITransmissionContextInternal
         {
             this.Return();
         }
-        else if (this.RentMemory.RentArray is { Count: 1 } && response.Length <= this.RentMemory.Length)
+        else if (this.RentMemory.Owner is { ReferenceCount: 1 } && response.Length <= this.RentMemory.Length)
         {
             response.Span.CopyTo(this.RentMemory.Span);
             this.RentMemory = this.RentMemory.Slice(0, response.Length);
@@ -106,11 +106,11 @@ public sealed class TransmissionContext : ITransmissionContextInternal
     /// </summary>
     /// <param name="response">The response lease. It may be the borrowed request lease or a slice of it.</param>
     /// <remarks>Call from the request handler before sending. Do not access this context concurrently.</remarks>
-    public void SetResponseRentMemory(BytePool.RentMemory response)
+    public void SetResponseRentMemory(BytePool.RentedMemory response)
     {
         var request = this.RentMemory;
-        if (request.RentArray is { Count: 1 } &&
-            ReferenceEquals(request.RentArray, response.RentArray))
+        if (request.Owner is { ReferenceCount: 1 } &&
+            ReferenceEquals(request.Owner, response.Owner))
         {// The handler returned the borrowed request lease itself. Adopt the returned range instead of releasing the array.
             this.RentMemory = response;
             return;
@@ -134,7 +134,7 @@ public sealed class TransmissionContext : ITransmissionContextInternal
 
         if (typeof(TSend) == typeof(NetResult))
         {
-            return this.SendAndForget(BytePool.RentMemory.Empty, (ulong)Unsafe.As<TSend, NetResult>(ref data));
+            return this.SendAndForget(BytePool.RentedMemory.Empty, (ulong)Unsafe.As<TSend, NetResult>(ref data));
         }
 
         if (!NetHelper.TrySerialize(data, out var rentMemory))
@@ -298,9 +298,9 @@ public sealed class TransmissionContext : ITransmissionContextInternal
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal NetResult SendResultAndForget(NetResult result)
-        => this.SendAndForget(BytePool.RentMemory.Empty, (ulong)result);
+        => this.SendAndForget(BytePool.RentedMemory.Empty, (ulong)result);
 
-    internal NetResult SendAndForget(BytePool.RentMemory toBeShared, ulong dataId = 0)
+    internal NetResult SendAndForget(BytePool.RentedMemory toBeShared, ulong dataId = 0)
     {
         if (!this.ServerConnection.IsActive)
         {

@@ -58,17 +58,17 @@ public abstract class RunnerCommand
     {
         while (!((IBigMachine)this.bigMachine).Core.IsTerminated)
         {
-            if (!((IBigMachine)this.bigMachine).CheckActiveMachine())
+            if (!((IBigMachine)this.bigMachine).HasPendingWork())
             {
                 break;
             }
             else
             {
                 // await runner.Command.Restart();
-                await ((IBigMachine)this.bigMachine).Core.WaitForTermination(1000);
+                await ((IBigMachine)this.bigMachine).Core.WaitForTerminationAsync(1000);
             }
         }
 
-        await this.unitContext.SendTerminate();
+        await this.unitContext.SendTerminateAsync();
     }
 }

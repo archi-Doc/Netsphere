@@ -36,7 +36,7 @@ public class RunCommand : RunnerCommand, ISimpleCommand<RunOptions>
                 else if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers == ConsoleModifiers.Control)
                 {// Stop and quit
                     await runner.Command.StopAll();
-                    runner.TerminateMachine();
+                    runner.Terminate();
                 }
             }
         });

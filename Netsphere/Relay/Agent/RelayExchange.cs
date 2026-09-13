@@ -28,10 +28,10 @@ internal partial class RelayExchange
 
     #region FieldAndProperty
 
-    [Link(Type = ChainType.Unordered, Name = "RelayId", AddValue = false)]
+    [Link(Type = ChainType.Unordered, Name = "RelayId", GenerateValue = false)]
     public RelayId InnerRelayId { get; private set; }
 
-    [Link(UnsafeTargetChain = "RelayIdChain", AddValue = false)]
+    [Link(UnsafeTargetChain = "RelayIdChain", GenerateValue = false)]
     public RelayId OuterRelayId { get; private set; }
 
     public ServerConnection ServerConnection { get; }

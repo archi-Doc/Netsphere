@@ -40,8 +40,8 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 // context.AddSingleton<ExampleLogFilter>();
 
                 // Logger
-                context.ClearLoggerResolver();
-                context.AddLoggerResolver(x =>
+                context.ClearLogOutputResolvers();
+                context.AddLogOutputResolver(x =>
                 {// Log source/level -> Resolver() -> Output/filter
                     if (x.LogLevel == LogLevel.Debug)
                     {
@@ -49,22 +49,22 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
                         return;
                     }
 
-                    x.SetOutput<ConsoleAndFileLogger>();
+                    x.SetOutput<ConsoleAndFileLogOutput>();
                 });
             });
 
             this.PostConfigure(context =>
             {
                 var logfile = "Logs/Log.txt";
-                context.SetOptions(context.GetOptions<FileLoggerOptions>() with
-                {// FileLoggerOptions
-                    Path = Path.Combine(context.DataDirectory, logfile),
-                    MaxLogCapacity = 2,
+                context.SetOptions(context.GetOrCreateOptions<FileLogOutputOptions>() with
+                {// FileLogOutputOptions
+                    FilePath = Path.Combine(context.DataDirectory, logfile),
+                    MaxLogCapacityInMegabytes = 2,
                 });
 
-                var consoleLoggerOptions = context.GetOptions<ConsoleLoggerOptions>();
+                var consoleLoggerOptions = context.GetOrCreateOptions<ConsoleLogOutputOptions>();
                 context.SetOptions(consoleLoggerOptions with
-                {// ConsoleLoggerOptions
+                {// ConsoleLogOutputOptions
                     FormatterOptions = consoleLoggerOptions.FormatterOptions with { EnableColor = true, },
                 });
             });
@@ -86,8 +86,8 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
             var parserOptions = SimpleParserOptions.Standard with
             {
                 ServiceProvider = this.Context.ServiceProvider,
-                RequireStrictCommandName = false,
-                RequireStrictOptionName = false,
+                RequireCommandName = false,
+                RejectUnknownOptionNames = false,
             };
 
             // Create optional instances
@@ -104,19 +104,19 @@ public class RunnerUnit : UnitBase, IUnitPreparable, IUnitExecutable
         this.logger = logger;
     }
 
-    async Task IUnitPreparable.Prepare(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitPreparable.PrepareAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
-    async Task IUnitExecutable.Start(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitExecutable.StartAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
-    async Task IUnitExecutable.Stop(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitExecutable.StopAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
-    async Task IUnitExecutable.Terminate(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitExecutable.TerminateAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 

@@ -113,7 +113,7 @@ public class ProtocolReviewTest
             Assert.False(completion.Task.IsCompleted);
             terminal.ProcessReceive(endpoint, 0, false, 0, (ushort)PacketType.PingResponse, response, Mics.FastSystem);
             (await completion.Task.WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken)).Return();
-            Assert.Equal(1, response.RentArray!.Count);
+            Assert.Equal(1, response.Owner!.ReferenceCount);
         }
         finally
         {
@@ -130,10 +130,10 @@ public class ProtocolReviewTest
         {
             var pending = terminal.SendAndReceive<PingPacket, PingPacketResponse>(Alternative.NetAddress, new PingPacket("timeout"), cancellationToken: TestContext.Current.CancellationToken);
             var item = Assert.Single(this.GetPackets(terminal));
-            var memory = (BytePool.RentMemory)item.GetType().GetProperty("MemoryOwner")!.GetValue(item)!;
+            var memory = (BytePool.RentedMemory)item.GetType().GetProperty("MemoryOwner")!.GetValue(item)!;
             Assert.Equal(NetResult.Timeout, (await pending.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)).Result);
             Assert.Empty(this.GetPackets(terminal));
-            Assert.Equal(0, memory.RentArray!.Count);
+            Assert.Equal(0, memory.Owner!.ReferenceCount);
         }
         finally
         {
@@ -198,7 +198,7 @@ public class ProtocolReviewTest
             }
 
             Assert.False(agent.ProcessRelay(endpoint, inner, encrypted, out var decrypted));
-            Assert.False(decrypted.IsRent);
+            Assert.False(decrypted.IsRented);
             if (rejection != 1)
             {
                 Assert.Equal(10, agent.ProcessPingRelay(inner)!.RelayPoint);
@@ -289,7 +289,7 @@ public class ProtocolReviewTest
     public void InvalidRelayEncryptionFailsWithoutThrowing(int length, int relay)
     {
         Assert.False(new RelayKey().TryEncrypt(relay, default, new byte[length], out var memory, out _));
-        Assert.False(memory.IsRent);
+        Assert.False(memory.IsRented);
     }
 
     [Fact]
@@ -301,7 +301,7 @@ public class ProtocolReviewTest
         try
         {
             var result = await task.WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
-            Assert.Equal(1, packet.RentArray!.Count);
+            Assert.Equal(1, packet.Owner!.ReferenceCount);
             packet.Span.Clear();
             Assert.Equal(new byte[] { 1, 2, 3 }, result.ToArray());
         }
@@ -328,7 +328,7 @@ public class ProtocolReviewTest
                 Assert.Equal(NetResult.DeserializationFailed, (await result).Result);
             }
 
-            Assert.Equal(1, packet.RentArray!.Count);
+            Assert.Equal(1, packet.Owner!.ReferenceCount);
         }
         finally
         {
@@ -415,7 +415,7 @@ public class ProtocolReviewTest
             receiver.ProcessReceive_Gene(DataControl.Valid, 0, packet);
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
             timeout.CancelAfter(TimeSpan.FromSeconds(1));
-            while (packet.RentArray!.Count != 1)
+            while (packet.Owner!.ReferenceCount != 1)
             {
                 await Task.Delay(1, timeout.Token);
             }
@@ -467,7 +467,7 @@ public class ProtocolReviewTest
         Assert.Equal(100, cache.Cast<object>().Count());
     }
 
-    private BytePool.RentMemory DeliverResponse(Connection connection, byte[] bytes)
+    private BytePool.RentedMemory DeliverResponse(Connection connection, byte[] bytes)
     {
         var receiver = Assert.Single(this.GetReceivers(connection));
         receiver.SetState_Receiving(1);

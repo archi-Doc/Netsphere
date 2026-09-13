@@ -59,7 +59,7 @@ public class ResponderIsolationTest
 
     private static TransmissionContext CreateContext(ServerConnection connection, int value)
     {
-        Assert.True(NetHelper.TrySerialize(value, out BytePool.RentMemory memory));
+        Assert.True(NetHelper.TrySerialize(value, out BytePool.RentedMemory memory));
         return new(connection, (uint)value, 0, 0, memory);
     }
 

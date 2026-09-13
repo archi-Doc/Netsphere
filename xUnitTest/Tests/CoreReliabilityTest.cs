@@ -41,10 +41,10 @@ public class CoreReliabilityTest
     {
         var sender = this.CreateSender();
         var memory = BytePool.Default.Rent(32).AsMemory(0, 32);
-        var array = memory.RentArray!;
+        var array = memory.Owner!;
         sender.Send_NotThreadSafe(mode == 0 ? null : new IPEndPoint(mode == 1 ? IPAddress.Loopback : IPAddress.IPv6Loopback, 1234), memory);
         sender.Stop();
-        Assert.Equal(0, array.Count);
+        Assert.Equal(0, array.ReferenceCount);
     }
 
     [Theory]
@@ -154,7 +154,7 @@ public class CoreReliabilityTest
         {
             gene.Dispose(false);
             gene.DisposeMemory();
-            Assert.Equal(1, memory.RentArray!.Count);
+            Assert.Equal(1, memory.Owner!.ReferenceCount);
         }
         finally
         {
@@ -249,7 +249,7 @@ public class CoreReliabilityTest
     public void PacketRejectionReturnsMemory(int method, int length)
     {
         var packet = BytePool.Default.Rent(Math.Max(1, length)).AsMemory(0, length);
-        var array = packet.RentArray!;
+        var array = packet.Owner!;
         var terminal = this.fixture.NetUnit.NetTerminal.PacketTerminal;
         var result = method switch
         {
@@ -258,7 +258,7 @@ public class CoreReliabilityTest
             _ => terminal.SendPacket(default, packet, null, 0, EndpointResolution.Ipv4, false),
         };
         Assert.NotEqual(NetResult.Success, result);
-        Assert.Equal(0, array.Count);
+        Assert.Equal(0, array.ReferenceCount);
     }
 
     [Theory]
@@ -268,10 +268,10 @@ public class CoreReliabilityTest
     public void MissingRelayReturnsMemory(int relay)
     {
         var packet = BytePool.Default.Rent(64).AsMemory(0, 64);
-        var array = packet.RentArray!;
+        var array = packet.Owner!;
         var result = this.fixture.NetUnit.NetTerminal.PacketTerminal.SendPacket(Alternative.NetAddress, packet, null, relay, EndpointResolution.Ipv4, false);
         Assert.Equal(NetResult.InvalidRelay, result);
-        Assert.Equal(0, array.Count);
+        Assert.Equal(0, array.ReferenceCount);
     }
 
     [Fact]
@@ -321,7 +321,7 @@ public class CoreReliabilityTest
         try
         {
             transmission.ProcessReceive_Gene(DataControl.Valid, position, packet);
-            Assert.Equal(1, packet.RentArray!.Count);
+            Assert.Equal(1, packet.Owner!.ReferenceCount);
             Assert.Equal(0, transmission.SuccessiveReceivedPosition);
         }
         finally
@@ -395,12 +395,12 @@ public class CoreReliabilityTest
         var task = terminal.SendAndReceive<PingPacket, PingPacketResponse>(Alternative.NetAddress, new PingPacket("cancel"), 0, cancellation.Token);
         var items = (System.Collections.IEnumerable)typeof(PacketTerminal).GetField("items", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(terminal)!;
         var item = Assert.Single(items.Cast<object>());
-        var memory = (BytePool.RentMemory)item.GetType().GetProperty("MemoryOwner")!.GetValue(item)!;
+        var memory = (BytePool.RentedMemory)item.GetType().GetProperty("MemoryOwner")!.GetValue(item)!;
         cancellation.Cancel();
         var response = await task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.Equal(NetResult.Timeout, response.Result);
         Assert.Empty(items.Cast<object>());
-        Assert.Equal(0, memory.RentArray!.Count);
+        Assert.Equal(0, memory.Owner!.ReferenceCount);
     }
 
     [Theory]
@@ -425,8 +425,8 @@ public class CoreReliabilityTest
             transmission.ProcessReceive_AckBlock(transmission.GeneSerialMax, 0, ranges.AsSpan(0, length), 1);
             var valid = start == 2 && end == 5 && length == 8;
             Assert.Equal(transmission.GeneSerialMax - (valid ? 3 : 0), genes.GeneSerialListChain.Count);
-            Assert.NotNull(genes.GeneSerialListChain.Get(0));
-            Assert.Equal(valid, genes.GeneSerialListChain.Get(2) is null);
+            Assert.NotNull(genes.GeneSerialListChain.GetOrDefault(0));
+            Assert.Equal(valid, genes.GeneSerialListChain.GetOrDefault(2) is null);
             transmission.ProcessReceive_AckBlock(transmission.GeneSerialMax, transmission.GeneSerialMax, Span<byte>.Empty, 0);
             Assert.True(transmission.IsDisposed);
         }
@@ -459,7 +459,7 @@ public class CoreReliabilityTest
         try
         {
             transmission.ProcessReceive_Gene((DataControl)control, 0, packet);
-            Assert.Equal(1, packet.RentArray!.Count);
+            Assert.Equal(1, packet.Owner!.ReferenceCount);
             Assert.Equal(0, transmission.SuccessiveReceivedPosition);
         }
         finally
@@ -481,7 +481,7 @@ public class CoreReliabilityTest
         try
         {
             transmission.ProcessReceive_Gene(DataControl.Valid, 3, packet);
-            Assert.Equal(1, packet.RentArray!.Count);
+            Assert.Equal(1, packet.Owner!.ReferenceCount);
         }
         finally
         {

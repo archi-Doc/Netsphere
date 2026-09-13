@@ -31,12 +31,12 @@ public partial class RunMachine : Machine
         this.logger = logger;
         this.netTerminal = netTerminal;
 
-        this.DefaultTimeout = TimeSpan.FromSeconds(CheckInvervalInSeconds);
+        this.DefaultInterval = TimeSpan.FromSeconds(CheckInvervalInSeconds);
     }
 
-    protected override void OnCreate(object? createParam)
+    protected override void OnCreate(object? createParameter)
     {
-        this.options = (RunOptions)createParam!;
+        this.options = (RunOptions)createParameter!;
     }
 
     [StateMethod(0)]
@@ -227,7 +227,7 @@ public partial class RunMachine : Machine
     }
 
     [CommandMethod]
-    protected async Task<CommandResult> Restart()
+    protected async Task<CommandStatus> Restart()
     {
         this.logger.GetWriter()?.Write("Restart");
 
@@ -235,7 +235,7 @@ public partial class RunMachine : Machine
         if (state == State.NoContainer ||
             state == State.Terminating)
         {
-            return CommandResult.Success;
+            return CommandStatus.Success;
         }
 
         // Remove container
@@ -247,11 +247,11 @@ public partial class RunMachine : Machine
         this.createContainerRetries = 0;
         this.ChangeState(State.Terminating);
         this.TimeUntilRun = TimeSpan.FromSeconds(TerminatingInvervalInSeconds);
-        return CommandResult.Success;
+        return CommandStatus.Success;
     }
 
     [CommandMethod]
-    protected async Task<CommandResult> StopAll()
+    protected async Task<CommandStatus> StopAll()
     {
         this.logger.GetWriter()?.Write("Stop all containers");
 
@@ -261,7 +261,7 @@ public partial class RunMachine : Machine
             await this.docker.RemoveAllContainers();
         }
 
-        return CommandResult.Success;
+        return CommandStatus.Success;
     }
 
     private void ChangeStateAndRunImmediately(State state)
@@ -278,7 +278,7 @@ public partial class RunMachine : Machine
         }
 
         NetAddress netAddress;
-        if (PathHelper.RunningInContainer)
+        if (PathHelper.IsRunningInContainer)
         {// In container. Use Container address.
             netAddress = new NetAddress(addresss, this.options.ContainerPort);
         }

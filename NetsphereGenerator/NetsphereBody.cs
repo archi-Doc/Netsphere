@@ -424,7 +424,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                 foreach (var x in info.ModuleInitializerClass)
                 {
                     ssb.Append(x, true);
-                    ssb.AppendLine(".RegisterBM();", false);
+                    ssb.AppendLine(".RegisterMachine();", false);
                 }
             }
         }

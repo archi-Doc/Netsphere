@@ -14,8 +14,8 @@ public static class StaticNetService
 {
     public delegate INetService FrontendFactoryDelegate(ClientConnection clientConnection);
 
-    internal static ThreadsafeTypeKeyHashtable<NetServiceInfo> ServiceInfoTable = new();
-    private static ThreadsafeTypeKeyHashtable<NetObjectInfo> objectInfoTable = new();
+    internal static ThreadSafeTypeKeyHashtable<NetServiceInfo> ServiceInfoTable = new();
+    private static ThreadSafeTypeKeyHashtable<NetObjectInfo> objectInfoTable = new();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetServiceId<TService>()

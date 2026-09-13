@@ -60,8 +60,8 @@ public class Alias : IConversionOptions
 
         using (this.lockIdentifier.EnterScope())
         {
-            this.identifierToAliasMap.Add(identifier, alias);
-            this.aliasToIdentifierMap.Add(alias, identifier);
+            this.identifierToAliasMap.AddOrUpdate(identifier, alias);
+            this.aliasToIdentifierMap.AddOrUpdate(alias, identifier);
         }
     }
 
@@ -88,8 +88,8 @@ public class Alias : IConversionOptions
 
         using (this.lockPublicKey.EnterScope())
         {
-            this.publicKeyToAliasMap.Add(publicKey, alias);
-            this.aliasToPublicKeyMap.Add(alias, publicKey);
+            this.publicKeyToAliasMap.AddOrUpdate(publicKey, alias);
+            this.aliasToPublicKeyMap.AddOrUpdate(alias, publicKey);
         }
     }
 

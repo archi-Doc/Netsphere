@@ -78,8 +78,8 @@ internal partial class IdFileLoggerWorker : TaskCore
         this.options = options;
         this.formatter = new(options.FormatterOptions);
 
-        var fileName = Path.GetFileName(options.Path);
-        var fullPath = options.Path;
+        var fileName = Path.GetFileName(options.FilePath);
+        var fullPath = options.FilePath;
         var idx = fileName.LastIndexOf('.');
         if (idx >= 0)
         {
@@ -101,7 +101,7 @@ internal partial class IdFileLoggerWorker : TaskCore
         var worker = (IdFileLoggerWorker)obj!;
 
         await worker.Sync().ConfigureAwait(false);
-        while (await worker.Delay(1_000).ConfigureAwait(false))
+        while (await worker.TryDelay(1_000).ConfigureAwait(false))
         {
             await worker.Flush(false).ConfigureAwait(false);
         }

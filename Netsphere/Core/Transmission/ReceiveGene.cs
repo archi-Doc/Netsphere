@@ -20,14 +20,14 @@ internal partial class ReceiveGene
 
     public DataControl DataControl { get; private set; }
 
-    public BytePool.RentMemory Packet { get; private set; }
+    public BytePool.RentedMemory Packet { get; private set; }
 
     public bool IsReceived => this.DataControl != DataControl.Initial;
 
     #endregion
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetRecv(DataControl dataControl, BytePool.RentMemory toBeShared)
+    public void SetRecv(DataControl dataControl, BytePool.RentedMemory toBeShared)
     {
         if (!this.IsReceived)
         {

@@ -12,7 +12,7 @@ namespace Netsphere.Stats;
 /// <summary>
 /// Tracks observed addresses, connectivity, and node discovery information.
 /// </summary>
-[TinyhandObject(UseServiceProvider = true, LockObject = "lockObject")]
+[TinyhandObject(UseServiceProvider = true, LockMemberName = "lockObject")]
 public sealed partial class NetStats
 {
     public const string Filename = "NetStat.tinyhand";

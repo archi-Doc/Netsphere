@@ -23,7 +23,7 @@ public sealed partial class PacketTerminal
         // ResponseTcs != null: WaitingToSend -> WaitingForResponse -> Complete or Resend
         [Link(Type = ChainType.LinkedList, Name = "WaitingToSendList", AutoLink = true)]
         [Link(Type = ChainType.LinkedList, Name = "WaitingForResponseList", AutoLink = false)]
-        public Item(IPEndPoint endPoint, ulong packetId, BytePool.RentMemory dataToBeMoved, TaskCompletionSource<NetResponse>? responseTcs, ushort? expectedResponseType = null, NetEndpoint? responseEndpoint = null)
+        public Item(IPEndPoint endPoint, ulong packetId, BytePool.RentedMemory dataToBeMoved, TaskCompletionSource<NetResponse>? responseTcs, ushort? expectedResponseType = null, NetEndpoint? responseEndpoint = null)
         {
             if (dataToBeMoved.Span.Length < PacketHeader.Length)
             {
@@ -38,12 +38,12 @@ public sealed partial class PacketTerminal
             this.ResponseEndpoint = responseEndpoint;
         }
 
-        [Link(Primary = true, Type = ChainType.Unordered, AddValue = true)]
+        [Link(Primary = true, Type = ChainType.Unordered, GenerateValue = true)]
         public ulong PacketId { get; set; }
 
         public IPEndPoint EndPoint { get; }
 
-        public BytePool.RentMemory MemoryOwner { get; private set; }
+        public BytePool.RentedMemory MemoryOwner { get; private set; }
 
         public ushort? ExpectedResponseType { get; }
 
@@ -90,7 +90,7 @@ public sealed partial class PacketTerminal
     private readonly Item.GoshujinClass items = new();
     private bool stopped;
 
-    public static void CreatePacket<TPacket>(ulong packetId, TPacket packet, out BytePool.RentMemory rentMemory)
+    public static void CreatePacket<TPacket>(ulong packetId, TPacket packet, out BytePool.RentedMemory rentMemory)
         where TPacket : IPacket, ITinyhandSerializable<TPacket>
     {
         if (packetId == 0)
@@ -120,7 +120,7 @@ public sealed partial class PacketTerminal
 
         try
         {
-            writer.WriteSpan(header);
+            writer.WriteRaw(header);
             TinyhandSerializer.SerializeObject(ref writer, packet);
             rentMemory = writer.FlushAndGetRentMemory();
         }
@@ -351,7 +351,7 @@ public sealed partial class PacketTerminal
         }
     }
 
-    internal void ProcessReceive(NetEndpoint endpoint, int relayNumber, bool incomingRelay, RelayId destinationRelayId, ushort packetUInt16, BytePool.RentMemory toBeShared, long currentSystemMics)
+    internal void ProcessReceive(NetEndpoint endpoint, int relayNumber, bool incomingRelay, RelayId destinationRelayId, ushort packetUInt16, BytePool.RentedMemory toBeShared, long currentSystemMics)
     {// Checked: toBeShared.Length
         if (toBeShared.Length < PacketHeader.Length || toBeShared.Length > NetConstants.MaxPacketLength)
         {
@@ -550,7 +550,7 @@ public sealed partial class PacketTerminal
         }
     }
 
-    internal unsafe NetResult SendPacket(NetAddress netAddress, BytePool.RentMemory dataToBeMoved, TaskCompletionSource<NetResponse>? responseTcs, int relayNumber, EndpointResolution endpointResolution, bool incomingRelay)
+    internal unsafe NetResult SendPacket(NetAddress netAddress, BytePool.RentedMemory dataToBeMoved, TaskCompletionSource<NetResponse>? responseTcs, int relayNumber, EndpointResolution endpointResolution, bool incomingRelay)
     {
         var length = dataToBeMoved.Span.Length;
         if (length < PacketHeader.Length ||
@@ -645,7 +645,7 @@ public sealed partial class PacketTerminal
         return NetResult.Success;
     }
 
-    internal unsafe NetResult SendPacketWithRelay(NetEndpoint endpoint, BytePool.RentMemory dataToBeMoved, bool incomingRelay, int relayNumber)
+    internal unsafe NetResult SendPacketWithRelay(NetEndpoint endpoint, BytePool.RentedMemory dataToBeMoved, bool incomingRelay, int relayNumber)
     {
         var length = dataToBeMoved.Span.Length;
         if (length < PacketHeader.Length ||
@@ -714,7 +714,7 @@ public sealed partial class PacketTerminal
         return NetResult.Success;
     }
 
-    internal unsafe NetResult SendPacketWithoutRelay(NetEndpoint endpoint, BytePool.RentMemory dataToBeMoved, TaskCompletionSource<NetResponse>? responseTcs)
+    internal unsafe NetResult SendPacketWithoutRelay(NetEndpoint endpoint, BytePool.RentedMemory dataToBeMoved, TaskCompletionSource<NetResponse>? responseTcs)
     {
         var length = dataToBeMoved.Span.Length;
         if (length < PacketHeader.Length ||

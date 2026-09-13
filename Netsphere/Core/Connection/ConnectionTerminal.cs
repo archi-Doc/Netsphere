@@ -392,24 +392,24 @@ public class ConnectionTerminal
 
     internal ClientConnection PrepareClientSide(NetNode node, NetEndpoint endPoint, SeedKey clientSeedKey, EncryptionPublicKey serverPublicKey, ConnectPacket p, ConnectPacketResponse p2)
     {
-        Span<byte> material = stackalloc byte[CryptoBox.KeyMaterialSize];
+        Span<byte> material = stackalloc byte[CryptoBox.SharedSecretSize];
         clientSeedKey.DeriveKeyMaterial(serverPublicKey, material);
 
         // CreateEmbryo: Blake2B(Client salt(8), Server salt(8), Key material(32), Client public(32), Server public(32))
         var embryo = new byte[Connection.EmbryoSize];
-        Span<byte> buffer = stackalloc byte[8 + 8 + CryptoBox.KeyMaterialSize + CryptoBox.PublicKeySize + CryptoBox.PublicKeySize]; // Client salt(8), Server salt(8), Key material(32), Client public(32), Server public(32)
+        Span<byte> buffer = stackalloc byte[8 + 8 + CryptoBox.SharedSecretSize + CryptoBox.PublicKeySize + CryptoBox.PublicKeySize]; // Client salt(8), Server salt(8), Key material(32), Client public(32), Server public(32)
         var span = buffer;
         BitConverter.TryWriteBytes(span, p.ClientSalt);
         span = span.Slice(sizeof(ulong));
         BitConverter.TryWriteBytes(span, p2.ServerSalt);
         span = span.Slice(sizeof(ulong));
         material.CopyTo(span);
-        span = span.Slice(CryptoBox.KeyMaterialSize);
+        span = span.Slice(CryptoBox.SharedSecretSize);
         clientSeedKey.GetEncryptionPublicKeySpan().CopyTo(span);
         span = span.Slice(CryptoBox.PublicKeySize);
         serverPublicKey.AsSpan().CopyTo(span);
         span = span.Slice(CryptoBox.PublicKeySize);
-        Blake2B.Get512_Span(buffer, embryo);
+        Blake2B.Get512Span(buffer, embryo);
 
         var connectionId = BitConverter.ToUInt64(embryo.AsSpan(0));
         var connection = new ClientConnection(this.NetTerminal.PacketTerminal, this, connectionId, node, endPoint);
@@ -421,24 +421,24 @@ public class ConnectionTerminal
     internal bool PrepareServerSide(NetEndpoint endPoint, ConnectPacket p, ConnectPacketResponse p2, int relayNumber)
     {
         var node = new NetNode(in endPoint, p.ClientPublicKey);
-        Span<byte> material = stackalloc byte[CryptoBox.KeyMaterialSize];
+        Span<byte> material = stackalloc byte[CryptoBox.SharedSecretSize];
         this.NetTerminal.NodeSeedKey.DeriveKeyMaterial(p.ClientPublicKey, material);
 
         // CreateEmbryo: Blake2B(Client salt(8), Server salt(8), Key material(32), Client public(32), Server public(32))
         var embryo = new byte[Connection.EmbryoSize];
-        Span<byte> buffer = stackalloc byte[8 + 8 + CryptoBox.KeyMaterialSize + CryptoBox.PublicKeySize + CryptoBox.PublicKeySize];
+        Span<byte> buffer = stackalloc byte[8 + 8 + CryptoBox.SharedSecretSize + CryptoBox.PublicKeySize + CryptoBox.PublicKeySize];
         var span = buffer;
         BitConverter.TryWriteBytes(span, p.ClientSalt);
         span = span.Slice(sizeof(ulong));
         BitConverter.TryWriteBytes(span, p2.ServerSalt);
         span = span.Slice(sizeof(ulong));
         material.CopyTo(span);
-        span = span.Slice(CryptoBox.KeyMaterialSize);
+        span = span.Slice(CryptoBox.SharedSecretSize);
         p.ClientPublicKey.AsSpan().CopyTo(span);
         span = span.Slice(CryptoBox.PublicKeySize);
         this.NetTerminal.NodeSeedKey.GetEncryptionPublicKeySpan().CopyTo(span);
         span = span.Slice(CryptoBox.PublicKeySize);
-        Blake2B.Get512_Span(buffer, embryo);
+        Blake2B.Get512Span(buffer, embryo);
 
         var connectionId = BitConverter.ToUInt64(embryo.AsSpan(0));
         var connection = new ServerConnection(this.NetTerminal.PacketTerminal, this, connectionId, node, endPoint);
@@ -611,7 +611,7 @@ public class ConnectionTerminal
         }
     }
 
-    internal void ProcessReceive(NetEndpoint endpoint, bool outgoingRelay, ushort packetUInt16, BytePool.RentMemory toBeShared, long currentSystemMics)
+    internal void ProcessReceive(NetEndpoint endpoint, bool outgoingRelay, ushort packetUInt16, BytePool.RentedMemory toBeShared, long currentSystemMics)
     {// Checked: toBeShared.Length
         // PacketHeaderCode
         var connectionId = BitConverter.ToUInt64(toBeShared.Span.Slice(RelayHeader.RelayIdLength + 6)); // ConnectionId

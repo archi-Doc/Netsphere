@@ -32,7 +32,7 @@ public class RestartCommand : RunnerCommand, ISimpleCommand<RestartOptions>
                 }
                 else if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers == ConsoleModifiers.Control)
                 {// Stop and quit
-                    machine.TerminateMachine();
+                    machine.Terminate();
                 }
             }
         });

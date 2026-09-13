@@ -136,12 +136,12 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
             }
 
             var unit = this.Context.ServiceProvider.GetRequiredService<NetUnit>();
-            await this.Context.SendPrepare();
-            await this.Context.SendStart().ConfigureAwait(false);
+            await this.Context.SendPrepareAsync();
+            await this.Context.SendStartAsync().ConfigureAwait(false);
         }
 
         public Task Terminate()
-            => this.Context.SendTerminate();
+            => this.Context.SendTerminateAsync();
     }
 
     #endregion
@@ -156,7 +156,7 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
         private static async Task Process(IntervalTask core)
         {
-            while (await core.Delay(1_000).ConfigureAwait(false))
+            while (await core.TryDelay(1_000).ConfigureAwait(false))
             {
                 await core.unit.NetTerminal.IntervalTask(core.CancellationToken);
                 if (core.unit.Alternative is { } alternative)
@@ -224,12 +224,12 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
 
     #endregion
 
-    async Task IUnitPreparable.Prepare(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitPreparable.PrepareAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
 #pragma warning disable CS0162
-    public static void LowLevelLoggerResolver<TOutput>(LoggerResolverContext context)
+    public static void LowLevelLoggerResolver<TOutput>(LogOutputResolverContext context)
         where TOutput : ILogOutput
     {
         if (!NetConstants.LogLowLevelNet)
@@ -250,17 +250,17 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
         }
     }
 
-    async Task IUnitExecutable.Start(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitExecutable.StartAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
         this.intervalTask ??= new(this.NetTerminal.ExecutionGroup, this);
         this.intervalTask.SendSignal(ExecutionSignal.Start);
     }
 
-    async Task IUnitExecutable.Stop(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitExecutable.StopAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
     }
 
-    async Task IUnitExecutable.Terminate(UnitContext unitContext, CancellationToken cancellationToken)
+    async Task IUnitExecutable.TerminateAsync(UnitContext unitContext, CancellationToken cancellationToken)
     {
         this.intervalTask?.RequestTermination();
     }

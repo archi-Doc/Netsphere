@@ -23,7 +23,7 @@ public class ClockHand : TaskCore<ClockHand>
     private static async Task Process(ClockHand clockHand)
     {
         long lastSeconds = 0;
-        while (await clockHand.Delay(MillisecondsToWait))
+        while (await clockHand.TryDelay(MillisecondsToWait))
         {
             var currentSeconds = Mics.GetCorrected() / Mics.MicsPerSecond;
             if (currentSeconds == lastSeconds)

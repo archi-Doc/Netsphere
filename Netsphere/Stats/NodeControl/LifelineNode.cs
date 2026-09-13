@@ -23,7 +23,7 @@ public sealed partial class LifelineNode : NetNode
 
     #endregion
 
-    [Link(Primary = true, Unique = true, Type = ChainType.Unordered, TargetMember = "Address", AddValue = false)]
+    [Link(Primary = true, Unique = true, Type = ChainType.Unordered, TargetMember = "Address", GenerateValue = false)]
     [Link(Type = ChainType.LinkedList, Name = "UncheckedList", AutoLink = false)]
     [Link(Type = ChainType.LinkedList, Name = "OnlineLink", AutoLink = false)]
     [Link(Type = ChainType.LinkedList, Name = "OfflineLink", AutoLink = false)]

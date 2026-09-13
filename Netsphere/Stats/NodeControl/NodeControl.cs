@@ -347,7 +347,7 @@ public sealed partial class NodeControl
         return true;
     }*/
 
-    /*public BytePool.RentMemory DifferentiateActiveNode(ReadOnlyMemory<byte> memory)
+    /*public BytePool.RentedMemory DifferentiateActiveNode(ReadOnlyMemory<byte> memory)
     {
         return ActiveNode.Integrality.Default.Differentiate(this.activeNodes, memory);
     }
@@ -357,7 +357,7 @@ public sealed partial class NodeControl
         return ActiveNode.Integrality.Default.Integrate(this.activeNodes, brokerDelegate, cancellationToken);
     }*/
 
-    public BytePool.RentMemory GetActiveNodes()
+    public BytePool.RentedMemory GetActiveNodes()
     {
         var writer = TinyhandWriter.CreateFromBytePool();
         try

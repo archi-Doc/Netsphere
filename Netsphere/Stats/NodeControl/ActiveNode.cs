@@ -58,7 +58,7 @@ public sealed partial class ActiveNode : NetNode
     }
 
     [Link(Primary = true, Type = ChainType.QueueList, Name = "Get")]
-    [Link(Unique = true, Type = ChainType.Unordered, TargetMember = "Address", AddValue = false)]
+    [Link(Unique = true, Type = ChainType.Unordered, TargetMember = "Address", GenerateValue = false)]
     private ActiveNode()
     {
     }
@@ -71,7 +71,7 @@ public sealed partial class ActiveNode : NetNode
     #region FieldAndProperty
 
     [Key(2)]
-    [Link(Type = ChainType.ReverseOrdered, Accessibility = ValueLinkAccessibility.Public, AddValue = true)]
+    [Link(Type = ChainType.ReverseOrdered, Accessibility = ValueLinkAccessibility.Public, GenerateValue = true)]
     public long LastConnectedMics { get; private set; }
 
     #endregion

@@ -51,7 +51,7 @@ internal class RelayKey
 
     public ulong[] EmbryoSecretArray { get; } = [];
 
-    public bool TryDecrypt(NetEndpoint endpoint, ref BytePool.RentMemory rentMemory, out NetAddress originalAddress, out int relayNumber)
+    public bool TryDecrypt(NetEndpoint endpoint, ref BytePool.RentedMemory rentMemory, out NetAddress originalAddress, out int relayNumber)
     {
         relayNumber = 0;
         if (!endpoint.Equals(this.FirstEndpoint))
@@ -79,7 +79,7 @@ internal class RelayKey
 
         for (var i = 0; i < this.NumberOfRelays; i++)
         {
-            if (rentMemory.RentArray is null)
+            if (rentMemory.Owner is null)
             {
                 goto Exit;
             }
@@ -90,7 +90,7 @@ internal class RelayKey
             var relayHeader = MemoryMarshal.Read<RelayHeader>(span);
             if (relayHeader.Zero == 0)
             {// Decrypted
-                var span2 = rentMemory.RentArray.AsSpan();
+                var span2 = rentMemory.Owner.AsSpan();
                 MemoryMarshal.Write(span2, relayHeader.NetAddress.RelayId);
                 span2 = span2.Slice(sizeof(RelayId));
                 MemoryMarshal.Write(span2, (RelayId)0);
@@ -98,7 +98,7 @@ internal class RelayKey
 
                 span = span.Slice(RelayHeader.Length);
                 span.CopyTo(span2);
-                rentMemory = rentMemory.RentArray.AsMemory(0, RelayHeader.RelayIdLength + span.Length);
+                rentMemory = rentMemory.Owner.AsMemory(0, RelayHeader.RelayIdLength + span.Length);
 
                 originalAddress = relayHeader.NetAddress;
                 relayNumber = i + 1;
@@ -113,7 +113,7 @@ Exit:
         return false;
     }
 
-    public bool TryEncrypt(int relayNumber, NetAddress destination, ReadOnlySpan<byte> content, out BytePool.RentMemory encrypted, out NetEndpoint relayEndpoint)
+    public bool TryEncrypt(int relayNumber, NetAddress destination, ReadOnlySpan<byte> content, out BytePool.RentedMemory encrypted, out NetEndpoint relayEndpoint)
     {
         encrypted = default;
         if (content.Length < PacketHeader.Length ||

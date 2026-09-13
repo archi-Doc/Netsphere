@@ -67,10 +67,10 @@ public class Program
 
     public static async Task Main()
     {
-        AppCloseHandler.Set(() =>
+        AppCloseHandler.Register(() =>
         {// Closing the console window or terminating the process.
             root?.RequestTermination(); // Send a termination signal to the root.
-            root?.WaitForTermination(TimeSpan.FromSeconds(2)).Wait();
+            root?.WaitForTerminationAsync(TimeSpan.FromSeconds(2)).Wait();
         });
 
         Console.CancelKeyPress += (s, e) =>
@@ -89,16 +89,16 @@ public class Program
                 context.AddCommand(typeof(BasicCommand));
                 context.AddCommand(typeof(NtpCommand));
 
-                context.AddLoggerResolver(context =>
+                context.AddLogOutputResolver(context =>
                 {// Logger
                     if (context.LogLevel == LogLevel.Debug)
                     {
-                        context.SetOutput<FileLogger<FileLoggerOptions>>();
-                        // context.SetOutput<ConsoleAndFileLogger>();
+                        context.SetOutput<FileLogOutput<FileLogOutputOptions>>();
+                        // context.SetOutput<ConsoleAndFileLogOutput>();
                         return;
                     }
 
-                    context.SetOutput<ConsoleAndFileLogger>();
+                    context.SetOutput<ConsoleAndFileLogOutput>();
                 });
             })
              .ConfigureNetsphere(context =>
@@ -107,20 +107,20 @@ public class Program
              })
              .PostConfigure(context =>
              {
-                 // FileLoggerOptions
+                 // FileLogOutputOptions
                  var logfile = "Logs/Debug.txt";
-                 var fileLoggerOptions = context.GetOptions<FileLoggerOptions>();
+                 var fileLoggerOptions = context.GetOrCreateOptions<FileLogOutputOptions>();
                  context.SetOptions(fileLoggerOptions with
                  {
-                     Path = Path.Combine(context.DataDirectory, logfile),
-                     MaxLogCapacity = 1,
+                     FilePath = Path.Combine(context.DataDirectory, logfile),
+                     MaxLogCapacityInMegabytes = 1,
                      FormatterOptions = fileLoggerOptions.FormatterOptions with { TimestampFormat = "yyyy-MM-dd HH:mm:ss.ffffff K", },
                      ClearLogsAtStartup = true,
-                     MaxQueue = 100_000,
+                     MaxQueueLength = 100_000,
                  });
 
                  // NetsphereOptions
-                 context.SetOptions(context.GetOptions<NetOptions>() with
+                 context.SetOptions(context.GetOrCreateOptions<NetOptions>() with
                  {
                      // NodeName = "test",
                      // EnablePing = true,
@@ -135,7 +135,7 @@ public class Program
             context.AddCrystal<Netsphere.Misc.NtpCorrection>(new CrystalConfiguration() with
             {
                 SaveFormat = SaveFormat.Utf8,
-                NumberOfFileHistories = 0,
+                NumberOfHistoryFiles = 0,
                 FileConfiguration = new GlobalFileConfiguration(Netsphere.Misc.NtpCorrection.Filename),
             });
         });
@@ -163,11 +163,11 @@ public class Program
         var parserOptions = SimpleParserOptions.Standard with
         {
             ServiceProvider = unit.Context.ServiceProvider,
-            RequireStrictCommandName = false,
-            RequireStrictOptionName = false,
+            RequireCommandName = false,
+            RejectUnknownOptionNames = false,
         };
 
-        await SimpleParser.ParseAndExecute(unit.Context.Commands, SimpleParserHelper.GetCommandLineArguments(), parserOptions, root.CancellationToken); // Main process
+        await SimpleParser.ParseAndExecute(unit.Context.CommandTypes, SimpleParserHelper.GetCommandLineArguments(), parserOptions, root.CancellationToken); // Main process
 
         await crystalControl.StoreAndRip();
         await unit.Terminate();
@@ -175,9 +175,9 @@ public class Program
         root.RequestTermination();
         if (unit.Context.ServiceProvider.GetService<LogUnit>() is { } unitLogger)
         {
-            await unitLogger.FlushAndTerminate();
+            await unitLogger.FlushAndTerminateAsync();
         }
 
-        await root.WaitForTermination(); // Wait for the termination infinitely.
+        await root.WaitForTerminationAsync(); // Wait for the termination infinitely.
     }
 }

@@ -88,16 +88,16 @@ public class TransportDeepReviewTest
         using var connection = this.CreateConnection(12345);
         using var receiver = new ReceiveTransmission(connection, 42, null, null);
         var memory = BytePool.Default.Rent(64).AsMemory(0, 64);
-        var owner = memory.RentArray!;
+        var owner = memory.Owner!;
         try
         {
             var response = await receiver.Wait(Task.FromResult(new NetResponse(NetResult.InvalidData, 0, 0, memory)), 1000, TestContext.Current.CancellationToken);
             Assert.Equal(NetResult.InvalidData, response.Result);
-            Assert.Equal(1, owner.Count);
+            Assert.Equal(1, owner.ReferenceCount);
         }
         finally
         {
-            if (owner.Count > 0)
+            if (owner.ReferenceCount > 0)
             {
                 memory.Return();
             }
@@ -247,25 +247,25 @@ public class TransportDeepReviewTest
         var endpoint = new NetEndpoint(0, new IPEndPoint(IPAddress.Loopback, 12345));
         var completion = new TaskCompletionSource<NetResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
         PacketTerminal.CreatePacket(42, new PingPacket("pending"), out var packet);
-        var owner = packet.RentArray!;
+        var owner = packet.Owner!;
         Assert.Equal(NetResult.Success, packets.SendPacketWithoutRelay(endpoint, packet, completion));
         packets.Stop();
-        Assert.Equal(0, owner.Count);
+        Assert.Equal(0, owner.ReferenceCount);
         Assert.Equal(NetResult.Closed, (await completion.Task).Result);
-        var owners = new System.Collections.Concurrent.ConcurrentBag<BytePool.RentArray>();
+        var owners = new System.Collections.Concurrent.ConcurrentBag<BytePool.RentedArray>();
         await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(
             () =>
             {
                 for (var i = 0; i < 32; i++)
                 {
                     PacketTerminal.CreatePacket((ulong)i, new PingPacket("late"), out var late);
-                    owners.Add(late.RentArray!);
+                    owners.Add(late.Owner!);
                     Assert.Equal(NetResult.Closed, packets.SendPacketWithoutRelay(endpoint, late, null));
                     packets.Stop();
                 }
             },
             TestContext.Current.CancellationToken)));
-        Assert.All(owners, x => Assert.Equal(0, x.Count));
+        Assert.All(owners, x => Assert.Equal(0, x.ReferenceCount));
     }
 
     [Fact]
@@ -278,10 +278,10 @@ public class TransportDeepReviewTest
         Assert.Equal(RelayResult.Success, agent.AddExchange(server, new(false, false), out var inner, out _));
         var queue = (System.Collections.Concurrent.ConcurrentQueue<NetSender.Item>)typeof(RelayAgent).GetField("sendItems", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(agent)!;
         var packet = PacketPool.Rent().AsMemory(0, 40);
-        var owner = packet.RentArray!;
+        var owner = packet.Owner!;
         queue.Enqueue(new(new IPEndPoint(IPAddress.Loopback, 12345), packet));
         agent.Stop();
-        Assert.Equal(0, owner.Count);
+        Assert.Equal(0, owner.ReferenceCount);
         Assert.Equal(0, agent.NumberOfExchanges);
         Assert.Empty(queue);
         Assert.Equal(RelayResult.ConnectionFailure, agent.AddExchange(server, new(false, false), out _, out _));

@@ -9,11 +9,11 @@ namespace Netsphere.Internal;
 /// </summary>
 public interface IClientConnectionInternal
 {
-    Task<(NetResult Result, ulong DataId, BytePool.RentMemory Value)> RpcSendAndReceive(BytePool.RentMemory data, ulong dataId, CancellationToken cancellationToken = default);
+    Task<(NetResult Result, ulong DataId, BytePool.RentedMemory Value)> RpcSendAndReceive(BytePool.RentedMemory data, ulong dataId, CancellationToken cancellationToken = default);
 
-    void RpcSendAndReceive2(BytePool.RentMemory data, ulong dataId, IResponseChannelInternal channel);
+    void RpcSendAndReceive2(BytePool.RentedMemory data, ulong dataId, IResponseChannelInternal channel);
 
-    Task<(NetResult Result, ReceiveStream? Stream)> RpcSendAndReceiveStream(BytePool.RentMemory data, ulong dataId, CancellationToken cancellationToken = default);
+    Task<(NetResult Result, ReceiveStream? Stream)> RpcSendAndReceiveStream(BytePool.RentedMemory data, ulong dataId, CancellationToken cancellationToken = default);
 
     Task<NetResult> UpdateAgreement(ulong dataId, CertificateToken<ConnectionAgreement> a1);
 

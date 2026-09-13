@@ -21,9 +21,9 @@ public interface ITestService3 : INetService
 
     public Task<int> Increment3(int x);
 
-    public Task<BytePool.RentMemory> SendMemoryOwner(BytePool.RentMemory rentMemory);
+    public Task<BytePool.RentedMemory> SendMemoryOwner(BytePool.RentedMemory rentMemory);
 
-    public Task<BytePool.RentReadOnlyMemory> SendReadOnlyMemoryOwner(BytePool.RentReadOnlyMemory rentMemory);
+    public Task<BytePool.RentedReadOnlyMemory> SendReadOnlyMemoryOwner(BytePool.RentedReadOnlyMemory rentMemory);
 }
 
 [NetObject]
@@ -71,12 +71,12 @@ public class ParentClass
         {
         }
 
-        public async Task<BytePool.RentMemory> SendMemoryOwner(BytePool.RentMemory rentMemory)
+        public async Task<BytePool.RentedMemory> SendMemoryOwner(BytePool.RentedMemory rentMemory)
         {
             return rentMemory;
         }
 
-        public async Task<BytePool.RentReadOnlyMemory> SendReadOnlyMemoryOwner(BytePool.RentReadOnlyMemory rentMemory)
+        public async Task<BytePool.RentedReadOnlyMemory> SendReadOnlyMemoryOwner(BytePool.RentedReadOnlyMemory rentMemory)
         {
             return rentMemory;
         }

@@ -30,7 +30,7 @@ internal partial class SendGene
 
     public ICongestionControl CongestionControl { get; }
 
-    public BytePool.RentMemory Packet { get; private set; }
+    public BytePool.RentedMemory Packet { get; private set; }
 
     public long SentMics { get; private set; }
 
@@ -71,7 +71,7 @@ internal partial class SendGene
     #endregion
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetSend(BytePool.RentMemory toBeMoved)
+    public void SetSend(BytePool.RentedMemory toBeMoved)
     {
         this.Packet = toBeMoved;
     }
@@ -131,7 +131,7 @@ internal partial class SendGene
     private bool SendCore(NetSender netSender, int additional)
     {
         var packet = this.Packet;
-        if (!this.CanSend || !packet.IsRent || !packet.TryIncrement())
+        if (!this.CanSend || !packet.IsRented || !packet.TryIncrement())
         {// MemoryOwner has been returned to the pool (Disposed).
             return false;
         }

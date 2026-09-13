@@ -724,7 +724,7 @@ Wait:
         return this.SendList.Count == 0 ? ProcessSendResult.Complete : ProcessSendResult.Remaining;
     }
 
-    internal void ProcessReceive(NetEndpoint endpoint, BytePool.RentMemory toBeShared, long currentSystemMics)
+    internal void ProcessReceive(NetEndpoint endpoint, BytePool.RentedMemory toBeShared, long currentSystemMics)
     {// Checked: endpoint, toBeShared.Length
         if (this.CurrentState == State.Disposed)
         {
@@ -794,7 +794,7 @@ Wait:
         }
     }
 
-    internal void ProcessReceive_Ack(NetEndpoint endPoint, BytePool.RentMemory toBeShared)
+    internal void ProcessReceive_Ack(NetEndpoint endPoint, BytePool.RentedMemory toBeShared)
     {// uint TransmissionId, ushort NumberOfPairs, { int StartGene, int EndGene } x pairs
         var span = toBeShared.Span;
         using (this.sendTransmissions.LockObject.EnterScope())
@@ -852,7 +852,7 @@ Wait:
         }
     }
 
-    internal void ProcessReceive_FirstGene(NetEndpoint endPoint, BytePool.RentMemory toBeShared)
+    internal void ProcessReceive_FirstGene(NetEndpoint endPoint, BytePool.RentedMemory toBeShared)
     {// First gene
         var span = toBeShared.Span;
         if (span.Length < FirstGeneFrame.LengthExcludingFrameType)
@@ -999,7 +999,7 @@ ProcessGene:
         }
     }
 
-    internal void ProcessReceive_FollowingGene(NetEndpoint endPoint, BytePool.RentMemory toBeShared)
+    internal void ProcessReceive_FollowingGene(NetEndpoint endPoint, BytePool.RentedMemory toBeShared)
     {// Following gene
         var span = toBeShared.Span;
         if (span.Length < FollowingGeneFrame.LengthExcludingFrameType)
@@ -1040,7 +1040,7 @@ ProcessGene:
         transmission.ProcessReceive_Gene(dataControl, dataPosition, toBeShared.Slice(FollowingGeneFrame.LengthExcludingFrameType));
     }
 
-    internal void ProcessReceive_Knock(NetEndpoint endPoint, BytePool.RentMemory toBeShared)
+    internal void ProcessReceive_Knock(NetEndpoint endPoint, BytePool.RentedMemory toBeShared)
     {// KnockResponseFrameCode
         if (toBeShared.Memory.Length < (KnockFrame.Length - 2))
         {
@@ -1074,7 +1074,7 @@ ProcessGene:
         this.SendPriorityFrame(frame);
     }
 
-    internal void ProcessReceive_KnockResponse(NetEndpoint endPoint, BytePool.RentMemory toBeShared)
+    internal void ProcessReceive_KnockResponse(NetEndpoint endPoint, BytePool.RentedMemory toBeShared)
     {// KnockResponseFrameCode
         var span = toBeShared.Span;
         if (span.Length < (KnockResponseFrame.Length - 2))
@@ -1101,7 +1101,7 @@ ProcessGene:
         }
     }
 
-    internal bool CreatePacket(scoped ReadOnlySpan<byte> frame, out BytePool.RentMemory rentArray)
+    internal bool CreatePacket(scoped ReadOnlySpan<byte> frame, out BytePool.RentedMemory rentArray)
     {// ProtectedPacketCode
         Debug.Assert(frame.Length > 0);
         if (frame.Length > PacketHeader.MaxFrameLength)
@@ -1139,7 +1139,7 @@ ProcessGene:
         return true;
     }
 
-    internal void CreatePacket(scoped Span<byte> frameHeader, scoped ReadOnlySpan<byte> frameContent, out BytePool.RentMemory rentMemory)
+    internal void CreatePacket(scoped Span<byte> frameHeader, scoped ReadOnlySpan<byte> frameContent, out BytePool.RentedMemory rentMemory)
     {// ProtectedPacketCode
         Debug.Assert((frameHeader.Length + frameContent.Length) <= PacketHeader.MaxFrameLength);
 
@@ -1177,7 +1177,7 @@ ProcessGene:
         rentMemory = arrayOwner.AsMemory(0, PacketHeader.Length + ProtectedPacket.Length + written);
     }
 
-    internal void CreateAckPacket(BytePool.RentArray rentArray, int length, out int packetLength)
+    internal void CreateAckPacket(BytePool.RentedArray rentArray, int length, out int packetLength)
     {// ProtectedPacketCode
         var packetType = this is ClientConnection ? PacketType.Protected : PacketType.ProtectedResponse;
         var span = rentArray.AsSpan();

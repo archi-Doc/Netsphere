@@ -13,13 +13,13 @@ public partial record RunnerOptions
     // [SimpleOption("lifespan", Description = "Time in seconds until the runner automatically shuts down (set to -1 for infinite).")]
     // public long Lifespan { get; init; } = 6;
 
-    [SimpleOption(nameof(Port), Description = "Port number associated with the runner", Required = true, ReadFromEnvironment = true)]
+    [SimpleOption(nameof(Port), Description = "Port number associated with the runner", IsRequired = true, ReadFromEnvironment = true)]
     public ushort Port { get; set; } = 49999;
 
-    [SimpleOption(NetConstants.NodeSecretKeyName, Description = "Node secret key for connection", Required = true, ReadFromEnvironment = true)]
+    [SimpleOption(NetConstants.NodeSecretKeyName, Description = "Node secret key for connection", IsRequired = true, ReadFromEnvironment = true)]
     public string NodeSecretKeyString { get; set; } = string.Empty;
 
-    [SimpleOption(NetConstants.RemotePublicKeyName, Description = "Public key for remote operation", Required = true, ReadFromEnvironment = true)]
+    [SimpleOption(NetConstants.RemotePublicKeyName, Description = "Public key for remote operation", IsRequired = true, ReadFromEnvironment = true)]
     public string RemotePublicKeyString { get; set; } = string.Empty;
 
     public virtual bool Check(ILogger logger)

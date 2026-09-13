@@ -5,7 +5,7 @@ namespace Netsphere.Logging;
 /// <summary>
 /// Configures identifier-based log files and their retention.
 /// </summary>
-public record class IdFileLoggerOptions : FileLoggerOptions
+public record class IdFileLoggerOptions : FileLogOutputOptions
 {
     public IdFileLoggerOptions()
     {
@@ -14,7 +14,7 @@ public record class IdFileLoggerOptions : FileLoggerOptions
             EventIdFormat = "X4",
         };
 
-        this.MaxQueue = 10_000;
+        this.MaxQueueLength = 10_000;
     }
 
     /// <summary>

@@ -34,7 +34,7 @@ public sealed class NetSocket
                 anyEP = new IPEndPoint(IPAddress.IPv6Any, 0); // IPEndPoint.MinPort
             }
 
-            BytePool.RentArray? rentArray = null;
+            BytePool.RentedArray? rentArray = null;
             while (!core.IsTerminated)
             {
                 var udp = core.udp;
@@ -69,7 +69,7 @@ public sealed class NetSocket
                 }
                 finally
                 {
-                    if (rentArray is { Count: > 1 })
+                    if (rentArray is { ReferenceCount: > 1 })
                     {// Byte array is used by multiple owners. Return and rent a new one next time.
                         rentArray = rentArray.Return();
                     }

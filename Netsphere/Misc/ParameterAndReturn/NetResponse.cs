@@ -8,7 +8,7 @@ namespace Netsphere;
 /// <remarks>Call <see cref="Return"/> exactly once after consuming the buffer. Copying this value does not acquire another lease; do not use any copy after returning it.</remarks>
 public readonly record struct NetResponse
 {
-    public NetResponse(NetResult result, ulong dataId, long additional, BytePool.RentMemory received)
+    public NetResponse(NetResult result, ulong dataId, long additional, BytePool.RentedMemory received)
     {
         this.Result = result;
         this.DataId = dataId;
@@ -30,5 +30,5 @@ public readonly record struct NetResponse
     public readonly NetResult Result;
     public readonly ulong DataId;
     public readonly long Additional; // ElapsedMics, MaxStreamLength
-    public readonly BytePool.RentMemory Received;
+    public readonly BytePool.RentedMemory Received;
 }

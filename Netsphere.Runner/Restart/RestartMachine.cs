@@ -30,12 +30,12 @@ public partial class RestartMachine : Machine
         this.netTerminal = netTerminal;
         this.options = default!;
 
-        this.DefaultTimeout = TimeSpan.FromSeconds(5);
+        this.DefaultInterval = TimeSpan.FromSeconds(5);
     }
 
-    protected override void OnCreate(object? createParam)
+    protected override void OnCreate(object? createParameter)
     {
-        this.options = (RestartOptions)createParam!;
+        this.options = (RestartOptions)createParameter!;
     }
 
     [StateMethod(0)]
@@ -128,18 +128,18 @@ public partial class RestartMachine : Machine
     }
 
     [CommandMethod]
-    protected async Task<CommandResult> Restart()
+    protected async Task<CommandStatus> Restart()
     {
         if (this.options == null)
         {
-            return CommandResult.Failure;
+            return CommandStatus.Failure;
         }
 
         this.logger.GetWriter()?.Write("Restart");
 
         if (this.docker is null)
         {
-            return CommandResult.Failure;
+            return CommandStatus.Failure;
         }
 
         var projectName = this.projectName;
@@ -148,7 +148,7 @@ public partial class RestartMachine : Machine
             if (string.IsNullOrEmpty(this.options.Service))
             {
                 this.logger.GetWriter(LogLevel.Error)?.Write("Project and service are not specified.");
-                return CommandResult.Failure;
+                return CommandStatus.Failure;
             }
             else
             {// Service
@@ -167,7 +167,7 @@ public partial class RestartMachine : Machine
                 !r.Labels.TryGetValue("com.docker.compose.project", out var name))
             {
                 this.logger.GetWriter(LogLevel.Error)?.Write("Project not found.");
-                return CommandResult.Failure;
+                return CommandStatus.Failure;
             }
 
             projectName = name;
@@ -188,7 +188,7 @@ public partial class RestartMachine : Machine
         if (container is null)
         {
             this.logger.GetWriter(LogLevel.Error)?.Write("Container not found.");
-            return CommandResult.Failure;
+            return CommandStatus.Failure;
         }
 
         if (!string.IsNullOrEmpty(this.projectName))
@@ -223,7 +223,7 @@ public partial class RestartMachine : Machine
             await this.Restart(container, false);
         }
 
-        return CommandResult.Success;
+        return CommandStatus.Success;
     }
 
     private async Task Restart(ContainerListResponse targetContainer, bool restartProject)

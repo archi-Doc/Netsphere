@@ -12,7 +12,7 @@ internal static class PacketPool
         packetPool = BytePool.CreateFlat(MaxPacketSize, PoolLimit);
     }
 
-    public static BytePool.RentArray Rent() => packetPool.Rent(MaxPacketSize);
+    public static BytePool.RentedArray Rent() => packetPool.Rent(MaxPacketSize);
 
     private static BytePool packetPool;
 }

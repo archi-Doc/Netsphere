@@ -16,7 +16,7 @@ public partial class NetStatsMachine : Machine
         this.netStats = statsData;
         this.nodeControl = nodeControl;
 
-        this.DefaultTimeout = TimeSpan.FromSeconds(5);
+        this.DefaultInterval = TimeSpan.FromSeconds(5);
     }
 
     [StateMethod(0)]

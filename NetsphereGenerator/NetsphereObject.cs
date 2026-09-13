@@ -599,7 +599,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 method.ParameterType == ServiceMethod.Type.Memory ||
                 method.ParameterType == ServiceMethod.Type.ReadOnlyMemory)
             {// a1(Memory<byte>) -> owner(RentMemory)
-                ssb.AppendLine($"var owner = Arc.Collections.BytePool.RentMemory.CreateFrom(a1);");
+                ssb.AppendLine($"var owner = Arc.Collections.BytePool.RentedMemory.CreateFrom(a1);");
             }
             else if (method.ParameterType == ServiceMethod.Type.RentMemory)
             {// a1(RentMemory) -> owner(RentMemory)
@@ -924,7 +924,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             ssb.AppendLine("var value = context.RentMemory;");
         }
         else if (method.ParameterType == ServiceMethod.Type.RentReadOnlyMemory)
-        {// BytePool.RentReadOnlyMemory
+        {// BytePool.RentedReadOnlyMemory
             ssb.AppendLine("var value = context.RentMemory.ReadOnly;");
         }
         else if ((method.ParameterLength - decrement) == 0)
@@ -1048,11 +1048,11 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             ssb.AppendLine("context.SetResponseMemory(result);");
         }
         else if (method.ReturnType == ServiceMethod.Type.RentMemory)
-        {// BytePool.RentMemory result; the handler may return the borrowed request lease.
+        {// BytePool.RentedMemory result; the handler may return the borrowed request lease.
             ssb.AppendLine("context.SetResponseRentMemory(result);");
         }
         else if (method.ReturnType == ServiceMethod.Type.RentReadOnlyMemory)
-        {// BytePool.RentReadOnlyMemory result; the handler may return the borrowed request lease.
+        {// BytePool.RentedReadOnlyMemory result; the handler may return the borrowed request lease.
             ssb.AppendLine("context.SetResponseRentMemory(result.UnsafeMemory);");
         }
         else if (method.ReturnType == ServiceMethod.Type.ReceiveStream ||

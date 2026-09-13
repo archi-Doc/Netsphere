@@ -24,7 +24,7 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
     public static readonly Identifier Three = new(3);
 
     public static Identifier FromReadOnlySpan(ReadOnlySpan<byte> input)
-        => new(Blake3.Get256_UInt64(input));
+        => new(Blake3.Get256UInt64(input));
 
     #region IStringConvertible
 
@@ -34,7 +34,7 @@ public readonly partial struct Identifier : IEquatable<Identifier>, IComparable<
         if (read == SeedKeyHelper.RawPublicKeyLengthInBase64)
         {// key
             Span<byte> keyAndChecksum = stackalloc byte[SeedKeyHelper.PublicKeyAndChecksumSize];
-            if (Base64Url.TryDecode(source.Slice(0, SeedKeyHelper.RawPublicKeyLengthInBase64), keyAndChecksum, out _) &&
+            if (FastBase64Url.TryDecode(source.Slice(0, SeedKeyHelper.RawPublicKeyLengthInBase64), keyAndChecksum, out _) &&
                     SeedKeyHelper.ValidateChecksum(keyAndChecksum))
             {
                 identifier = new(keyAndChecksum);

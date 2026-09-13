@@ -21,10 +21,10 @@ public class Program
 
     public static async Task Main()
     {
-        AppCloseHandler.Set(() =>
+        AppCloseHandler.Register(() =>
         {// Closing the console window or terminating the process.
             root?.RequestTermination(); // Send a termination signal to the root.
-            root?.WaitForTermination(TimeSpan.FromSeconds(2)).Wait();
+            root?.WaitForTerminationAsync(TimeSpan.FromSeconds(2)).Wait();
         });
 
         Console.CancelKeyPress += (s, e) =>
@@ -42,20 +42,20 @@ public class Program
                 // Command
                 context.AddCommand(typeof(DefaultCommand));
 
-                // context.AddLoggerResolver(NetUnit.LowLevelLoggerResolver<EmptyLogger>);
-                context.AddLoggerResolver(context =>
+                // context.AddLogOutputResolver(NetUnit.LowLevelLoggerResolver<EmptyLogOutput>);
+                context.AddLogOutputResolver(context =>
                 {// Logger
                     if (context.LogLevel == LogLevel.Debug)
                     {
                         // if (context.LogOutputType is null)
                         {
-                            context.SetOutput<FileLogger<FileLoggerOptions>>(); // EmptyLogger
+                            context.SetOutput<FileLogOutput<FileLogOutputOptions>>(); // EmptyLogOutput
                         }
 
                         return;
                     }
 
-                    context.SetOutput<ConsoleLogger>();
+                    context.SetOutput<ConsoleLogOutput>();
                 });
             })
             .ConfigureNetsphere(context =>
@@ -64,20 +64,20 @@ public class Program
             })
             .PostConfigure(context =>
             {
-                // FileLoggerOptions
+                // FileLogOutputOptions
                 var logfile = "Logs/Net.txt";
-                var fileLoggerOptions = context.GetOptions<FileLoggerOptions>();
+                var fileLoggerOptions = context.GetOrCreateOptions<FileLogOutputOptions>();
                 context.SetOptions(fileLoggerOptions with
                 {
-                    Path = Path.Combine(context.DataDirectory, logfile),
-                    MaxLogCapacity = 100,
+                    FilePath = Path.Combine(context.DataDirectory, logfile),
+                    MaxLogCapacityInMegabytes = 100,
                     FormatterOptions = fileLoggerOptions.FormatterOptions with { TimestampFormat = "mm:ss.ffffff K", },
                     ClearLogsAtStartup = true,
-                    MaxQueue = 100_000,
+                    MaxQueueLength = 100_000,
                 });
 
                 // NetsphereOptions
-                context.SetOptions(context.GetOptions<NetOptions>() with
+                context.SetOptions(context.GetOrCreateOptions<NetOptions>() with
                 {
                     NodeName = "RemoteDataServer",
                     // Port = 50000, // Specify the port number.
@@ -92,14 +92,14 @@ public class Program
         var parserOptions = SimpleParserOptions.Standard with
         {
             ServiceProvider = unit.Context.ServiceProvider,
-            RequireStrictCommandName = false,
-            RequireStrictOptionName = false,
+            RequireCommandName = false,
+            RejectUnknownOptionNames = false,
         };
 
-        await SimpleParser.ParseAndExecute(unit.Context.Commands, SimpleParserHelper.GetCommandLineArguments(), parserOptions); // Main process
+        await SimpleParser.ParseAndExecute(unit.Context.CommandTypes, SimpleParserHelper.GetCommandLineArguments(), parserOptions); // Main process
 
         await unit.Terminate(); // Perform the termination process for the unit.
         root.RequestTermination();
-        await root.WaitForTermination(); // Wait for the termination infinitely.
+        await root.WaitForTerminationAsync(); // Wait for the termination infinitely.
     }
 }

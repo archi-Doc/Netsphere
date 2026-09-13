@@ -128,6 +128,6 @@ public class BasicCommand : ISimpleCommand<BasicCommandOptions>, IClockHandTarge
 
 public record BasicCommandOptions
 {
-    // [SimpleOption("Node", Description = "Node address", Required = true)]
+    // [SimpleOption("Node", Description = "Node address", IsRequired = true)]
     // public string Node { get; set; } = string.Empty;
 }
