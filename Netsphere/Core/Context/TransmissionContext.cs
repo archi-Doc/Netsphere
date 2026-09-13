@@ -102,22 +102,38 @@ public sealed class TransmissionContext : ITransmissionContextInternal
     }
 
     /// <summary>
-    /// Replaces the request buffer with an owned response buffer, accepting a response that aliases the request.
+    /// Sets a response, retaining the request lease when the response aliases its buffer.
     /// </summary>
-    /// <param name="response">The response lease. It may be the borrowed request lease or a slice of it.</param>
-    /// <remarks>Call from the request handler before sending. Do not access this context concurrently.</remarks>
+    /// <param name="response">The borrowed request lease (or a slice), or an owned lease for a different buffer.</param>
+    /// <remarks>
+    /// A response with the same owner is borrowed, regardless of other references to the buffer.
+    /// To transfer a separately acquired reference to the same buffer, use <see cref="SetResponseOwnedRentMemory"/>.
+    /// Call from the request handler before sending. Do not access this context concurrently.
+    /// </remarks>
     public void SetResponseRentMemory(BytePool.RentedMemory response)
     {
         var request = this.RentMemory;
-        if (request.Owner is { ReferenceCount: 1 } &&
-            ReferenceEquals(request.Owner, response.Owner))
+        if (ReferenceEquals(request.Owner, response.Owner))
         {// The handler returned the borrowed request lease itself. Adopt the returned range instead of releasing the array.
             this.RentMemory = response;
             return;
         }
 
-        this.RentMemory = default;
-        request.Return();
+        this.SetResponseOwnedRentMemory(response);
+    }
+
+    /// <summary>
+    /// Transfers an owned response lease to this context, releasing the previous request lease.
+    /// </summary>
+    /// <param name="response">An independently owned lease, even when it shares the request buffer.</param>
+    /// <remarks>
+    /// The caller relinquishes this reference and must not return it after this call.
+    /// Do not pass the borrowed request lease; use <see cref="SetResponseRentMemory"/> for that case.
+    /// Call from the request handler before sending. Do not access this context concurrently.
+    /// </remarks>
+    public void SetResponseOwnedRentMemory(BytePool.RentedMemory response)
+    {
+        this.Return();
         this.RentMemory = response;
     }
 

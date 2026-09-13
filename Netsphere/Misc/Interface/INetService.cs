@@ -7,7 +7,12 @@ namespace Netsphere;
 /// <summary>
 /// Marks an interface as a network service contract.
 /// </summary>
-/// <remarks>Apply <see cref="NetServiceAttribute"/>. Methods return <see cref="Task"/> or <see cref="Task{TResult}"/>, or use a final ref <see cref="ResponseChannel{TResponse}"/> parameter with a void return type.</remarks>
+/// <remarks>
+/// Apply <see cref="NetServiceAttribute"/>. Methods return <see cref="Task"/> or <see cref="Task{TResult}"/>, or use a final ref <see cref="ResponseChannel{TResponse}"/> parameter with a void return type.
+/// Rented memory parameters are borrowed. When returning rented memory backed by the request buffer,
+/// return the borrowed value or a slice without acquiring another reference. A different response buffer
+/// must carry an owned reference, which is transferred to the transport.
+/// </remarks>
 public interface INetService
 {
 }
