@@ -421,7 +421,15 @@ Retry:
         }
 
 Wait:
-        await Task.Delay(NetConstants.CreateTransmissionDelay, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await Task.Delay(NetConstants.CreateTransmissionDelay, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {// Report the cancellation through the result instead of an exception.
+            return default;
+        }
+
         timeout -= NetConstants.CreateTransmissionDelay;
         goto Retry;
     }
@@ -668,7 +676,7 @@ Wait:
             return;
         }
 
-        this.PacketTerminal.SendPacket(this.DestinationNode.Address, rentArray, default, this.MinimumNumberOfRelays, EndpointResolution.PreferIpv6, false);
+        this.PacketTerminal.SendPacket(this.DestinationNode.Address, rentArray, default, this.MinimumNumberOfRelays, EndpointResolution.PreferIpv6, this.IsServer); // Server connections use the incoming circuit (CorrespondingRelayKey).
     }
 
     internal void SendCloseFrame()
@@ -767,6 +775,13 @@ Wait:
 
             var rentMemory = toBeShared.Slice(PacketHeader.Length + ProtectedPacket.Length + 2, written - 2);
             var frameType = (FrameType)BitConverter.ToUInt16(span); // FrameType
+            if (frameType != FrameType.Close &&
+                this.CurrentState == State.Closed &&
+                this is ServerConnection serverConnection)
+            {// The packet is authenticated, so the closed server connection can be reopened.
+                this.ConnectionTerminal.ReopenServerConnection(serverConnection);
+            }
+
             if (frameType == FrameType.Close)
             {// Close 2
                 this.ConnectionTerminal.CloseInternal(this, false);

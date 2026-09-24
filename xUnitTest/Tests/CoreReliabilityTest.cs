@@ -398,7 +398,7 @@ public class CoreReliabilityTest
         var memory = (BytePool.RentedMemory)item.GetType().GetProperty("MemoryOwner")!.GetValue(item)!;
         cancellation.Cancel();
         var response = await task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        Assert.Equal(NetResult.Timeout, response.Result);
+        Assert.Equal(NetResult.Canceled, response.Result);
         Assert.Empty(items.Cast<object>());
         Assert.Equal(0, memory.Owner!.ReferenceCount);
     }
