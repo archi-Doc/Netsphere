@@ -37,8 +37,6 @@ public static class NetConstants
     internal const int MaxSendStreamDelayMilliseconds = 1_000;
     internal const int InitialReceiveStreamDelayMilliseconds = 100;
     internal const int MaxReceiveStreamDelayMilliseconds = 1_000;
-    internal const int TerminateTerminalDelayMilliseconds = 100;
-    internal const int ForceTerminateMilliseconds = 2_000;
 
     internal static readonly long MicsPerRound = Mics.FromMilliseconds(1);
     internal static readonly TimeSpan CreateTransmissionDelay = TimeSpan.FromMilliseconds(100);

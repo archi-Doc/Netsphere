@@ -59,12 +59,6 @@ internal class NetSender
             // this.timer = MultimediaTimer.TryCreate(NetConstants.SendIntervalMilliseconds, this.sender.Process); // Use multimedia timer if available.
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            // this.timer?.Dispose();
-            base.Dispose(disposing);
-        }
-
         private readonly NetSender sender;
         private readonly MicroSleep microSleep = new();
         // private MultimediaTimer? timer;

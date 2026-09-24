@@ -116,11 +116,6 @@ public class ServiceMethod
             }
         }
 
-        if (method.Method_Parameters.Length == 1)
-        {
-            serviceMethod.ParameterKind = NameToPayloadKind(method.Method_Parameters[0]);
-        }
-
         if (returnObject.FullName == "void" &&
             method.TryGetMethodSymbol() is { } methodSymbol)
         {// void Method(params, ref ResponseChannel<TResponse> channel);
@@ -184,6 +179,12 @@ public class ServiceMethod
             }
         }
 
+        var payloadParameterCount = method.Method_Parameters.Length - (serviceMethod.HasCancellationTokenParameter ? 1 : 0);
+        if (payloadParameterCount == 1 && serviceMethod.ReturnKind != PayloadKind.ResponseChannel)
+        {
+            serviceMethod.ParameterKind = NameToPayloadKind(method.Method_Parameters[0]);
+        }
+
         return serviceMethod;
     }
 
@@ -194,7 +195,7 @@ public class ServiceMethod
 
     public Location Location => this.method.Location;
 
-    public string SimpleName => this.method.SimpleName;
+    public string SimpleName => "@" + this.method.SimpleName;
 
     public string LocalName => this.method.LocalName;
 

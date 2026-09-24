@@ -780,7 +780,11 @@ public sealed partial class PacketTerminal
         _ = Task.Run(() =>
         {
             var packet = new ConnectPacketResponse(this.netBase.DefaultAgreement, endpoint);
-            this.netTerminal.ConnectionTerminal.PrepareServerSide(endpoint, request, packet, relayNumber);
+            if (!this.netTerminal.ConnectionTerminal.PrepareServerSide(endpoint, request, packet, relayNumber))
+            {
+                return;
+            }
+
             CreatePacket(packetId, packet, out var rentMemory); // CreatePacketCode (no relay)
             // this.SendPacketWithoutRelay(endpoint, rentMemory, default);
             this.SendPacketWithRelay(endpoint, rentMemory, incomingRelay, relayNumber);

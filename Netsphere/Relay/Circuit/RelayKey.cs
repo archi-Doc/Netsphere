@@ -90,7 +90,7 @@ internal class RelayKey
             var relayHeader = MemoryMarshal.Read<RelayHeader>(span);
             if (relayHeader.Zero == 0)
             {// Decrypted
-                var span2 = rentMemory.Owner.AsSpan();
+                var span2 = rentMemory.Span;
                 MemoryMarshal.Write(span2, relayHeader.NetAddress.RelayId);
                 span2 = span2.Slice(sizeof(RelayId));
                 MemoryMarshal.Write(span2, (RelayId)0);
@@ -98,7 +98,7 @@ internal class RelayKey
 
                 span = span.Slice(RelayHeader.Length);
                 span.CopyTo(span2);
-                rentMemory = rentMemory.Owner.AsMemory(0, RelayHeader.RelayIdLength + span.Length);
+                rentMemory = rentMemory.Slice(0, RelayHeader.RelayIdLength + span.Length);
 
                 originalAddress = relayHeader.NetAddress;
                 relayNumber = i + 1;

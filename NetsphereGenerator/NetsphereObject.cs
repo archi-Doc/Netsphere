@@ -497,7 +497,10 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 }
 
                 var scopeResponse = ssb.ScopeBrace("try");
-                using (var scopeNoNetService = ssb.ScopeBrace("if (response.Result == NetResult.Success && response.Value.IsEmpty)"))
+                var rawResponse = method.ReturnKind == ServiceMethod.PayloadKind.ByteArray ||
+                    method.ReturnKind == ServiceMethod.PayloadKind.Memory || method.ReturnKind == ServiceMethod.PayloadKind.ReadOnlyMemory || transfersResponse;
+                var emptyResponseCondition = rawResponse ? " && response.DataId != (ulong)NetResult.Success" : string.Empty;
+                using (var scopeNoNetService = ssb.ScopeBrace($"if (response.Result == NetResult.Success && response.Value.IsEmpty{emptyResponseCondition})"))
                 {
                     AppendReturn("(NetResult)response.DataId");
                 }

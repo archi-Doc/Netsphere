@@ -83,6 +83,12 @@ internal class NoCongestionControl : ICongestionControl
                 }
 
                 gene = firstNode.Value;
+                if (!gene.CanResend)
+                {
+                    this.genesInFlight.SetNodeKey(firstNode, gene.SentMics + gene.SendTransmission.Connection.MinimumRtt + 1);
+                    continue;
+                }
+
                 gene.SendTransmission.Connection.DoubleTaichi();
                 if (!gene.Resend_NotThreadSafe(netSender, addition++))
                 {// Cannot send

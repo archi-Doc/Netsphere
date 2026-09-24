@@ -147,6 +147,7 @@ This example uses loopback and a newly generated key on each server run. For rem
 - Mark the implementation with `[NetObject]`, register it, and enable it through `NetTerminal.Services`.
 - Use Tinyhand-serializable arguments and response values. Keep contract definitions consistent between client and server.
 - Rebuild both endpoints when updating the generator. Generated wire formats, including specialized byte-memory handling, must match; compatibility with older generated proxies is not guaranteed.
+- Single byte-memory arguments use the raw payload format even when followed by a cancellation token. Successful empty raw byte-array responses are returned as empty arrays; this format does not distinguish null from an empty array.
 - Methods return `Task`, `Task<T>`, or use the [ResponseChannel](#responsechannel) form. A cancellation token on a Task-based method must be the final parameter.
 - Prefer `Task<NetResult>` or `Task<NetResultAndValue<T>>` when callers need an explicit status. A plain `Task<T>` does not expose transport status separately from its value.
 

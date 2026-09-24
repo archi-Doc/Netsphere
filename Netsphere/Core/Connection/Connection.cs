@@ -143,10 +143,6 @@ public abstract class Connection : IDisposable
     internal int ReceiveTransmissionsCount
         => this.receiveReceivedList.Count;
 
-    internal bool IsEmpty
-        => this.sendTransmissions.Count == 0 &&
-        this.receiveReceivedList.Count == 0;
-
     internal bool CloseIfTransmissionHasTimedOut()
     {
         if (this.LastEventMics + Mics.FromTimeSpan(this.Agreement.TransmissionTimeout) < Mics.FastSystem)
@@ -193,10 +189,11 @@ public abstract class Connection : IDisposable
     private UnorderedLinkedList<ReceiveTransmission> receiveDisposedList = new();
 
     // RTT
-    private int minimumRtt; // Minimum rtt (mics)
-    private int smoothedRtt; // Smoothed rtt (mics)
-    private int latestRtt; // Latest rtt (mics)
-    private int rttvar; // Rtt variation (mics)
+    private readonly Lock rttLock = new();
+    private volatile int minimumRtt; // Minimum rtt (mics)
+    private volatile int smoothedRtt; // Smoothed rtt (mics)
+    private volatile int latestRtt; // Latest rtt (mics)
+    private volatile int rttvar; // Rtt variation (mics)
     private int sendCount;
     private int resendCount;
 
@@ -275,11 +272,16 @@ public abstract class Connection : IDisposable
         => this.Dispose();
 
     internal void ResetTaichi()
-        => this.Taichi = 1;
+        => Interlocked.Exchange(ref this.Taichi, 1);
 
     internal void DoubleTaichi()
     {
-        this.Taichi = (int)Math.Min((long)this.Taichi * 2, int.MaxValue);
+        int current;
+        do
+        {
+            current = Volatile.Read(ref this.Taichi);
+        }
+        while (Interlocked.CompareExchange(ref this.Taichi, (int)Math.Min((long)current * 2, int.MaxValue), current) != current);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -627,6 +629,7 @@ Wait:
 
     internal void AddRtt(int rttMics)
     {
+        using var scope = this.rttLock.EnterScope();
         if (rttMics < LowerRttLimit)
         {
             rttMics = LowerRttLimit;
