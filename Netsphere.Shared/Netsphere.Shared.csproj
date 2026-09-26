@@ -14,14 +14,6 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DefineConstants>$(DefineConstants)TRACE</DefineConstants>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Netsphere\Netsphere.csproj" />
     <ProjectReference Include="..\NetsphereGenerator\NetsphereGenerator.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />

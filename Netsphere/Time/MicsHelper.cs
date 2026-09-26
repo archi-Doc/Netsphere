@@ -32,14 +32,14 @@ public static class MicsHelper
     /// </summary>
     /// <param name="mics">The time in microseconds.</param>
     /// <returns>A DateTime with Kind set to Unspecified; the timestamp's clock origin is unchanged.</returns>
-    public static DateTime MicsToDateTime(this long mics) => new DateTime((long)((double)mics * Time.MicsToTicks));
+    public static DateTime MicsToDateTime(this long mics) => new DateTime(mics * TimeSpan.TicksPerMicrosecond); // Integer math: current tick counts exceed double precision.
 
     /// <summary>
     /// Converts the specified microseconds to a <see cref="TimeSpan"/>.
     /// </summary>
     /// <param name="mics">The time in microseconds.</param>
     /// <returns>A <see cref="TimeSpan"/> representing the specified time.</returns>
-    public static TimeSpan MicsToTimeSpan(this long mics) => new TimeSpan((long)((double)mics * Time.MicsToTicks));
+    public static TimeSpan MicsToTimeSpan(this long mics) => new TimeSpan(mics * TimeSpan.TicksPerMicrosecond);
 
     /// <summary>
     /// Converts the specified microseconds to a formatted date and time string.

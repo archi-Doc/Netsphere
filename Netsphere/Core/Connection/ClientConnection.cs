@@ -803,19 +803,19 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
     }
 
     internal override void OnStateChanged()
-    {
+    {// Called while the non-reentrant connection lock is held, so token callbacks (including await continuations) must not run inline:
+     // a continuation that disposes this connection would deadlock. The source is not disposed, because callbacks may still be pending
+     // and CancellationToken must stay readable; it has no timer, so it holds no resources.
         if (this.CurrentState == State.Open)
         {// Reopen
-            this.cts.Dispose();
-            this.cts = new();
-        }
-        else if (this.CurrentState == State.Closed)
-        {// Close
-            this.cts.Cancel();
+            if (this.cts.IsCancellationRequested)
+            {
+                this.cts = new();
+            }
         }
         else
-        {// Disposed
-            this.cts.Dispose();
+        {// Closed or disposed
+            _ = this.cts.CancelAsync();
         }
     }
 

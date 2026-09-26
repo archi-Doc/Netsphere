@@ -109,8 +109,8 @@ public partial record ConnectionAgreement
         this.MaxTransmissions = Math.Max(this.MaxTransmissions, target.MaxTransmissions);
         this.MaxBlockSize = Math.Max(this.MaxBlockSize, target.MaxBlockSize);
 
-        if (target.MaxStreamLength == -1)
-        {
+        if (target.MaxStreamLength < 0)
+        {// Any negative value removes the limit (see MaxStreamLength and IsInclusive).
             this.MaxStreamLength = -1;
         }
         else if (this.MaxStreamLength >= 0 && target.MaxStreamLength > this.MaxStreamLength)

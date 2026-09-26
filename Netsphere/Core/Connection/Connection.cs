@@ -679,7 +679,9 @@ Wait:
             return;
         }
 
-        this.PacketTerminal.SendPacket(this.DestinationNode.Address, rentArray, default, this.MinimumNumberOfRelays, EndpointResolution.PreferIpv6, this.IsServer); // Server connections use the incoming circuit (CorrespondingRelayKey).
+        // Resolve to the address family of DestinationEndpoint. PreferIpv6 could pick the other family, and the peer drops protected packets from an unexpected endpoint.
+        var endpointResolution = this.DestinationEndpoint.EndPoint?.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? EndpointResolution.Ipv6 : EndpointResolution.Ipv4;
+        this.PacketTerminal.SendPacket(this.DestinationNode.Address, rentArray, default, this.MinimumNumberOfRelays, endpointResolution, this.IsServer); // Server connections use the incoming circuit (CorrespondingRelayKey).
     }
 
     internal void SendCloseFrame()
@@ -1067,6 +1069,7 @@ ProcessGene:
 
         ReceiveTransmission? transmission;
         var transmissionId = BitConverter.ToUInt32(toBeShared.Span);
+        var refresh = false;
         using (this.receiveTransmissions.LockObject.EnterScope())
         {
             if (!this.receiveTransmissions.TransmissionIdChain.TryGetValue(transmissionId, out transmission))
@@ -1078,6 +1081,23 @@ ProcessGene:
             {
                 return;
             }
+
+            // The sender knocks while the receive window is full, so the local reader may simply be slow. Keep the transmission and
+            // the connection alive while the reader still consumes data, but not indefinitely: a reader that stopped must not hold them.
+            if (transmission.Mode == NetTransmissionMode.Stream &&
+                Mics.FastSystem - transmission.LastReadMics < NetConstants.MaxStreamReadStallMics &&
+                transmission.ReceivedOrDisposedNode is { } node &&
+                node.List == this.receiveReceivedList)
+            {
+                transmission.ReceivedOrDisposedMics = Mics.FastSystem;
+                this.receiveReceivedList.MoveToLast(node);
+                refresh = true;
+            }
+        }
+
+        if (refresh)
+        {
+            this.UpdateLastEventMics();
         }
 
         Span<byte> frame = stackalloc byte[KnockResponseFrame.Length];
@@ -1109,7 +1129,11 @@ ProcessGene:
                 var maxReceivePosition = BitConverter.ToInt32(span);
                 span = span.Slice(sizeof(int));
 
-                transmission.ProcessReceive_KnockResponse(maxReceivePosition);
+                if (transmission.ProcessReceive_KnockResponse(maxReceivePosition))
+                {// The receiver is alive but its reader has not freed the window yet; this is not an idle or lost transmission.
+                    this.UpdateAckedNode(transmission);
+                    this.UpdateLastEventMics();
+                }
 
                 if (NetConstants.LogLowLevelNet)
                 {
@@ -1344,68 +1368,6 @@ ProcessGene:
 
     internal virtual void OnStateChanged()
     {
-    }
-
-    internal void TerminateInternal()
-    {
-        Queue<SendTransmission>? sendQueue = default;
-        using (this.sendTransmissions.LockObject.EnterScope())
-        {
-            foreach (var x in this.sendTransmissions)
-            {
-                if (x.Mode == NetTransmissionMode.Stream ||
-                    x.Mode == NetTransmissionMode.StreamCompleted)
-                {// Terminate stream transmission.
-                    x.DisposeTransmission();
-                }
-
-                if (x.IsDisposed)
-                {
-                    sendQueue ??= new();
-                    sendQueue.Enqueue(x);
-                }
-            }
-
-            if (sendQueue is not null)
-            {
-                while (sendQueue.TryDequeue(out var t))
-                {
-                    t.Goshujin = default;
-                }
-            }
-        }
-
-        Queue<ReceiveTransmission>? receiveQueue = default;
-        using (this.receiveTransmissions.LockObject.EnterScope())
-        {
-            foreach (var x in this.receiveTransmissions)
-            {
-                if (x.Mode == NetTransmissionMode.Stream ||
-                    x.Mode == NetTransmissionMode.StreamCompleted)
-                {// Terminate stream transmission.
-                    x.DisposeTransmission();
-                }
-
-                if (x.IsDisposed)
-                {
-                    receiveQueue ??= new();
-                    receiveQueue.Enqueue(x);
-                }
-            }
-
-            if (receiveQueue is not null)
-            {
-                while (receiveQueue.TryDequeue(out var t))
-                {
-                    if (t.ReceivedOrDisposedNode is { } node)
-                    {
-                        node.List?.Remove(node);
-                    }
-
-                    t.Goshujin = default;
-                }
-            }
-        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -46,17 +46,17 @@ public static class TokenHelper
         }
 
         source = source.Slice(2, last - 2);
-        var length = FastBase64Url.GetDecodedLength(source);
+        var length = FastBase64Url.GetMaxDecodedLength(source.Length); // GetDecodedLength() throws for invalid lengths.
         var spanowner = new SpanOwner<byte>(stackalloc byte[BaseHelper.StackallocThreshold], length);
         try
         {
             var span = spanowner.Span;
-            if (!FastBase64Url.TryDecode(source, span, out _))
+            if (!FastBase64Url.TryDecode(source, span, out var decoded))
             {
                 return false;
             }
 
-            TinyhandSerializer.TryDeserializeObject<T>(span, out instance);
+            TinyhandSerializer.TryDeserializeObject<T>(span.Slice(0, decoded), out instance);
             if (instance is null)
             {
                 return false;

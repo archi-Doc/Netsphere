@@ -16,6 +16,7 @@ public sealed partial class NtpCorrection
 
     private const int ParallelNumber = 2;
     private const int MaxRoundtripMilliseconds = 1000;
+    private static readonly TimeSpan ReceiveTimeout = TimeSpan.FromSeconds(1);
     private readonly string[] hostNames =
     {
         "pool.ntp.org",
@@ -91,6 +92,14 @@ public sealed partial class NtpCorrection
 
     public async Task Correct(CancellationToken cancellationToken)
     {
+        using (this.lockObject.EnterScope())
+        {
+            if (this.goshujin.Count == 0)
+            {// Failed hosts are removed; restore the list (once per call, so that retries still end) so that a run of network failures does not stop correction permanently.
+                this.AddHostnamesInternal();
+            }
+        }
+
 Retry:
         string[] hostnames;
         using (this.lockObject.EnterScope())
@@ -105,7 +114,15 @@ Retry:
             return;
         }
 
-        await Parallel.ForEachAsync(hostnames, this.Process).ConfigureAwait(false);
+        try
+        {
+            await Parallel.ForEachAsync(hostnames, cancellationToken, this.Process).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
         if (this.timeoffsetCount == 0)
         {
             this.logger?.GetWriter(LogLevel.Error)?.Write("Retry");
@@ -126,7 +143,7 @@ Retry:
             return default;
         }
 
-        var packet = await this.SendAndReceivePacket(hostname, cancellationToken).ConfigureAwait(false);
+        var packet = await ExchangePacket(hostname, cancellationToken).ConfigureAwait(false);
         if (packet is null)
         {
             return default;
@@ -137,12 +154,30 @@ Retry:
 
     public async Task CorrectMicsAndUnitLogger(ILogger? logger = default, CancellationToken cancellationToken = default)
     {
-        var offset = await this.SendAndReceiveOffset();
-        LogUnit.SetTimestampOffset(offset);
-        if (this.timeoffsetCount <= 1)
+        string? hostname;
+        using (this.lockObject.EnterScope())
         {
-            this.meanTimeoffset = (long)offset.TotalMilliseconds;
-            this.timeoffsetCount = 1;
+            hostname = this.goshujin.RoundtripMillisecondsChain.First?.HostnameValue;
+        }
+
+        // SendAndReceiveOffset() returns zero on failure, which must not be applied as a measured offset.
+        var packet = string.IsNullOrEmpty(hostname) ? null : await ExchangePacket(hostname, cancellationToken).ConfigureAwait(false);
+        if (packet is null)
+        {
+            logger?.GetWriter(LogLevel.Warning)?.Write("Correction failed");
+            return;
+        }
+
+        var offset = packet.TimeOffset;
+        LogUnit.SetTimestampOffset(offset);
+        using (this.lockObject.EnterScope())
+        {
+            if (this.timeoffsetCount <= 1)
+            {
+                this.meanTimeoffset = (long)offset.TotalMilliseconds;
+                this.timeoffsetCount = 1;
+                this.SetNtpCorrection();
+            }
         }
 
         logger?.GetWriter(LogLevel.Information)?.Write($"Corrected: {offset.ToString()}");
@@ -156,22 +191,7 @@ Retry:
         }
 
         var hostname = this.hostNames[RandomVault.Xoshiro.NextInt32(this.hostNames.Length)];
-        using (var client = new UdpClient())
-        {
-            try
-            {
-                client.Connect(hostname, 123);
-                var packet = NtpPacket.CreateSendPacket();
-                await client.SendAsync(packet.PacketData, cancellationToken).ConfigureAwait(false);
-                var result = await client.ReceiveAsync().WaitAsync(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return await ExchangePacket(hostname, cancellationToken).ConfigureAwait(false) is not null;
     }
 
     public (long MeanTimeoffset, int TimeoffsetCount) GetTimeOffset()
@@ -210,84 +230,92 @@ Retry:
     {
         using (this.lockObject.EnterScope())
         {
-            foreach (var x in this.hostNames)
-            {
-                if (!this.goshujin.HostnameChain.ContainsKey(x))
-                {
-                    this.goshujin.Add(new Item(x));
-                }
-            }
-
-            // Reset host
-            foreach (var x in this.goshujin)
-            {
-                x.RetrievedMics = 0;
-            }
+            this.AddHostnamesInternal();
         }
     }
 
-    private async Task<NtpPacket?> SendAndReceivePacket(string hostname, CancellationToken cancellationToken)
-    {
-        using (var client = new UdpClient())
+    private static async Task<NtpPacket?> ExchangePacket(string hostname, CancellationToken cancellationToken)
+    {// Cancels the receive itself on timeout; WaitAsync would leave it pending until the socket is disposed.
+        using var client = new UdpClient();
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(ReceiveTimeout);
+        try
         {
-            try
+            client.Connect(hostname, 123);
+            var packet = NtpPacket.CreateSendPacket();
+            await client.SendAsync(packet.PacketData, timeout.Token).ConfigureAwait(false);
+            var result = await client.ReceiveAsync(timeout.Token).ConfigureAwait(false);
+            return new NtpPacket(result.Buffer);
+        }
+        catch
+        {
+            return default;
+        }
+    }
+
+    private void AddHostnamesInternal()
+    {// using (this.lockObject.EnterScope())
+        foreach (var x in this.hostNames)
+        {
+            if (!this.goshujin.HostnameChain.ContainsKey(x))
             {
-                client.Connect(hostname, 123);
-                var packet = NtpPacket.CreateSendPacket();
-                await client.SendAsync(packet.PacketData, cancellationToken).ConfigureAwait(false);
-                var result = await client.ReceiveAsync().WaitAsync(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
-                packet = new NtpPacket(result.Buffer);
-                return packet;
-            }
-            catch
-            {
+                this.goshujin.Add(new Item(x));
             }
         }
 
-        return default;
+        // Reset host
+        foreach (var x in this.goshujin)
+        {
+            x.RetrievedMics = 0;
+        }
     }
 
     private async ValueTask Process(string hostname, CancellationToken cancellationToken)
     {
-        using (var client = new UdpClient())
+        var packet = await ExchangePacket(hostname, cancellationToken).ConfigureAwait(false);
+        if (packet is null)
         {
-            try
+            if (cancellationToken.IsCancellationRequested)
+            {// Shutting down: the host did not fail.
+                return;
+            }
+
+            this.logger?.GetWriter(LogLevel.Error)?.Write($"{hostname}");
+            using (this.lockObject.EnterScope())
             {
-                client.Connect(hostname, 123);
-                var packet = NtpPacket.CreateSendPacket();
-                await client.SendAsync(packet.PacketData, cancellationToken).ConfigureAwait(false);
-                var result = await client.ReceiveAsync().WaitAsync(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
-                packet = new NtpPacket(result.Buffer);
-
-                this.logger?.GetWriter(LogLevel.Debug)?.Write($"{hostname}, RoundtripTime: {(int)packet.RoundtripTime.TotalMilliseconds} ms, TimeOffset: {(int)packet.TimeOffset.TotalMilliseconds} ms");
-
-                using (this.lockObject.EnterScope())
-                {
-                    var item = this.goshujin.HostnameChain.FindFirst(hostname);
-                    if (item != null)
-                    {
-                        item.RetrievedMics = Mics.GetFixedUtcNow();
-                        item.TimeoffsetMilliseconds = (long)packet.TimeOffset.TotalMilliseconds;
-                        item.RoundtripMillisecondsValue = (int)packet.RoundtripTime.TotalMilliseconds;
-                        this.UpdateTimeoffset();
-
-                        this.logger?.GetWriter(LogLevel.Information)?.Write($"{hostname} {item.RoundtripMillisecondsValue}ms");
-                    }
+                var item = this.goshujin.HostnameChain.FindFirst(hostname);
+                if (item != null)
+                {// Remove item
+                    item.Goshujin = null;
                 }
             }
-            catch
-            {
-                this.logger?.GetWriter(LogLevel.Error)?.Write($"{hostname}");
 
-                using (this.lockObject.EnterScope())
-                {
-                    var item = this.goshujin.HostnameChain.FindFirst(hostname);
-                    if (item != null)
-                    {// Remove item
-                        item.Goshujin = null;
-                    }
-                }
+            return;
+        }
+
+        this.logger?.GetWriter(LogLevel.Debug)?.Write($"{hostname}, RoundtripTime: {(int)packet.RoundtripTime.TotalMilliseconds} ms, TimeOffset: {(int)packet.TimeOffset.TotalMilliseconds} ms");
+
+        using (this.lockObject.EnterScope())
+        {
+            var item = this.goshujin.HostnameChain.FindFirst(hostname);
+            if (item != null)
+            {
+                item.RetrievedMics = Mics.GetFixedUtcNow();
+                item.TimeoffsetMilliseconds = (long)packet.TimeOffset.TotalMilliseconds;
+                item.RoundtripMillisecondsValue = (int)packet.RoundtripTime.TotalMilliseconds;
+                this.UpdateTimeoffset();
+
+                this.logger?.GetWriter(LogLevel.Information)?.Write($"{hostname} {item.RoundtripMillisecondsValue}ms");
             }
+        }
+    }
+
+    private void SetNtpCorrection()
+    {// using (this.lockObject.EnterScope())
+        if (!this.setNtpCorrection)
+        {
+            this.setNtpCorrection = true;
+            Time.SetNtpCorrection(this);
         }
     }
 
@@ -306,11 +334,7 @@ Retry:
         if (count != 0)
         {
             this.meanTimeoffset = timeoffset / count;
-            if (!this.setNtpCorrection)
-            {
-                this.setNtpCorrection = true;
-                Time.SetNtpCorrection(this);
-            }
+            this.SetNtpCorrection();
         }
         else
         {

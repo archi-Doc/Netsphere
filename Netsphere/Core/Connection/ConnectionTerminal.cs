@@ -194,13 +194,18 @@ public class ConnectionTerminal
 
         // Create a new connection
         var packet = new ConnectPacket(publicKey, node.PublicKey.GetHashCode(), default);
-        var t = await this.packetTerminal.SendAndReceive<ConnectPacket, ConnectPacketResponse>(node.Address, packet, targetNumberOfRelays, default, EndpointResolution.PreferIpv6, incomingRelay).ConfigureAwait(false); // < 0: target
+        var t = await this.packetTerminal.SendAndReceive<ConnectPacket, ConnectPacketResponse>(node.Address, packet, targetNumberOfRelays, default, endpointResolution, incomingRelay).ConfigureAwait(false); // < 0: target
         if (t.Value is null)
         {
             return default;
         }
 
         var newConnection = this.PrepareClientSide(node, endPoint, seedKey, node.PublicKey, packet, t.Value);
+        if (newConnection is null)
+        {
+            return null;
+        }
+
         newConnection.MinimumNumberOfRelays = targetNumberOfRelays;
         newConnection.AddRtt(t.RttMics);
         using (this.clientConnections.LockObject.EnterScope())
@@ -284,7 +289,7 @@ public class ConnectionTerminal
         // Create a new connection
         var sourceNetNode = this.netStats.OwnNetNode?.Address.IsValidIpv4AndIpv6 == true ? this.netStats.OwnNetNode : default;
         var packet = new ConnectPacket(publicKey, node.PublicKey.GetHashCode(), sourceNetNode);
-        var t = await this.packetTerminal.SendAndReceive<ConnectPacket, ConnectPacketResponse>(node.Address, packet, minimumNumberOfRelays, default).ConfigureAwait(false);
+        var t = await this.packetTerminal.SendAndReceive<ConnectPacket, ConnectPacketResponse>(node.Address, packet, minimumNumberOfRelays, default, endpointResolution).ConfigureAwait(false); // Use the same address family as endPoint; the server binds the connection to the handshake's source.
         var response = t.Value;
         if (response is null)
         {
@@ -292,12 +297,19 @@ public class ConnectionTerminal
         }
 
         var ownEndpoint = response.SourceEndpoint;
-        if (ownEndpoint.IsValid)
-        {
+        if (ownEndpoint.IsValid &&
+            ownEndpoint.RelayId == 0 &&
+            minimumNumberOfRelays == 0)
+        {// Through relays, the server sees the relay's endpoint, which must not be recorded as this node's address.
             this.netStats.ReportEndpoint(ownEndpoint.EndPoint);
         }
 
         var newConnection = this.PrepareClientSide(node, endPoint, seedKey, node.PublicKey, packet, response);
+        if (newConnection is null)
+        {
+            return null;
+        }
+
         newConnection.MinimumNumberOfRelays = minimumNumberOfRelays;
         newConnection.AddRtt(t.RttMics);
         using (this.clientConnections.LockObject.EnterScope())
@@ -329,8 +341,9 @@ public class ConnectionTerminal
         }
 
         foreach (var x in list)
-        {
-            x.TerminateInternal();
+        {// Dispose every transmission, not only streams: the connection is detached below and would never release block requests,
+         // their buffers, or response callbacks.
+            x.CloseAllTransmission();
         }
 
         using (this.clientConnections.LockObject.EnterScope())
@@ -394,10 +407,13 @@ public class ConnectionTerminal
         }
     }
 
-    internal ClientConnection PrepareClientSide(NetNode node, NetEndpoint endPoint, SeedKey clientSeedKey, EncryptionPublicKey serverPublicKey, ConnectPacket p, ConnectPacketResponse p2)
+    internal ClientConnection? PrepareClientSide(NetNode node, NetEndpoint endPoint, SeedKey clientSeedKey, EncryptionPublicKey serverPublicKey, ConnectPacket p, ConnectPacketResponse p2)
     {
         Span<byte> material = stackalloc byte[CryptoBox.SharedSecretSize];
-        clientSeedKey.DeriveKeyMaterial(serverPublicKey, material);
+        if (!clientSeedKey.TryDeriveKeyMaterial(serverPublicKey, material))
+        {// The node's public key cannot be used for key agreement.
+            return null;
+        }
 
         // CreateEmbryo: Blake2B(Client salt(8), Server salt(8), Key material(32), Client public(32), Server public(32))
         var embryo = new byte[Connection.EmbryoSize];
@@ -426,7 +442,10 @@ public class ConnectionTerminal
     {
         var node = new NetNode(in endPoint, p.ClientPublicKey);
         Span<byte> material = stackalloc byte[CryptoBox.SharedSecretSize];
-        this.NetTerminal.NodeSeedKey.DeriveKeyMaterial(p.ClientPublicKey, material);
+        if (!this.NetTerminal.NodeSeedKey.TryDeriveKeyMaterial(p.ClientPublicKey, material))
+        {// The client's public key cannot be used for key agreement.
+            return false;
+        }
 
         // CreateEmbryo: Blake2B(Client salt(8), Server salt(8), Key material(32), Client public(32), Server public(32))
         var embryo = new byte[Connection.EmbryoSize];
@@ -460,8 +479,10 @@ public class ConnectionTerminal
         }
 
         if (!this.netStats.NodeControl.HasSufficientActiveNodes &&
-            p.SourceNode is { } sourceNode)
-        {
+            p.SourceNode is { } sourceNode &&
+            sourceNode.PublicKey.Equals(p.ClientPublicKey) &&
+            sourceNode.Address.Equals(endPoint.EndPoint))
+        {// The source node is unauthenticated plaintext; accept it only when it describes the sender's own key and address.
             this.netStats.NodeControl.TryAddActiveNode(sourceNode);
         }
 
@@ -487,7 +508,12 @@ public class ConnectionTerminal
                 }
 
                 connection.CloseSendTransmission();
-                clientConnection.SetOpenCount(0);
+                if (releaseReference)
+                {// Clamp a count made negative by redundant Dispose calls. A forced close keeps the count: holders still own their
+                 // references, and resetting it would let a stale Dispose close the connection after Connect() has reused it.
+                    clientConnection.SetOpenCount(0);
+                }
+
                 if (connection.CurrentState == Connection.State.Open)
                 {// Open -> Close
                     connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{connection.ConnectionIdText} Open -> Closed, SendCloseFrame {sendCloseFrame}");

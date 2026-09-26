@@ -195,7 +195,7 @@ For typed blocks outside RPC, register an `INetResponder` and use `ClientConnect
 | Client to server | `Task<SendStream?>` | `GetReceiveStream()`, then `Receive` |
 | Client to server with a response | `Task<SendStreamAndReceive<T>?>` | `GetReceiveStream<T>()`, then `Receive` and `SendAndDispose` |
 
-Server operations use `TransmissionContext.Current`. For client-to-server streaming methods, the final request parameter is a `long` maximum stream length. The client sends chunks and calls `Complete` or `CompleteSendAndReceive`, according to the stream type. When receiving, consume the reported `Written` bytes, including those returned with `NetResult.Completed`. Stop using a stream after an error and pass cancellation tokens where appropriate.
+Server operations use `TransmissionContext.Current`. For client-to-server streaming methods, the final request parameter is a `long` maximum stream length. The client sends chunks and calls `Complete` or `CompleteSendAndReceive`, according to the stream type. When receiving, consume the reported `Written` bytes, including those returned with `NetResult.Completed`. `Closed` means the stream ended before completion, for example because the connection or transmission was closed, so treat the received data as incomplete. A reader may pause while the window is full; the stream stays open while the peer is reachable, but is closed after about 60 seconds without consuming data. Stop using a stream after an error and pass cancellation tokens where appropriate.
 
 See the complete [stream service](xUnitTest/Services/IStreamService.cs) and [client tests](xUnitTest/Tests/StreamTest.cs) for both directions and data verification.
 

@@ -72,6 +72,7 @@ public partial class NtpMachine : Machine
         if (await this.ntpCorrection.CheckConnection(this.CancellationToken).ConfigureAwait(false))
         {
             this.ntpCorrection.AddHostnames();
+            this.ntpCorrection.LastCorrectedMics = 0; // The failed attempt set it; otherwise Initial would skip correction for about an hour.
             this.ChangeState(State.Initial);
             return StateResult.Continue;
         }

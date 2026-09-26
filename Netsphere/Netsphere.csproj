@@ -16,14 +16,6 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DefineConstants>$(DefineConstants)TRACE</DefineConstants>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Arc.Collections" Version="2.1.0" />
     <PackageReference Include="Arc.CrossChannel" Version="3.1.0" />

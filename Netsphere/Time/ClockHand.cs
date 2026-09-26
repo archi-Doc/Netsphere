@@ -23,6 +23,7 @@ public class ClockHand : TaskCore<ClockHand>
     private static async Task Process(ClockHand clockHand)
     {
         long lastSeconds = 0;
+        var lastMinutes = Mics.GetCorrected() / Mics.MicsPerSecond / 60;
         while (await clockHand.TryDelay(MillisecondsToWait))
         {
             var currentSeconds = Mics.GetCorrected() / Mics.MicsPerSecond;
@@ -34,8 +35,10 @@ public class ClockHand : TaskCore<ClockHand>
             lastSeconds = currentSeconds;
             clockHand.broker.OnEverySecond();
 
-            if (currentSeconds % 60 == 0)
-            {
+            var currentMinutes = currentSeconds / 60;
+            if (currentMinutes != lastMinutes)
+            {// Compare minute numbers instead of testing for second 0, which a stall or a clock correction can skip. A backward correction must not suppress ticks.
+                lastMinutes = currentMinutes;
                 clockHand.broker.OnEveryMinute();
             }
         }

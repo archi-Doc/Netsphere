@@ -33,7 +33,7 @@ public class LifecycleReviewTest
         var seedKey = SeedKey.NewEncryption();
         var request = new ConnectPacket(seedKey.GetEncryptionPublicKey(), node.PublicKey.GetHashCode(), default);
         var response = new ConnectPacketResponse(new ConnectionAgreement { MinimumConnectionRetentionMics = Mics.FromSeconds(1) }, endpoint);
-        var connection = terminal.PrepareClientSide(node, endpoint, seedKey, node.PublicKey, request, response);
+        var connection = terminal.PrepareClientSide(node, endpoint, seedKey, node.PublicKey, request, response)!;
         var connections = (ClientConnection.GoshujinClass)typeof(ConnectionTerminal).GetField("clientConnections", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(terminal)!;
         using (connections.LockObject.EnterScope())
         {

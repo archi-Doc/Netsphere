@@ -175,6 +175,10 @@ internal sealed partial class SendTransmission : IDisposable
                     return NetResult.Timeout;
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {// Report cancellation as a result, like the other stream operations, instead of throwing from SendStream.Complete.
+                return NetResult.Canceled;
+            }
         }
     }
 
@@ -742,14 +746,17 @@ internal sealed partial class SendTransmission : IDisposable
         this.Mode = NetTransmissionMode.StreamCompleted;
     }*/
 
-    internal void ProcessReceive_KnockResponse(int maxReceivePosition)
-    {
+    internal bool ProcessReceive_KnockResponse(int maxReceivePosition)
+    {// Returns true if this is a stream transmission and the receiver still has a live window (0 means the receiver disposed it).
         using (this.lockObject.EnterScope())
         {
             if (maxReceivePosition >= 0 && (this.Mode == NetTransmissionMode.Stream || this.Mode == NetTransmissionMode.StreamCompleted))
             {
                 this.UpdateReceiveWindow(maxReceivePosition);
+                return maxReceivePosition > 0;
             }
+
+            return false;
         }
     }
 

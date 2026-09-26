@@ -9,7 +9,7 @@ namespace Netsphere.Logging;
 public class IdFileLogger<TOption> : BufferedLogOutput
     where TOption : IdFileLoggerOptions
 {
-    public IdFileLogger(ExecutionGroup parent, LogUnit logUnit, ILogService logService, TOption options)
+    public IdFileLogger(ExecutionRoot parent, LogUnit logUnit, ILogService logService, TOption options) // ExecutionRoot is registered in DI; ExecutionGroup is not.
         : base(logUnit)
     {
         if (string.IsNullOrEmpty(Path.GetDirectoryName(options.FilePath)))

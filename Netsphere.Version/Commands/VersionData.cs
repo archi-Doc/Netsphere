@@ -20,7 +20,20 @@ public partial record VersionData
         try
         {
             var bin = File.ReadAllBytes(Filename);
-            return TinyhandSerializer.DeserializeObjectFromUtf8<VersionData>(bin) ?? new();
+            var data = TinyhandSerializer.DeserializeObjectFromUtf8<VersionData>(bin) ?? new();
+
+            // The cached responses are not serialized; rebuild them so that loaded tokens are served after a restart.
+            if (data.Development is { } development)
+            {
+                data.developmentResponse = new(development);
+            }
+
+            if (data.Release is { } release)
+            {
+                data.releaseResponse = new(release);
+            }
+
+            return data;
         }
         catch
         {

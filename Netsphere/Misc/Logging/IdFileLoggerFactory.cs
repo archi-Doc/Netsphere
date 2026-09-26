@@ -5,7 +5,7 @@ namespace Netsphere.Logging;
 internal class IdFileLoggerFactory<TOption> : IdFileLogger<TOption>
     where TOption : IdFileLoggerOptions
 {
-    public IdFileLoggerFactory(ExecutionGroup parent, LogUnit logUnit, ILogService logService, TOption options)
+    public IdFileLoggerFactory(ExecutionRoot parent, LogUnit logUnit, ILogService logService, TOption options)
         : base(parent, logUnit, logService, options)
     {
     }

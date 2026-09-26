@@ -158,13 +158,20 @@ public class NetUnit : UnitBase, IUnitPreparable, IUnitExecutable
         {
             while (await core.TryDelay(1_000).ConfigureAwait(false))
             {
-                await core.unit.NetTerminal.IntervalTask(core.CancellationToken);
-                if (core.unit.Alternative is { } alternative)
+                try
                 {
-                    await alternative.IntervalTask(core.CancellationToken);
-                }
+                    await core.unit.NetTerminal.IntervalTask(core.CancellationToken);
+                    if (core.unit.Alternative is { } alternative)
+                    {
+                        await alternative.IntervalTask(core.CancellationToken);
+                    }
 
-                core.unit.NetStats.Update(core.unit.NetTerminal.IncomingCircuit);
+                    core.unit.NetStats.Update(core.unit.NetTerminal.IncomingCircuit);
+                }
+                catch (Exception ex) when (!core.CancellationToken.IsCancellationRequested)
+                {// One failed pass must not stop connection, relay, and statistics maintenance permanently.
+                    core.unit.NetBase.LogService.GetLogger<NetUnit>().GetWriter(LogLevel.Error)?.Write(ex.ToString());
+                }
             }
         }
 

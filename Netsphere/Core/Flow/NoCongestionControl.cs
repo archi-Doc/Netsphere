@@ -53,7 +53,11 @@ internal class NoCongestionControl : ICongestionControl
     {
         using (this.lockObject.EnterScope())
         {
-            sendGene.SendTransmission.Connection.ResetTaichi();
+            if (ack)
+            {// Only an acknowledgement shows that the path works; disposing an unacknowledged gene must not reset the resend backoff.
+                sendGene.SendTransmission.Connection.ResetTaichi();
+            }
+
             if (sendGene.Node is OrderedMultiMap<long, SendGene>.Node node)
             {
                 this.genesInFlight.RemoveNode(node);

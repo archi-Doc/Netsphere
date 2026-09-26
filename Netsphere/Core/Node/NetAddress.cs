@@ -251,32 +251,6 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
         }
     }
 
-    private static (int ZeroStart, int ZeroEnd) FindCompressionRange(ReadOnlySpan<ushort> numbers)
-    {
-        int longestSequenceLength = 0, longestSequenceStart = -1, currentSequenceLength = 0;
-
-        for (var i = 0; i < numbers.Length; i++)
-        {
-            if (numbers[i] == 0)
-            {
-                currentSequenceLength++;
-                if (currentSequenceLength > longestSequenceLength)
-                {
-                    longestSequenceLength = currentSequenceLength;
-                    longestSequenceStart = i - currentSequenceLength + 1;
-                }
-            }
-            else
-            {
-                currentSequenceLength = 0;
-            }
-        }
-
-        return longestSequenceLength > 1 ?
-            (longestSequenceStart, longestSequenceStart + longestSequenceLength) :
-            (-1, 0);
-    }
-
     public bool IsValidIpv4 => this.Port != 0 && this.Address4 != 0;
 
     public bool IsValidIpv6 => this.Port != 0 && (this.Address6A != 0 || this.Address6B != 0);
@@ -316,63 +290,14 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
 
         if (this.IsValidIpv6)
         {// [1:2:3:4]:12345
+            // Measure with the same formatter as TryFormat: IPAddress writes IPv4-mapped, IPv4-compatible, and ISATAP addresses
+            // with a dotted IPv4 suffix, which counting hex groups undercounts.
             Span<byte> ipv6byte = stackalloc byte[16];
             BitConverter.TryWriteBytes(ipv6byte, this.Address6A);
             BitConverter.TryWriteBytes(ipv6byte.Slice(sizeof(ulong)), this.Address6B);
-            var ipv6ushort = MemoryMarshal.Cast<byte, ushort>(ipv6byte);
-
-            (int zeroStart, int zeroEnd) = FindCompressionRange(ipv6ushort);
-            bool needsColon = false;
-
-            if (zeroStart >= 0)
-            {
-                for (var i = 0; i < zeroStart; i++)
-                {
-                    if (needsColon)
-                    {
-                        length++; // :
-                    }
-
-                    needsColon = true;
-                    length += HexChars(ipv6ushort[i]);
-                }
-
-                length += 2; // ::
-                needsColon = false;
-            }
-
-            for (var i = zeroEnd; i < ipv6ushort.Length; i++)
-            {
-                if (needsColon)
-                {
-                    length++; // :
-                }
-
-                needsColon = true;
-                length += HexChars(ipv6ushort[i]);
-            }
-
-            length += 3 + BaseHelper.CountDecimalChars(this.Port);
-
-            int HexChars(ushort v)
-            {
-                if ((v & 0x00F0) != 0)
-                {// 0xF000
-                    return 4;
-                }
-
-                if ((v & 0x000F) != 0)
-                {// 0x0F00
-                    return 3;
-                }
-
-                if ((v & 0xF000) != 0)
-                {// 0x00F0
-                    return 2;
-                }
-
-                return 1;
-            }
+            Span<char> ipv6chars = stackalloc char[45]; // Maximum IPv6 text length without a scope ID.
+            new IPAddress(ipv6byte).TryFormat(ipv6chars, out var ipv6length);
+            length += ipv6length + 3 + BaseHelper.CountDecimalChars(this.Port);
         }
 
         return length;

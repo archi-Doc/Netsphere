@@ -59,7 +59,17 @@ public class Alias : IConversionOptions
         }
 
         using (this.lockIdentifier.EnterScope())
-        {
+        {// Remove stale entries in both directions so that the maps remain one-to-one.
+            if (this.identifierToAliasMap.Remove(identifier, out var previousAlias))
+            {
+                this.aliasToIdentifierMap.Remove(previousAlias);
+            }
+
+            if (this.aliasToIdentifierMap.TryGetValue(alias, out var previousIdentifier))
+            {
+                this.identifierToAliasMap.Remove(previousIdentifier);
+            }
+
             this.identifierToAliasMap.AddOrUpdate(identifier, alias);
             this.aliasToIdentifierMap.AddOrUpdate(alias, identifier);
         }
@@ -73,9 +83,13 @@ public class Alias : IConversionOptions
         }
 
         using (this.lockIdentifier.EnterScope())
-        {
-            this.identifierToAliasMap.TryAdd(identifier, alias);
-            this.aliasToIdentifierMap.TryAdd(alias, identifier);
+        {// Add only when neither side is mapped; adding one direction alone would break the correspondence.
+            if (!this.identifierToAliasMap.ContainsKey(identifier) &&
+                !this.aliasToIdentifierMap.ContainsKey(alias))
+            {
+                this.identifierToAliasMap.TryAdd(identifier, alias);
+                this.aliasToIdentifierMap.TryAdd(alias, identifier);
+            }
         }
     }
 
@@ -87,7 +101,17 @@ public class Alias : IConversionOptions
         }
 
         using (this.lockPublicKey.EnterScope())
-        {
+        {// Remove stale entries in both directions so that the maps remain one-to-one.
+            if (this.publicKeyToAliasMap.Remove(publicKey, out var previousAlias))
+            {
+                this.aliasToPublicKeyMap.Remove(previousAlias);
+            }
+
+            if (this.aliasToPublicKeyMap.TryGetValue(alias, out var previousPublicKey))
+            {
+                this.publicKeyToAliasMap.Remove(previousPublicKey);
+            }
+
             this.publicKeyToAliasMap.AddOrUpdate(publicKey, alias);
             this.aliasToPublicKeyMap.AddOrUpdate(alias, publicKey);
         }
@@ -101,9 +125,13 @@ public class Alias : IConversionOptions
         }
 
         using (this.lockPublicKey.EnterScope())
-        {
-            this.publicKeyToAliasMap.TryAdd(publicKey, alias);
-            this.aliasToPublicKeyMap.TryAdd(alias, publicKey);
+        {// Add only when neither side is mapped; adding one direction alone would break the correspondence.
+            if (!this.publicKeyToAliasMap.ContainsKey(publicKey) &&
+                !this.aliasToPublicKeyMap.ContainsKey(alias))
+            {
+                this.publicKeyToAliasMap.TryAdd(publicKey, alias);
+                this.aliasToPublicKeyMap.TryAdd(alias, publicKey);
+            }
         }
     }
 
@@ -111,9 +139,8 @@ public class Alias : IConversionOptions
     {
         using (this.lockPublicKey.EnterScope())
         {
-            if (this.publicKeyToAliasMap.TryGetValue(publicKey, out var alias))
+            if (this.publicKeyToAliasMap.Remove(publicKey, out var alias))
             {
-                this.publicKeyToAliasMap.Remove(publicKey);
                 this.aliasToPublicKeyMap.Remove(alias);
                 return true;
             }
@@ -128,9 +155,8 @@ public class Alias : IConversionOptions
     {
         using (this.lockIdentifier.EnterScope())
         {
-            if (this.identifierToAliasMap.TryGetValue(identifier, out var alias))
+            if (this.identifierToAliasMap.Remove(identifier, out var alias))
             {
-                this.identifierToAliasMap.Remove(identifier);
                 this.aliasToIdentifierMap.Remove(alias);
                 return true;
             }

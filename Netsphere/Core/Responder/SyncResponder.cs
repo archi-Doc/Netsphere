@@ -30,13 +30,17 @@ public abstract class SyncResponder<TSend, TReceive> : INetResponder
         try
         {
             var r = this.RespondSync(t);
-            if (r.Value is not null)
-            {
-                transmissionContext.SendAndForget(r.Value, this.DataId);
+            if (!r.IsSuccessAndValid)
+            {// Checking only Value would send default(TReceive) as a success for a failed struct result.
+                transmissionContext.SendResultAndForget(r.Result);
             }
             else
             {
-                transmissionContext.SendResultAndForget(r.Result);
+                var result = transmissionContext.SendAndForget(r.Value, this.DataId);
+                if (result != NetResult.Success)
+                {// For example, BlockSizeLimit: report it instead of leaving the client to time out.
+                    transmissionContext.SendResultAndForget(result);
+                }
             }
         }
         finally

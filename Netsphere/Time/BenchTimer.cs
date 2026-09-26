@@ -73,7 +73,7 @@ public class BenchTimer
 
         var min = this.TicksToString(this.records.Min());
         var max = this.TicksToString(this.records.Max());
-        var average = this.DoubleToString(this.records.Average());
+        var average = this.DoubleToString(this.records.Average() * this.frequencyR * 1000); // Ticks to milliseconds, like Min and Max.
 
         if (caption == null)
         {// 123 ms [4] (Min 100 ms, Max 150 ms)

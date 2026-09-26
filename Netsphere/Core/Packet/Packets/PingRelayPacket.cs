@@ -32,7 +32,7 @@ public sealed partial class PingRelayResponse : IPacket
     internal PingRelayResponse(RelayExchange exchange)
     {
         this.RelayPoint = exchange.RelayPoint;
-        this.OuterEndPoint = exchange.OuterEndpoint;
+        this.OuterEndPoint = exchange.OuterEndpoint.IsValid ? exchange.OuterEndpoint : null; // Assigning the struct directly would always set a value, so IsOutermost would never be true.
         this.RelayRetensionMics = exchange.RelayRetensionMics;
     }
 

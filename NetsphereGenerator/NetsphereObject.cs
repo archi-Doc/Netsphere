@@ -665,7 +665,9 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
     internal void GenerateBackend_Method(ScopingStringBuilder ssb, NetsphereObject serviceInterface, ServiceMethod method)
     {
         var decrement = method.HasCancellationTokenParameter ? 1 : 0;
-        using (var scopeMethod = ssb.ScopeBrace($"private static async Task {method.GeneratedMethodName}(object obj, TransmissionContext c0)"))
+        // Return the inner task directly instead of awaiting it, so each asynchronous call does not allocate an extra state machine.
+        // Callers await the delegate inside try blocks, so synchronous exceptions are handled the same as faulted tasks.
+        using (var scopeMethod = ssb.ScopeBrace($"private static Task {method.GeneratedMethodName}(object obj, TransmissionContext c0)"))
         {
             var methodFilters = this.GetServiceFilter(serviceInterface, method);
             var filters = ServiceFilterGroup.CombineItems(this.ClassFilterGroup, methodFilters);
@@ -702,11 +704,12 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
             if (previousAsync)
             {
-                ssb.AppendLine($"await {code}.ConfigureAwait(false);");
+                ssb.AppendLine($"return {code};");
             }
             else
             {
                 ssb.AppendLine($"{code};");
+                ssb.AppendLine("return Task.CompletedTask;");
             }
 
             ssb.AppendLine();
