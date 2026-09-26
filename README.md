@@ -147,6 +147,7 @@ This example uses loopback and a newly generated key on each server run. For rem
 - Mark the implementation with `[NetObject]`, register it, and enable it through `NetTerminal.Services`.
 - Use Tinyhand-serializable arguments and response values. Keep contract definitions consistent between client and server.
 - Rebuild both endpoints when updating the generator. Generated wire formats, including specialized byte-memory handling, must match; compatibility with older generated proxies is not guaranteed.
+- Single byte-memory arguments use the raw payload format even when followed by a cancellation token. Successful empty raw byte-array responses are returned as empty arrays; this format does not distinguish null from an empty array.
 - Methods return `Task`, `Task<T>`, or use the [ResponseChannel](#responsechannel) form. A cancellation token on a Task-based method must be the final parameter.
 - Prefer `Task<NetResult>` or `Task<NetResultAndValue<T>>` when callers need an explicit status. A plain `Task<T>` does not expose transport status separately from its value.
 
@@ -194,7 +195,7 @@ For typed blocks outside RPC, register an `INetResponder` and use `ClientConnect
 | Client to server | `Task<SendStream?>` | `GetReceiveStream()`, then `Receive` |
 | Client to server with a response | `Task<SendStreamAndReceive<T>?>` | `GetReceiveStream<T>()`, then `Receive` and `SendAndDispose` |
 
-Server operations use `TransmissionContext.Current`. For client-to-server streaming methods, the final request parameter is a `long` maximum stream length. The client sends chunks and calls `Complete` or `CompleteSendAndReceive`, according to the stream type. When receiving, consume the reported `Written` bytes, including those returned with `NetResult.Completed`. Stop using a stream after an error and pass cancellation tokens where appropriate.
+Server operations use `TransmissionContext.Current`. For client-to-server streaming methods, the final request parameter is a `long` maximum stream length. The client sends chunks and calls `Complete` or `CompleteSendAndReceive`, according to the stream type. When receiving, consume the reported `Written` bytes, including those returned with `NetResult.Completed`. `Closed` means the stream ended before completion, for example because the connection or transmission was closed, so treat the received data as incomplete. A reader may pause while the window is full; the stream stays open while the peer is reachable, but is closed after about 60 seconds without consuming data. Stop using a stream after an error and pass cancellation tokens where appropriate.
 
 See the complete [stream service](xUnitTest/Services/IStreamService.cs) and [client tests](xUnitTest/Tests/StreamTest.cs) for both directions and data verification.
 

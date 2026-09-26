@@ -185,13 +185,17 @@ public class NetTerminal : UnitBase, IUnitPreparable, IUnitExecutable
         // Close all connections
         this.State = UnitState.Disposed;
 
-        await this.ConnectionTerminal.Terminate(cancellationToken).ConfigureAwait(false);
-
-        this.NetSender.Stop();
-        this.PacketTerminal.Stop();
-        this.RelayAgent.Stop();
-
-        this.ExecutionGroup.RequestTermination();
+        try
+        {
+            await this.ConnectionTerminal.Terminate(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            this.NetSender.Stop();
+            this.PacketTerminal.Stop();
+            this.RelayAgent.Stop();
+            this.ExecutionGroup.RequestTermination();
+        }
     }
 
     internal void Initialize(ResponderControl responders, ServiceControl services, bool isAlternative)

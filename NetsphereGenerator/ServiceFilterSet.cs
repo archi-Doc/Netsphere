@@ -105,54 +105,23 @@ public class ServiceFilterSet
             return null;
         }
 
-        return new ServiceFilterSet(filterList, checker2);
+        return new ServiceFilterSet(filterList);
     }
 
     public ServiceFilterSet()
     {
         this.FilterList = new();
-        this.FilterSet = new();
     }
 
-    public ServiceFilterSet(List<NetServiceFilterAttributeMock> filterList, HashSet<ISymbol> filterSet)
+    public ServiceFilterSet(List<NetServiceFilterAttributeMock> filterList)
     {
         this.FilterList = filterList;
-        this.FilterSet = filterSet;
-    }
-
-    public ServiceFilterSet(ServiceFilterSet filterSet)
-    {
-        this.FilterList = new(filterSet.FilterList);
-        this.FilterSet = new(filterSet.FilterSet);
-    }
-
-    public void AddRange(ServiceFilterSet filterSet)
-    {
-        foreach (var x in filterSet.FilterList)
-        {
-            this.FilterSet.Add(x.FilterTypeSymbol!);
-            this.FilterList.Add(x);
-        }
-    }
-
-    public void Merge(ServiceFilterSet filterSet)
-    {
-        foreach (var x in filterSet.FilterList)
-        {
-            if (!this.FilterSet.Contains(x.FilterTypeSymbol!))
-            {
-                this.FilterSet.Add(x.FilterTypeSymbol!);
-                this.FilterList.Add(x);
-            }
-        }
     }
 
     public void Sort()
     {
         this.FilterList = this.FilterList.OrderBy(a => a.Order).ToList();
     }
-
-    public HashSet<ISymbol> FilterSet { get; private set; }
 
     public List<NetServiceFilterAttributeMock> FilterList { get; private set; }
 }

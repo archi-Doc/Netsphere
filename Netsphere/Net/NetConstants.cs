@@ -27,6 +27,7 @@ public static class NetConstants
     internal const long ConnectionClosedToDisposalMics = 10_000_000; // 10s
     internal const int TransmissionTimeoutMics = 5_000_000; // 5s
     internal const int TransmissionDisposalMics = 5_000_000; // 5s
+    internal const long MaxStreamReadStallMics = 60_000_000; // 60s: how long knocks keep a full stream alive while its reader consumes nothing.
     internal const int WaitIntervalMilliseconds = 200; // 200ms
 
     internal const int DefaultRetransmissionTimeoutMics = 500_000; // 500ms
@@ -37,8 +38,6 @@ public static class NetConstants
     internal const int MaxSendStreamDelayMilliseconds = 1_000;
     internal const int InitialReceiveStreamDelayMilliseconds = 100;
     internal const int MaxReceiveStreamDelayMilliseconds = 1_000;
-    internal const int TerminateTerminalDelayMilliseconds = 100;
-    internal const int ForceTerminateMilliseconds = 2_000;
 
     internal static readonly long MicsPerRound = Mics.FromMilliseconds(1);
     internal static readonly TimeSpan CreateTransmissionDelay = TimeSpan.FromMilliseconds(100);

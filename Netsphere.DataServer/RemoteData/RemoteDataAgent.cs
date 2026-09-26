@@ -15,12 +15,40 @@ public class RemoteDataAgent : IRemoteData
 
     private readonly RemoteDataControl control;
 
-    Task<NetResult> INetServiceWithUpdateAgreement.UpdateAgreement(CertificateToken<ConnectionAgreement> token)
-        => this.control.UpdateAgreement(token);
+    // The agent is transient and cached per connection, so this flag authorizes only the connection that presented a valid token.
+    // Without it, the default agreement still allows zero-length streams, and an unauthenticated Put would truncate files.
+    private volatile bool authorized;
+
+    async Task<NetResult> INetServiceWithUpdateAgreement.UpdateAgreement(CertificateToken<ConnectionAgreement> token)
+    {
+        var result = await this.control.UpdateAgreement(token).ConfigureAwait(false);
+        if (result == NetResult.Success)
+        {
+            this.authorized = true;
+        }
+
+        return result;
+    }
 
     Task<ReceiveStream?> IRemoteData.Get(string identifier)
-        => this.control.Get(identifier);
+    {
+        if (!this.authorized)
+        {
+            TransmissionContext.Current.Result = NetResult.NotAuthenticated;
+            return Task.FromResult<ReceiveStream?>(default);
+        }
+
+        return this.control.Get(identifier);
+    }
 
     Task<SendStreamAndReceive<NetResult>?> IRemoteData.Put(string identifier, long maxLength)
-        => this.control.Put(identifier, maxLength);
+    {
+        if (!this.authorized)
+        {
+            TransmissionContext.Current.Result = NetResult.NotAuthenticated;
+            return Task.FromResult<SendStreamAndReceive<NetResult>?>(default);
+        }
+
+        return this.control.Put(identifier, maxLength);
+    }
 }

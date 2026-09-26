@@ -29,7 +29,7 @@ public static class Time
     static Time()
     {
         TimestampToTicks = 10_000_000d / Stopwatch.Frequency;
-        MicsToTicks = TimestampToTicks / Mics.TimestampToMics;
+        MicsToTicks = TimeSpan.TicksPerMicrosecond; // Exactly 10; the ratio of the two timestamp factors can round to 10.000000000000002.
         FixedTimestamp = Stopwatch.GetTimestamp();
         FixedUtcNow = DateTime.UtcNow;
     }
@@ -45,7 +45,7 @@ public static class Time
     /// Not affected by manual date/time changes.
     /// </summary>
     /// <returns><see cref="DateTime"/>.</returns>
-    public static DateTime GetApplication() => new DateTime((long)(Mics.GetApplication() * MicsToTicks));
+    public static DateTime GetApplication() => new DateTime(Mics.GetApplication() * TimeSpan.TicksPerMicrosecond);
 
     /// <summary>
     /// Gets a <see cref="DateTime"/> expressed as UTC.
@@ -74,7 +74,7 @@ public static class Time
         }
 
         var result = TimeCorrection.GetCorrectedMics(out var mics);
-        return new DateTime((long)(mics * MicsToTicks));
+        return new DateTime(mics * TimeSpan.TicksPerMicrosecond);
     }
 
     public static void SetNtpCorrection(NtpCorrection ntpCorrection)

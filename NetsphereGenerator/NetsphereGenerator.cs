@@ -34,7 +34,8 @@ public class NetsphereGenerator : IIncrementalGenerator, IGeneratorInformation
             .CreateSyntaxProvider(static (s, _) => IsSyntaxTargetForGeneration(s), static (ctx, _) => GetSemanticTargetForGeneration(ctx))
             .Collect());
 
-        context.RegisterImplementationSourceOutput(provider, this.Emit);
+        // Compilation options and generation state must not leak between incremental runs.
+        context.RegisterImplementationSourceOutput(provider, static (context, source) => new NetsphereGenerator().Emit(context, source));
     }
 
     private static bool IsSyntaxTargetForGeneration(SyntaxNode node) =>
@@ -47,19 +48,10 @@ public class NetsphereGenerator : IIncrementalGenerator, IGeneratorInformation
         {
             foreach (var attribute in attributeList.Attributes)
             {
-                var name = attribute.Name.ToString();
-                if (name.EndsWith(NetsphereGeneratorOptionAttributeMock.StandardName) ||
-                    name.EndsWith(NetsphereGeneratorOptionAttributeMock.SimpleName))
-                {
-                    return typeSyntax;
-                }
-                else if (name.EndsWith(NetObjectAttributeMock.StandardName) ||
-                    name.EndsWith(NetObjectAttributeMock.SimpleName))
-                {
-                    return typeSyntax;
-                }
-                else if (name.EndsWith(NetServiceAttributeMock.StandardName) ||
-                    name.EndsWith(NetServiceAttributeMock.SimpleName))
+                var name = (context.SemanticModel.GetSymbolInfo(attribute).Symbol as IMethodSymbol)?.ContainingType.ToDisplayString();
+                if (name == NetsphereGeneratorOptionAttributeMock.FullName ||
+                    name == NetObjectAttributeMock.FullName ||
+                    name == NetServiceAttributeMock.FullName)
                 {
                     return typeSyntax;
                 }

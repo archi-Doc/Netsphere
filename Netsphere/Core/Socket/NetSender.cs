@@ -59,12 +59,6 @@ internal class NetSender
             // this.timer = MultimediaTimer.TryCreate(NetConstants.SendIntervalMilliseconds, this.sender.Process); // Use multimedia timer if available.
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            // this.timer?.Dispose();
-            base.Dispose(disposing);
-        }
-
         private readonly NetSender sender;
         private readonly MicroSleep microSleep = new();
         // private MultimediaTimer? timer;
@@ -134,23 +128,30 @@ internal class NetSender
             }
         }
 
-        retry = 0;
-        while (true)
+        if (!System.Net.Sockets.Socket.OSSupportsIPv6)
+        {// IPv6 sockets cannot be created on this host; queued IPv6 packets are discarded by Send().
+            this.logger.GetWriter(LogLevel.Warning)?.Write("IPv6 is not supported on this host. Only the IPv4 socket is created.");
+        }
+        else
         {
-            if (this.netSocketIpv6.Start(group, port, true, out _))
+            retry = 0;
+            while (true)
             {
-                break;
-            }
+                if (this.netSocketIpv6.Start(group, port, true, out _))
+                {
+                    break;
+                }
 
-            if (retry++ >= RetryLimit)
-            {
-                this.logger.GetWriter(LogLevel.Fatal)?.Write($"Could not create a UDP socket with port number {port}.");
-                throw new PanicException();
-            }
-            else
-            {
-                this.logger.GetWriter(LogLevel.Warning)?.Write($"Retry creating a UDP socket with port number {port}.");
-                await Task.Delay(RetryIntervalInMilliseconds);
+                if (retry++ >= RetryLimit)
+                {
+                    this.logger.GetWriter(LogLevel.Fatal)?.Write($"Could not create a UDP socket with port number {port}.");
+                    throw new PanicException();
+                }
+                else
+                {
+                    this.logger.GetWriter(LogLevel.Warning)?.Write($"Retry creating a UDP socket with port number {port}.");
+                    await Task.Delay(RetryIntervalInMilliseconds);
+                }
             }
         }
 

@@ -201,35 +201,36 @@ public sealed partial class TrustSource<T>
     }
 
     public bool TryGetFixed([MaybeNullWhen(false)] out T value)
-    {
-        value = this.fixedValue;
-        return this.isFixed && value is not null;
+    {// isFixed and fixedValue change together under the lock; reading them without it can pair a fixed state with a default value.
+        using (this.lockObject.EnterScope())
+        {
+            value = this.fixedValue;
+            return this.isFixed && value is not null;
+        }
     }
 
     public bool TryGet([MaybeNullWhen(false)] out T value, out bool isFixed)
     {
-        value = this.fixedValue;
-        if (this.isFixed)
-        {// Fixed
-            isFixed = true;
-            return value is not null;
-        }
-        else
-        {// Not fixed
-            using (this.lockObject.EnterScope())
-            {
-                isFixed = false;
-                var last = this.counters.CountChain.Last;
-                if (last is not null)
-                {// Use the value with the highest count as the provisional value.
-                    value = last.Value;
-                    return value is not null;
-                }
-                else
-                {// No value
-                    value = default;
-                    return false;
-                }
+        using (this.lockObject.EnterScope())
+        {
+            if (this.isFixed)
+            {// Fixed
+                isFixed = true;
+                value = this.fixedValue;
+                return value is not null;
+            }
+
+            isFixed = false;
+            var last = this.counters.CountChain.Last;
+            if (last is not null)
+            {// Use the value with the highest count as the provisional value.
+                value = last.Value;
+                return value is not null;
+            }
+            else
+            {// No value
+                value = default;
+                return false;
             }
         }
     }

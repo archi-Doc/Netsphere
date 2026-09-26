@@ -153,8 +153,8 @@ public sealed partial class NodeControl
                     }
 
                     if (!this.CanAddLifelineNode)
-                    {
-                        return;
+                    {// Stop adding, but still prune offline lifeline nodes below.
+                        break;
                     }
 
                     if (!x.Address.IsValidIpv4AndIpv6 ||

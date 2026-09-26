@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Tinyhand.IO;
 using Tinyhand.Tree;
-using static FastExpressionCompiler.ImTools.SmallMap;
 
 namespace Netsphere;
 
@@ -45,7 +44,7 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
     // public ResponseDelegate<TResponse>? ResponseDelegate { get; private set; }
     public readonly ResponseDelegate<TResponse>? ResponseDelegate;
 
-    [MemberNotNull(nameof(Value))]
+    [MemberNotNullWhen(true, nameof(Value))]
     public bool IsValueSet { get; private set; }
 
     public ResponseChannel(ResponseDelegate<TResponse>? receiveDelegate)

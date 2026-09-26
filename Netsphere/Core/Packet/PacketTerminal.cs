@@ -160,8 +160,8 @@ public sealed partial class PacketTerminal
 
         var responseTcs = new TaskCompletionSource<NetResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
         CreatePacket(0, packet, out var rentMemory); // CreatePacketCode
-        var result = this.SendPacket(netAddress, rentMemory, responseTcs, relayNumber, endpointResolution, incomingCircuit);
-        if (result != NetResult.Success)
+        var result = this.SendPacket(netAddress, rentMemory, responseTcs, relayNumber, endpointResolution, incomingCircuit, out var item);
+        if (result != NetResult.Success || item is null)
         {
             return (result, default, 0);
         }
@@ -199,6 +199,10 @@ public sealed partial class PacketTerminal
 
             return (NetResult.Success, receive, (int)response.Additional);
         }
+        catch (OperationCanceledException)
+        {
+            return (NetResult.Canceled, default, 0);
+        }
         catch
         {
             return (NetResult.Timeout, default, 0);
@@ -212,13 +216,9 @@ public sealed partial class PacketTerminal
 
             using (this.items.LockObject.EnterScope())
             {
-                foreach (var item in this.items)
-                {
-                    if (ReferenceEquals(item.ResponseTcs, responseTcs))
-                    {
-                        item.Remove();
-                        break;
-                    }
+                if (item.Goshujin == this.items)
+                {// Still pending (no response, not timed out): release the queued packet.
+                    item.Remove();
                 }
             }
         }
@@ -550,100 +550,8 @@ public sealed partial class PacketTerminal
         }
     }
 
-    internal unsafe NetResult SendPacket(NetAddress netAddress, BytePool.RentedMemory dataToBeMoved, TaskCompletionSource<NetResponse>? responseTcs, int relayNumber, EndpointResolution endpointResolution, bool incomingRelay)
-    {
-        var length = dataToBeMoved.Span.Length;
-        if (length < PacketHeader.Length ||
-            length > NetConstants.MaxPacketLength)
-        {
-            dataToBeMoved.Return();
-            return NetResult.InvalidData;
-        }
-
-        var circuit = incomingRelay ? this.netTerminal.IncomingCircuit : this.netTerminal.OutgoingCircuit;
-        if (relayNumber > 0)
-        {// The minimum number of relays
-            if (circuit.NumberOfRelays < relayNumber)
-            {
-                dataToBeMoved.Return();
-                return NetResult.InvalidRelay;
-            }
-        }
-        else if (relayNumber < 0)
-        {// The target relay
-            if (circuit.NumberOfRelays < -(long)relayNumber)
-            {
-                dataToBeMoved.Return();
-                return NetResult.InvalidRelay;
-            }
-        }
-
-        var packetId = BitConverter.ToUInt64(dataToBeMoved.Span.Slice(RelayHeader.RelayIdLength + 6)); // PacketHeaderCode
-        var expectedResponseType = (ushort)(BitConverter.ToUInt16(dataToBeMoved.Span.Slice(RelayHeader.RelayIdLength + sizeof(uint))) + 128);
-        NetEndpoint endpoint;
-        if (relayNumber == 0)
-        {// No relay
-            if (!this.netTerminal.TryCreateEndpoint(ref netAddress, endpointResolution, out endpoint))
-            {
-                dataToBeMoved.Return();
-                return NetResult.NoNetwork;
-            }
-
-            var span = dataToBeMoved.Span;
-            BitConverter.TryWriteBytes(span, (RelayId)0); // SourceRelayId
-            span = span.Slice(sizeof(RelayId));
-            BitConverter.TryWriteBytes(span, netAddress.RelayId); // DestinationRelayId
-        }
-        else
-        {// Relay
-            if (!circuit.RelayKey.TryEncrypt(relayNumber, netAddress, dataToBeMoved.Span, out var encrypted, out endpoint))
-            {
-                dataToBeMoved.Return();
-                return NetResult.InvalidRelay;
-            }
-
-            dataToBeMoved.Return();
-            dataToBeMoved = encrypted;
-        }
-
-        if (endpoint.EndPoint is null)
-        {
-            dataToBeMoved.Return();
-            return NetResult.InvalidEndpoint;
-        }
-
-        var item = new Item(endpoint.EndPoint, packetId, dataToBeMoved, responseTcs, expectedResponseType, relayNumber == 0 ? endpoint : null);
-        using (this.items.LockObject.EnterScope())
-        {
-            if (this.stopped)
-            {
-                item.MemoryOwner.Return();
-                return NetResult.Closed;
-            }
-
-            item.Goshujin = this.items;
-
-            // Send immediately (This enhances performance in a local environment, but since it's meaningless in an actual network, it has been disabled)
-            /*var netSender = this.netTerminal.NetSender;
-            if (!item.Ack)
-            {// Without ack
-                netSender.SendImmediately(item.EndPoint, item.MemoryOwner.Span);
-                item.Goshujin = null;
-            }
-            else
-            {// Ack (sent list)
-                netSender.SendImmediately(item.EndPoint, item.MemoryOwner.Span);
-                item.SentMics = netSender.CurrentSystemMics;
-                item.SentCount++;
-                this.items.ToSendListChain.Remove(item);
-                this.items.SentListChain.AddLast(item);
-            }*/
-        }
-
-        // this.logger.GetWriter(LogLevel.Debug)?.Write("AddSendPacket");
-
-        return NetResult.Success;
-    }
+    internal NetResult SendPacket(NetAddress netAddress, BytePool.RentedMemory dataToBeMoved, TaskCompletionSource<NetResponse>? responseTcs, int relayNumber, EndpointResolution endpointResolution, bool incomingRelay)
+        => this.SendPacket(netAddress, dataToBeMoved, responseTcs, relayNumber, endpointResolution, incomingRelay, out _);
 
     internal unsafe NetResult SendPacketWithRelay(NetEndpoint endpoint, BytePool.RentedMemory dataToBeMoved, bool incomingRelay, int relayNumber)
     {
@@ -770,12 +678,113 @@ public sealed partial class PacketTerminal
         }
     }
 
+    private unsafe NetResult SendPacket(NetAddress netAddress, BytePool.RentedMemory dataToBeMoved, TaskCompletionSource<NetResponse>? responseTcs, int relayNumber, EndpointResolution endpointResolution, bool incomingRelay, out Item? item)
+    {
+        item = default;
+        var length = dataToBeMoved.Span.Length;
+        if (length < PacketHeader.Length ||
+            length > NetConstants.MaxPacketLength)
+        {
+            dataToBeMoved.Return();
+            return NetResult.InvalidData;
+        }
+
+        var circuit = incomingRelay ? this.netTerminal.IncomingCircuit : this.netTerminal.OutgoingCircuit;
+        if (relayNumber > 0)
+        {// The minimum number of relays
+            if (circuit.NumberOfRelays < relayNumber)
+            {
+                dataToBeMoved.Return();
+                return NetResult.InvalidRelay;
+            }
+        }
+        else if (relayNumber < 0)
+        {// The target relay
+            if (circuit.NumberOfRelays < -(long)relayNumber)
+            {
+                dataToBeMoved.Return();
+                return NetResult.InvalidRelay;
+            }
+        }
+
+        var packetId = BitConverter.ToUInt64(dataToBeMoved.Span.Slice(RelayHeader.RelayIdLength + 6)); // PacketHeaderCode
+        var expectedResponseType = (ushort)(BitConverter.ToUInt16(dataToBeMoved.Span.Slice(RelayHeader.RelayIdLength + sizeof(uint))) + 128);
+        NetEndpoint endpoint;
+        if (relayNumber == 0)
+        {// No relay
+            if (!this.netTerminal.TryCreateEndpoint(ref netAddress, endpointResolution, out endpoint))
+            {
+                dataToBeMoved.Return();
+                return NetResult.NoNetwork;
+            }
+
+            var span = dataToBeMoved.Span;
+            BitConverter.TryWriteBytes(span, (RelayId)0); // SourceRelayId
+            span = span.Slice(sizeof(RelayId));
+            BitConverter.TryWriteBytes(span, netAddress.RelayId); // DestinationRelayId
+        }
+        else
+        {// Relay
+            if (!circuit.RelayKey.TryEncrypt(relayNumber, netAddress, dataToBeMoved.Span, out var encrypted, out endpoint))
+            {
+                dataToBeMoved.Return();
+                return NetResult.InvalidRelay;
+            }
+
+            dataToBeMoved.Return();
+            dataToBeMoved = encrypted;
+        }
+
+        if (endpoint.EndPoint is null)
+        {
+            dataToBeMoved.Return();
+            return NetResult.InvalidEndpoint;
+        }
+
+        item = new Item(endpoint.EndPoint, packetId, dataToBeMoved, responseTcs, expectedResponseType, relayNumber == 0 ? endpoint : null);
+        using (this.items.LockObject.EnterScope())
+        {
+            if (this.stopped)
+            {
+                item.MemoryOwner.Return();
+                item = default;
+                return NetResult.Closed;
+            }
+
+            item.Goshujin = this.items;
+
+            // Send immediately (This enhances performance in a local environment, but since it's meaningless in an actual network, it has been disabled)
+            /*var netSender = this.netTerminal.NetSender;
+            if (!item.Ack)
+            {// Without ack
+                netSender.SendImmediately(item.EndPoint, item.MemoryOwner.Span);
+                item.Goshujin = null;
+            }
+            else
+            {// Ack (sent list)
+                netSender.SendImmediately(item.EndPoint, item.MemoryOwner.Span);
+                item.SentMics = netSender.CurrentSystemMics;
+                item.SentCount++;
+                this.items.ToSendListChain.Remove(item);
+                this.items.SentListChain.AddLast(item);
+            }*/
+        }
+
+        // this.logger.GetWriter(LogLevel.Debug)?.Write("AddSendPacket");
+
+        return NetResult.Success;
+    }
+
     private void QueueConnectResponse(NetEndpoint endpoint, ConnectPacket request, ulong packetId, bool incomingRelay, int relayNumber)
     {
         _ = Task.Run(() =>
         {
             var packet = new ConnectPacketResponse(this.netBase.DefaultAgreement, endpoint);
-            this.netTerminal.ConnectionTerminal.PrepareServerSide(endpoint, request, packet, relayNumber);
+            if (!this.netTerminal.ConnectionTerminal.PrepareServerSide(endpoint, request, packet, relayNumber))
+            {
+                return;
+            }
+
             CreatePacket(packetId, packet, out var rentMemory); // CreatePacketCode (no relay)
             // this.SendPacketWithoutRelay(endpoint, rentMemory, default);
             this.SendPacketWithRelay(endpoint, rentMemory, incomingRelay, relayNumber);

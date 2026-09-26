@@ -62,6 +62,7 @@ public class ConnectionTerminal
 
     private readonly ClientConnection.GoshujinClass clientConnections = new();
     private readonly ServerConnection.GoshujinClass serverConnections = new();
+    private volatile bool terminating;
 
     #endregion
 
@@ -69,37 +70,20 @@ public class ConnectionTerminal
     {
         var systemCurrentMics = Mics.GetSystem();
 
-        (UnorderedMap<NetEndpoint, ClientConnection>.Node[] Nodes, int Max) client;
+        ClientConnection[] clients;
         TemporaryList<ClientConnection> clientToChange = default;
         using (this.clientConnections.LockObject.EnterScope())
         {
-            client = this.clientConnections.DestinationEndpointChain.UnsafeGetNodes();
+            clients = this.clientConnections.ToArray();
         }
 
-        for (var i = 0; i < client.Max; i++)
+        foreach (var clientConnection in clients)
         {
-            if (client.Nodes[i].Value is { } clientConnection)
+            if (!clientConnection.IsDisposed)
             {
-                Debug.Assert(!clientConnection.IsDisposed);
-                if (clientConnection.IsOpen)
+                if (GetCleanAction(clientConnection, systemCurrentMics, 0) != CleanAction.None)
                 {
-                    if (clientConnection.LastEventMics + clientConnection.Agreement.MinimumConnectionRetentionMics < systemCurrentMics)
-                    {// Open -> Closed
-                        clientConnection.Logger.GetWriter(LogLevel.Debug)?.Write($"{clientConnection.ConnectionIdText} Close (unused)");
-                        clientToChange.Add(clientConnection);
-
-                        clientConnection.SendCloseFrame();
-                    }
-                }
-                else if (clientConnection.IsClosed)
-                {// Closed -> Dispose
-                    if (clientConnection.LastEventMics + NetConstants.ConnectionClosedToDisposalMics < systemCurrentMics)
-                    {
-                        clientConnection.Logger.GetWriter(LogLevel.Debug)?.Write($"{clientConnection.ConnectionIdText} Disposed");
-                        clientToChange.Add(clientConnection);
-
-                        clientConnection.CloseAllTransmission();
-                    }
+                    clientToChange.Add(clientConnection);
                 }
 
                 clientConnection.CleanTransmission();
@@ -109,50 +93,43 @@ public class ConnectionTerminal
         using (this.clientConnections.LockObject.EnterScope())
         {
             foreach (var clientConnection in clientToChange)
-            {
-                if (clientConnection.IsOpen)
+            {// Re-evaluate under the lock: Connect() may have reused (and refreshed) the connection meanwhile.
+                if (clientConnection.Goshujin != this.clientConnections)
+                {
+                    continue;
+                }
+
+                var action = GetCleanAction(clientConnection, systemCurrentMics, 0);
+                if (action == CleanAction.Close)
                 {// Open -> Closed
+                    clientConnection.Logger.GetWriter(LogLevel.Debug)?.Write($"{clientConnection.ConnectionIdText} Close (unused)");
+                    clientConnection.SendCloseFrame();
                     clientConnection.ChangeStateInternal(Connection.State.Closed);
                 }
-                else if (clientConnection.IsClosed)
+                else if (action == CleanAction.Dispose)
                 {// Closed -> Dispose
+                    clientConnection.Logger.GetWriter(LogLevel.Debug)?.Write($"{clientConnection.ConnectionIdText} Disposed");
+                    clientConnection.CloseAllTransmission();
                     clientConnection.ChangeStateInternal(Connection.State.Disposed);
                     clientConnection.Goshujin = null;
                 }
             }
         }
 
-        (UnorderedMap<NetEndpoint, ServerConnection>.Node[] Nodes, int Max) server;
+        ServerConnection[] servers;
         TemporaryList<ServerConnection> serverToChange = default;
         using (this.serverConnections.LockObject.EnterScope())
         {
-            server = this.serverConnections.DestinationEndpointChain.UnsafeGetNodes();
+            servers = this.serverConnections.ToArray();
         }
 
-        for (var i = 0; i < server.Max; i++)
+        foreach (var serverConnection in servers)
         {
-            if (server.Nodes[i].Value is { } serverConnection)
+            if (!serverConnection.IsDisposed)
             {
-                Debug.Assert(!serverConnection.IsDisposed);
-                if (serverConnection.IsOpen)
+                if (GetCleanAction(serverConnection, systemCurrentMics, AdditionalServerMics) != CleanAction.None)
                 {
-                    if (serverConnection.LastEventMics + serverConnection.Agreement.MinimumConnectionRetentionMics < systemCurrentMics)
-                    {// Open -> Closed
-                        serverConnection.Logger.GetWriter(LogLevel.Debug)?.Write($"{serverConnection.ConnectionIdText} Close (unused)");
-                        serverToChange.Add(serverConnection);
-
-                        serverConnection.SendCloseFrame();
-                    }
-                }
-                else if (serverConnection.IsClosed)
-                {// Closed -> Dispose
-                    if (serverConnection.LastEventMics + NetConstants.ConnectionClosedToDisposalMics + AdditionalServerMics < systemCurrentMics)
-                    {
-                        serverConnection.Logger.GetWriter(LogLevel.Debug)?.Write($"{serverConnection.ConnectionIdText} Disposed");
-                        serverToChange.Add(serverConnection);
-
-                        serverConnection.CloseAllTransmission();
-                    }
+                    serverToChange.Add(serverConnection);
                 }
 
                 serverConnection.CleanTransmission();
@@ -162,13 +139,23 @@ public class ConnectionTerminal
         using (this.serverConnections.LockObject.EnterScope())
         {
             foreach (var serverConnection in serverToChange)
-            {
-                if (serverConnection.IsOpen)
+            {// Re-evaluate under the lock: an authenticated packet may have reopened the connection meanwhile.
+                if (serverConnection.Goshujin != this.serverConnections)
+                {
+                    continue;
+                }
+
+                var action = GetCleanAction(serverConnection, systemCurrentMics, AdditionalServerMics);
+                if (action == CleanAction.Close)
                 {// Open -> Closed
+                    serverConnection.Logger.GetWriter(LogLevel.Debug)?.Write($"{serverConnection.ConnectionIdText} Close (unused)");
+                    serverConnection.SendCloseFrame();
                     serverConnection.ChangeStateInternal(Connection.State.Closed);
                 }
-                else if (serverConnection.IsClosed)
+                else if (action == CleanAction.Dispose)
                 {// Closed -> Dispose
+                    serverConnection.Logger.GetWriter(LogLevel.Debug)?.Write($"{serverConnection.ConnectionIdText} Disposed");
+                    serverConnection.CloseAllTransmission();
                     serverConnection.ChangeStateInternal(Connection.State.Disposed);
                     serverConnection.Goshujin = null;
                 }
@@ -207,17 +194,27 @@ public class ConnectionTerminal
 
         // Create a new connection
         var packet = new ConnectPacket(publicKey, node.PublicKey.GetHashCode(), default);
-        var t = await this.packetTerminal.SendAndReceive<ConnectPacket, ConnectPacketResponse>(node.Address, packet, targetNumberOfRelays, default, EndpointResolution.PreferIpv6, incomingRelay).ConfigureAwait(false); // < 0: target
+        var t = await this.packetTerminal.SendAndReceive<ConnectPacket, ConnectPacketResponse>(node.Address, packet, targetNumberOfRelays, default, endpointResolution, incomingRelay).ConfigureAwait(false); // < 0: target
         if (t.Value is null)
         {
             return default;
         }
 
         var newConnection = this.PrepareClientSide(node, endPoint, seedKey, node.PublicKey, packet, t.Value);
+        if (newConnection is null)
+        {
+            return null;
+        }
+
         newConnection.MinimumNumberOfRelays = targetNumberOfRelays;
         newConnection.AddRtt(t.RttMics);
         using (this.clientConnections.LockObject.EnterScope())
         {// ConnectionStateCode
+            if (this.terminating)
+            {
+                return null;
+            }
+
             newConnection.SetOpenCount(2); // Set to 2 to prevent immediate disposal.
             newConnection.Goshujin = this.clientConnections;
         }
@@ -263,6 +260,11 @@ public class ConnectionTerminal
 
         using (this.clientConnections.LockObject.EnterScope())
         {
+            if (this.terminating)
+            {
+                return null;
+            }
+
             if (mode == Connection.ConnectMode.ReuseIfAvailable ||
                 mode == Connection.ConnectMode.ReuseOnly)
             {// Attempts to reuse a connection that has already been connected or disconnected (but not yet disposed).
@@ -287,7 +289,7 @@ public class ConnectionTerminal
         // Create a new connection
         var sourceNetNode = this.netStats.OwnNetNode?.Address.IsValidIpv4AndIpv6 == true ? this.netStats.OwnNetNode : default;
         var packet = new ConnectPacket(publicKey, node.PublicKey.GetHashCode(), sourceNetNode);
-        var t = await this.packetTerminal.SendAndReceive<ConnectPacket, ConnectPacketResponse>(node.Address, packet, minimumNumberOfRelays, default).ConfigureAwait(false);
+        var t = await this.packetTerminal.SendAndReceive<ConnectPacket, ConnectPacketResponse>(node.Address, packet, minimumNumberOfRelays, default, endpointResolution).ConfigureAwait(false); // Use the same address family as endPoint; the server binds the connection to the handshake's source.
         var response = t.Value;
         if (response is null)
         {
@@ -295,16 +297,28 @@ public class ConnectionTerminal
         }
 
         var ownEndpoint = response.SourceEndpoint;
-        if (ownEndpoint.IsValid)
-        {
+        if (ownEndpoint.IsValid &&
+            ownEndpoint.RelayId == 0 &&
+            minimumNumberOfRelays == 0)
+        {// Through relays, the server sees the relay's endpoint, which must not be recorded as this node's address.
             this.netStats.ReportEndpoint(ownEndpoint.EndPoint);
         }
 
         var newConnection = this.PrepareClientSide(node, endPoint, seedKey, node.PublicKey, packet, response);
+        if (newConnection is null)
+        {
+            return null;
+        }
+
         newConnection.MinimumNumberOfRelays = minimumNumberOfRelays;
         newConnection.AddRtt(t.RttMics);
         using (this.clientConnections.LockObject.EnterScope())
         {// ConnectionStateCode
+            if (this.terminating)
+            {
+                return null;
+            }
+
             newConnection.IncrementOpenCount();
             newConnection.Goshujin = this.clientConnections;
         }
@@ -327,8 +341,9 @@ public class ConnectionTerminal
         }
 
         foreach (var x in list)
-        {
-            x.TerminateInternal();
+        {// Dispose every transmission, not only streams: the connection is detached below and would never release block requests,
+         // their buffers, or response callbacks.
+            x.CloseAllTransmission();
         }
 
         using (this.clientConnections.LockObject.EnterScope())
@@ -354,6 +369,7 @@ public class ConnectionTerminal
     {
         using (this.clientConnections.LockObject.EnterScope())
         {
+            ObjectDisposedException.ThrowIf(this.terminating, this);
             if (this.clientConnections.ConnectionIdChain.TryGetValue(serverConnection.ConnectionId, out var connection))
             {
                 connection.IncrementOpenCount();
@@ -374,6 +390,7 @@ public class ConnectionTerminal
     {
         using (this.serverConnections.LockObject.EnterScope())
         {
+            ObjectDisposedException.ThrowIf(this.terminating, this);
             if (this.serverConnections.ConnectionIdChain.TryGetValue(clientConnection.ConnectionId, out var connection))
             {// ReuseServerConnection
                 // Reusing a Connection may cause inconsistencies in the enabled NetServices, but for now the current implementation does not change the NetServices.
@@ -390,10 +407,13 @@ public class ConnectionTerminal
         }
     }
 
-    internal ClientConnection PrepareClientSide(NetNode node, NetEndpoint endPoint, SeedKey clientSeedKey, EncryptionPublicKey serverPublicKey, ConnectPacket p, ConnectPacketResponse p2)
+    internal ClientConnection? PrepareClientSide(NetNode node, NetEndpoint endPoint, SeedKey clientSeedKey, EncryptionPublicKey serverPublicKey, ConnectPacket p, ConnectPacketResponse p2)
     {
         Span<byte> material = stackalloc byte[CryptoBox.SharedSecretSize];
-        clientSeedKey.DeriveKeyMaterial(serverPublicKey, material);
+        if (!clientSeedKey.TryDeriveKeyMaterial(serverPublicKey, material))
+        {// The node's public key cannot be used for key agreement.
+            return null;
+        }
 
         // CreateEmbryo: Blake2B(Client salt(8), Server salt(8), Key material(32), Client public(32), Server public(32))
         var embryo = new byte[Connection.EmbryoSize];
@@ -422,7 +442,10 @@ public class ConnectionTerminal
     {
         var node = new NetNode(in endPoint, p.ClientPublicKey);
         Span<byte> material = stackalloc byte[CryptoBox.SharedSecretSize];
-        this.NetTerminal.NodeSeedKey.DeriveKeyMaterial(p.ClientPublicKey, material);
+        if (!this.NetTerminal.NodeSeedKey.TryDeriveKeyMaterial(p.ClientPublicKey, material))
+        {// The client's public key cannot be used for key agreement.
+            return false;
+        }
 
         // CreateEmbryo: Blake2B(Client salt(8), Server salt(8), Key material(32), Client public(32), Server public(32))
         var embryo = new byte[Connection.EmbryoSize];
@@ -447,12 +470,19 @@ public class ConnectionTerminal
 
         using (this.serverConnections.LockObject.EnterScope())
         {// ConnectionStateCode
+            if (this.terminating)
+            {
+                return false;
+            }
+
             connection.Goshujin = this.serverConnections;
         }
 
         if (!this.netStats.NodeControl.HasSufficientActiveNodes &&
-            p.SourceNode is { } sourceNode)
-        {
+            p.SourceNode is { } sourceNode &&
+            sourceNode.PublicKey.Equals(p.ClientPublicKey) &&
+            sourceNode.Address.Equals(endPoint.EndPoint))
+        {// The source node is unauthenticated plaintext; accept it only when it describes the sender's own key and address.
             this.netStats.NodeControl.TryAddActiveNode(sourceNode);
         }
 
@@ -478,7 +508,12 @@ public class ConnectionTerminal
                 }
 
                 connection.CloseSendTransmission();
-                clientConnection.SetOpenCount(0);
+                if (releaseReference)
+                {// Clamp a count made negative by redundant Dispose calls. A forced close keeps the count: holders still own their
+                 // references, and resetting it would let a stale Dispose close the connection after Connect() has reused it.
+                    clientConnection.SetOpenCount(0);
+                }
+
                 if (connection.CurrentState == Connection.State.Open)
                 {// Open -> Close
                     connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{connection.ConnectionIdText} Open -> Closed, SendCloseFrame {sendCloseFrame}");
@@ -555,12 +590,13 @@ public class ConnectionTerminal
             var congestionControlNode = this.CongestionControlList.First;
             while (congestionControlNode is not null)
             {
+                var nextNode = congestionControlNode.Next; // Remove() detaches the node, so read the successor first.
                 if (!congestionControlNode.Value.Process(netSender, elapsedMics, elapsedMilliseconds))
                 {
                     this.CongestionControlList.Remove(congestionControlNode);
                 }
 
-                congestionControlNode = congestionControlNode.Next;
+                congestionControlNode = nextNode;
             }
         }
 
@@ -631,17 +667,11 @@ public class ConnectionTerminal
             using (this.serverConnections.LockObject.EnterScope())
             {
                 this.serverConnections.ConnectionIdChain.TryGetValue(connectionId, out connection);
-
-                if (connection?.CurrentState == Connection.State.Closed)
-                {// Reopen (Closed -> Open), ReuseServerConnection
-                    // Reusing a Connection may cause inconsistencies in the enabled NetServices, but for now the current implementation does not change the NetServices.
-                    connection.ChangeStateInternal(Connection.State.Open);
-                }
             }
 
             if (connection is not null &&
                 connection.DestinationEndpoint.Equals(endpoint))
-            {
+            {// A closed connection is reopened by Connection.ProcessReceive() only after the packet has been authenticated.
                 connection.ProcessReceive(endpoint, toBeShared, currentSystemMics);
             }
         }
@@ -661,118 +691,106 @@ public class ConnectionTerminal
         }
     }
 
+    internal void ReopenServerConnection(ServerConnection connection)
+    {// Reopen (Closed -> Open), ReuseServerConnection. Called after a received packet has been authenticated.
+        using (this.serverConnections.LockObject.EnterScope())
+        {
+            if (!this.terminating && connection.Goshujin == this.serverConnections &&
+                connection.CurrentState == Connection.State.Closed)
+            {// Reusing a Connection may cause inconsistencies in the enabled NetServices, but for now the current implementation does not change the NetServices.
+                connection.ChangeStateInternal(Connection.State.Open);
+            }
+        }
+    }
+
     internal void SetReceiveTransmissionGapForTest(uint gap)
     {
         this.ReceiveTransmissionGap = gap;
     }
 
-    internal async Task Terminate(CancellationToken cancellationToken)
+    internal Task Terminate(CancellationToken cancellationToken)
     {
-        int delayInMilliseconds = 0;
-        while (delayInMilliseconds < NetConstants.ForceTerminateMilliseconds)
+        this.terminating = true;
+        ClientConnection[] clients;
+        using (this.clientConnections.LockObject.EnterScope())
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            clients = this.clientConnections.ToArray();
+            this.clientConnections.ClearAll();
+        }
 
-            ClientConnection[] clients;
-            using (this.clientConnections.LockObject.EnterScope())
-            {
-                clients = this.clientConnections.ToArray();
-            }
+        ServerConnection[] servers;
+        using (this.serverConnections.LockObject.EnterScope())
+        {
+            servers = this.serverConnections.ToArray();
+            this.serverConnections.ClearAll();
+        }
 
-            foreach (var x in clients)
-            {
-                x.TerminateInternal();
-            }
+        // Shutdown must release all leases even when cancellation or a user callback fails.
+        // Invoke callbacks after detaching connections and releasing the owner locks.
+        List<Exception>? errors = null;
+        foreach (var connection in clients)
+        {
+            TerminateConnection(connection);
+        }
 
-            using (this.clientConnections.LockObject.EnterScope())
-            {
-                foreach (var x in clients)
-                {
-                    if (x.IsEmpty)
-                    {
-                        if (x.IsOpen)
-                        {
-                            x.ChangeStateInternal(Connection.State.Closed);
-                        }
+        foreach (var connection in servers)
+        {
+            TerminateConnection(connection);
+        }
 
-                        if (x.IsClosed)
-                        {
-                            x.ChangeStateInternal(Connection.State.Disposed);
-                        }
+        return errors is null ? Task.CompletedTask : Task.FromException(new AggregateException(errors));
 
-                        x.Goshujin = null;
-                    }
-                    else
-                    {
-                        if (x.IsClosed)
-                        {
-                            x.ChangeStateInternal(Connection.State.Disposed);
-                        }
-
-                        x.Goshujin = null;
-                    }
-                }
-            }
-
-            ServerConnection[] servers;
-            using (this.serverConnections.LockObject.EnterScope())
-            {
-                servers = this.serverConnections.ToArray();
-            }
-
-            foreach (var x in servers)
-            {
-                x.TerminateInternal();
-            }
-
-            using (this.serverConnections.LockObject.EnterScope())
-            {
-                foreach (var x in servers)
-                {
-                    if (x.IsEmpty)
-                    {
-                        if (x.IsOpen)
-                        {
-                            x.ChangeStateInternal(Connection.State.Closed);
-                        }
-
-                        if (x.IsClosed)
-                        {
-                            x.ChangeStateInternal(Connection.State.Disposed);
-                        }
-
-                        x.Goshujin = null;
-                    }
-                    else
-                    {
-                        if (x.IsClosed)
-                        {
-                            x.ChangeStateInternal(Connection.State.Disposed);
-                        }
-
-                        x.Goshujin = null;
-                    }
-                }
-            }
-
-            if (this.clientConnections.Count == 0 &&
-                this.serverConnections.Count == 0)
-            {
-                return;
-            }
-            else
+        void TerminateConnection(Connection connection)
+        {
+            try
             {
                 try
                 {
-                    // Console.WriteLine("ConnectionTerminal:Terminate delay");
-                    await Task.Delay(NetConstants.TerminateTerminalDelayMilliseconds, cancellationToken);
-                    delayInMilliseconds += NetConstants.TerminateTerminalDelayMilliseconds;
+                    if (connection.IsOpen)
+                    {
+                        connection.ChangeStateInternal(Connection.State.Closed);
+                    }
                 }
-                catch
+                finally
                 {
-                    return;
+                    connection.ChangeStateInternal(Connection.State.Disposed);
                 }
             }
+            catch (Exception exception)
+            {
+                (errors ??= new()).Add(exception);
+            }
+            finally
+            {
+                connection.CloseAllTransmission();
+            }
         }
+    }
+
+    private enum CleanAction
+    {
+        None,
+        Close,
+        Dispose,
+    }
+
+    private static CleanAction GetCleanAction(Connection connection, long systemCurrentMics, long additionalDisposalMics)
+    {
+        if (connection.IsOpen)
+        {
+            if (connection.LastEventMics + connection.Agreement.MinimumConnectionRetentionMics < systemCurrentMics)
+            {
+                return CleanAction.Close;
+            }
+        }
+        else if (connection.IsClosed)
+        {
+            if (connection.LastEventMics + NetConstants.ConnectionClosedToDisposalMics + additionalDisposalMics < systemCurrentMics)
+            {
+                return CleanAction.Dispose;
+            }
+        }
+
+        return CleanAction.None;
     }
 }

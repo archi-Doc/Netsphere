@@ -120,7 +120,7 @@ public static class Mics
     /// Microseconds since 0001-01-01 00:00:00 UTC.
     /// </summary>
     /// <returns><see cref="Mics"/> (microseconds).</returns>
-    public static long GetUtcNow() => (long)(DateTime.UtcNow.Ticks * 0.1d);
+    public static long GetUtcNow() => DateTime.UtcNow.Ticks / TimeSpan.TicksPerMicrosecond; // Integer division: current tick counts exceed double precision.
 
     /// <summary>
     /// Gets the fixed <see cref="Mics"/> (microseconds) expressed as UTC.
@@ -201,5 +201,5 @@ public static class Mics
     /// </summary>
     /// <param name="timespan">The <see cref="TimeSpan"/> to convert.</param>
     /// <returns>The equivalent duration in microseconds.</returns>
-    public static long FromTimeSpan(TimeSpan timespan) => (long)(timespan.Ticks / Time.MicsToTicks);
+    public static long FromTimeSpan(TimeSpan timespan) => timespan.Ticks / TimeSpan.TicksPerMicrosecond;
 }

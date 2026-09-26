@@ -60,6 +60,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
     // Received/Disposed list, lock (Connection.receiveTransmissions.SyncObject)
     internal UnorderedLinkedList<ReceiveTransmission>.Node? ReceivedOrDisposedNode;
     internal long ReceivedOrDisposedMics;
+    internal long LastReadMics; // When the stream reader last consumed data (or the stream started).
     internal Queue<int>? AckGene; // using (AckBuffer.lockObject.EnterScope())
 #pragma warning restore SA1401 // Fields should be private
 
@@ -69,6 +70,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
     private TaskCompletionSource<NetResponse>? receivedTcs;
     private IResponseChannelInternal? receivedNetUnion;
     private volatile int successiveReceivedPosition;
+    private NetResult streamResult = NetResult.Closed; // How the reader ended the stream; any other disposal (cleanup, termination) is reported as Closed.
     private ReceiveGene? gene0; // Gene 0
     private ReceiveGene? gene1; // Gene 1
     private ReceiveGene? gene2; // Gene 2
@@ -212,6 +214,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
 
         this.Mode = NetTransmissionMode.Stream;
         this.totalGene = -1;
+        this.LastReadMics = Mics.FastSystem;
 
         var info = NetHelper.CalculateGene(Math.Min(maxLength, this.Connection.Agreement.StreamBufferSize));
         var numberOfGenes = Math.Min(this.Connection.Agreement.StreamBufferGenes, info.NumberOfGenes + 1); // +1 for last complete gene.
@@ -329,11 +332,13 @@ internal sealed partial class ReceiveTransmission : IDisposable
                 var chain = this.genes.DataPositionListChain;
                 if (this.Mode == NetTransmissionMode.Stream)
                 {// Stream
-                    if (dataPosition < chain.StartPosition ||
-                    dataPosition >= chain.EndPosition)
-                    {// Out of range (no ack)
+                    if (dataPosition >= chain.EndPosition)
+                    {// Beyond the receive window (no ack)
                         return;
                     }
+
+                    // A position below the window has already been consumed. GetOrDefault() returns null for it, and the ack below
+                    // stops the sender from resending it when the original ack was lost.
                 }
 
                 /*else if (this.Mode == NetTransmissionMode.Block)
@@ -601,8 +606,8 @@ Abort:
     {
         int written = 0;
         if (this.Mode != NetTransmissionMode.Stream)
-        {
-            return (NetResult.Completed, written);
+        {// Reporting Completed here for an externally disposed stream would hide truncation.
+            return (this.streamResult, written);
         }
 
         int remaining = buffer.Length;
@@ -623,7 +628,7 @@ Abort:
                 }
                 else if (this.Mode != NetTransmissionMode.Stream)
                 {
-                    return (NetResult.Completed, written);
+                    return (this.streamResult, written);
                 }
 
                 var chain = this.genes?.DataPositionListChain;
@@ -684,6 +689,7 @@ Abort:
                     remaining -= length;
                     stream.ReceivedLength += length;
                     stream.CurrentPosition += length;
+                    this.LastReadMics = Mics.FastSystem;
 
                     if (stream.CurrentPosition >= originalLength)
                     {
@@ -725,6 +731,7 @@ Abort:
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
+                    this.streamResult = NetResult.Canceled;
                     this.ProcessDispose();
                     return (NetResult.Canceled, written);
                 }
@@ -732,10 +739,12 @@ Abort:
         }
 
 Complete:
+        this.streamResult = NetResult.Completed; // Reads are serialized by ReceiveStream, so later reads observe this value.
         this.Connection.RemoveTransmission(this);
         return (NetResult.Completed, written);
 
 Cancel:
+        this.streamResult = NetResult.Canceled;
         this.Connection.RemoveTransmission(this);
         return (NetResult.Canceled, written);
     }

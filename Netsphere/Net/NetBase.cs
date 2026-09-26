@@ -33,7 +33,7 @@ public class NetBase : UnitBase, IUnitPreparable
 
     public bool AllowUnsafeConnection { get; set; } = false;
 
-    public ConnectionAgreement DefaultAgreement { get; set; } = ConnectionAgreement.Default;
+    public ConnectionAgreement DefaultAgreement { get; set; } = ConnectionAgreement.Default with { }; // Copy, so that configuring one node does not change the process-wide default.
 
     public EncryptionPublicKey NodePublicKey { get; private set; }
 
@@ -105,8 +105,6 @@ public class NetBase : UnitBase, IUnitPreparable
         {
             this.NodeSeedKey = privateKey;
             this.NodePublicKey = privateKey.GetEncryptionPublicKey();
-            var st = this.NodeSeedKey.UnsafeToString();
-            var sts = this.NodePublicKey.ToString();
             return true;
         }
         catch

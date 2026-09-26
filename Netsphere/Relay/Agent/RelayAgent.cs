@@ -41,26 +41,6 @@ public partial class RelayAgent
         public IPEndPoint? EndPoint { get; }
 
         public long UnrestrictedMics { get; internal set; }
-
-        public bool IsUnrestricted
-        {
-            get
-            {
-                if (this.UnrestrictedMics == 0)
-                {
-                    return false;
-                }
-                else if (Mics.FastSystem - this.UnrestrictedMics > UnrestrictedRetensionMics)
-                {
-                    this.UnrestrictedMics = 0;
-                    return false;
-                }
-                else
-                {
-                    return true;
-                }
-            }
-        }
     }
 
     internal RelayAgent(IRelayControl relayControl, NetTerminal netTerminal)
@@ -126,6 +106,11 @@ public partial class RelayAgent
             if (this.stopped)
             {
                 return RelayResult.ConnectionFailure;
+            }
+
+            if (serverConnection.InnerRelayId != 0 && this.items.RelayIdChain.ContainsKey(serverConnection.InnerRelayId))
+            {
+                return RelayResult.DuplicateEndpoint;
             }
 
             if (this.items.Count >= this.relayControl.MaxRelayExchanges)
@@ -493,15 +478,17 @@ AcceptIncoming:
             }
 
             var sourceRelayId = MemoryMarshal.Read<RelayId>(source.Span);
+            var extraLength = Aegis128L.MinTagSize + (sourceRelayId == 0 ? RelayHeader.Length : 0);
+            if (source.Length > NetConstants.MaxPacketLength - extraLength ||
+                !source.Owner!.AsSpan().Overlaps(source.Span, out var offset) ||
+                source.Length > source.Owner.Array.Length - offset - extraLength)
+            {
+                goto Exit;
+            }
+
             if (sourceRelayId == 0)
             {// RelayId(Source/Destination), RelayHeader, Content(span)
-                if (source.Length > NetConstants.MaxPacketLength - RelayHeader.Length - Aegis128L.MinTagSize ||
-                    source.Owner!.Array.Length < source.Length + RelayHeader.Length + Aegis128L.MinTagSize)
-                {
-                    goto Exit;
-                }
-
-                var sourceSpan = source.Owner!.Array.AsSpan(RelayHeader.RelayIdLength);
+                var sourceSpan = source.Owner.Array.AsSpan(offset + RelayHeader.RelayIdLength);
                 span.CopyTo(sourceSpan.Slice(RelayHeader.Length));
 
                 var contentLength = span.Length;
@@ -513,7 +500,7 @@ AcceptIncoming:
 
                 sourceSpan = sourceSpan.Slice(contentLength);
 
-                source = source.Owner.AsMemory(0, RelayHeader.RelayIdLength + RelayHeader.Length + contentLength);
+                source = source.Owner.AsMemory(offset, RelayHeader.RelayIdLength + RelayHeader.Length + contentLength);
                 span = source.Span.Slice(RelayHeader.RelayIdLength);
             }
 

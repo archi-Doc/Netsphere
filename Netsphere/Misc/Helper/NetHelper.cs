@@ -231,8 +231,9 @@ public static class NetHelper
             result = await sendStream.Complete(cancellationToken).ConfigureAwait(false);
         }
         catch
-        {
-            await sendStream.Cancel(cancellationToken);
+        {// The caller's token may already be canceled, which would skip the Cancel frame and leave the peer waiting until its timeout.
+            using var timeout = new CancellationTokenSource(NetConstants.DefaultTransmissionTimeout);
+            await sendStream.Cancel(timeout.Token).ConfigureAwait(false);
             result = NetResult.Canceled;
         }
         finally
@@ -263,8 +264,9 @@ public static class NetHelper
             return r;
         }
         catch
-        {
-            await sendStream.Cancel(cancellationToken);
+        {// The caller's token may already be canceled, which would skip the Cancel frame and leave the peer waiting until its timeout.
+            using var timeout = new CancellationTokenSource(NetConstants.DefaultTransmissionTimeout);
+            await sendStream.Cancel(timeout.Token).ConfigureAwait(false);
             result = NetResult.Canceled;
         }
         finally

@@ -347,10 +347,17 @@ public class CubicCongestionControl : ICongestionControl
         SendGene? gene;
 
         // Loss detection
-        while (resendCapacity > 0 && this.genesLossDetected.TryDequeue(out gene))
+        var lossCount = this.genesLossDetected.Count;
+        while (resendCapacity > 0 && netSender.CanSend && lossCount-- > 0 && this.genesLossDetected.TryDequeue(out gene))
         {
-            if (gene.Node is not UnorderedLinkedList<SendGene>.Node node)
+            if (gene.Node is not UnorderedLinkedList<SendGene>.Node node || gene.CurrentState != SendGene.State.LossDetected)
             {
+                continue;
+            }
+
+            if (!gene.CanResend)
+            {
+                this.genesLossDetected.Enqueue(gene);
                 continue;
             }
 
@@ -373,10 +380,10 @@ public class CubicCongestionControl : ICongestionControl
         }
 
         var timeout = this.Connection.TaichiTimeout;
-        while (resendCapacity > 0 && this.genesInFlight.First is { } firstNode)
+        while (resendCapacity > 0 && netSender.CanSend && this.genesInFlight.First is { } firstNode)
         {// Retransmission. (Do not check IsCongested, as it causes Genes in-flight to be stuck and stops transmission)
             gene = firstNode.Value;
-            if (Mics.FastSystem < (gene.SentMics + timeout))
+            if (Mics.FastSystem < (gene.SentMics + timeout) || !gene.CanResend)
             {
                 break;
             }

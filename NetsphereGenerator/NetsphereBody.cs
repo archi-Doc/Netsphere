@@ -109,8 +109,6 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
 
     internal Dictionary<uint, NetsphereObject> IdToNetObject = new();
 
-    internal Dictionary<string, List<NetsphereObject>> Namespaces = new();
-
     public void Prepare()
     {
         // Configure objects.
@@ -126,13 +124,8 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
             return;
         }
 
-        array = this.IdToNetInterface.Values.Concat(this.NetObjects).ToArray();
-        foreach (var x in array)
-        {
-            x.ConfigureRelation();
-        }
-
         // Check
+        array = this.IdToNetInterface.Values.Concat(this.NetObjects).ToArray();
         foreach (var x in array)
         {
             x.Check();
@@ -160,7 +153,6 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
     public void GenerateFrontend(IGeneratorInformation generator, string assemblySuffix)
     {
         ScopingStringBuilder ssb = new();
-        GeneratorState info = new();
 
         var array = this.IdToNetInterface.Values.ToArray();
 
@@ -226,7 +218,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                 if (y.ObjectFlags.HasFlag(NetsphereObjectFlags.NetService))
                 {// NetService (Frontend)
                     ssb.AppendLine();
-                    y.GenerateFrontend(ssb, info);
+                    y.GenerateFrontend(ssb);
                 }
             }
 
@@ -248,7 +240,6 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
     public void GenerateBackend(IGeneratorInformation generator, string assemblySuffix)
     {
         ScopingStringBuilder ssb = new();
-        GeneratorState info = new();
 
         var array = this.NetObjects.ToArray();
 
@@ -285,7 +276,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
                 if (y.ObjectFlags.HasFlag(NetsphereObjectFlags.NetObject))
                 {// NetObject (Backend)
                     ssb.AppendLine();
-                    y.GenerateBackend(ssb, info);
+                    y.GenerateBackend(ssb);
                 }
             }
 
@@ -385,48 +376,5 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
         ssb.AppendLine("#pragma warning disable CS1591", false);
         ssb.AppendLine("#pragma warning disable CS1998", false);
         ssb.AppendLine();
-    }
-
-    private void GenerateInitializer(IGeneratorInformation generator, ScopingStringBuilder ssb, GeneratorState info)
-    {
-        // Namespace
-        var ns = "Netsphere";
-        var assemblyId = string.Empty; // Assembly ID
-        if (!string.IsNullOrEmpty(generator.CustomNamespace))
-        {// Custom namespace.
-            ns = generator.CustomNamespace;
-        }
-        else
-        {// Other (Apps)
-         // assemblyId = "_" + generator.AssemblyId.ToString("x");
-            if (!string.IsNullOrEmpty(generator.AssemblyName))
-            {
-                assemblyId = VisceralHelper.AssemblyNameToIdentifier("_" + generator.AssemblyName);
-            }
-        }
-
-        info.ModuleInitializerClasses.Add("Netsphere.Generator.Generated");
-
-        ssb.AppendLine();
-        using (var scopeCrossLink = ssb.ScopeNamespace(ns!))
-        using (var scopeClass = ssb.ScopeBrace("public static class NetsphereModule" + assemblyId))
-        {
-            ssb.AppendLine("private static bool Initialized;");
-            ssb.AppendLine();
-            ssb.AppendLine("[ModuleInitializer]");
-
-            using (var scopeMethod = ssb.ScopeBrace("public static void Initialize()"))
-            {
-                ssb.AppendLine("if (Initialized) return;");
-                ssb.AppendLine("Initialized = true;");
-                ssb.AppendLine();
-
-                foreach (var x in info.ModuleInitializerClasses)
-                {
-                    ssb.Append(x, true);
-                    ssb.AppendLine(".RegisterMachine();", false);
-                }
-            }
-        }
     }
 }

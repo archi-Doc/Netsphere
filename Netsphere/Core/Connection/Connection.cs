@@ -143,10 +143,6 @@ public abstract class Connection : IDisposable
     internal int ReceiveTransmissionsCount
         => this.receiveReceivedList.Count;
 
-    internal bool IsEmpty
-        => this.sendTransmissions.Count == 0 &&
-        this.receiveReceivedList.Count == 0;
-
     internal bool CloseIfTransmissionHasTimedOut()
     {
         if (this.LastEventMics + Mics.FromTimeSpan(this.Agreement.TransmissionTimeout) < Mics.FastSystem)
@@ -193,10 +189,11 @@ public abstract class Connection : IDisposable
     private UnorderedLinkedList<ReceiveTransmission> receiveDisposedList = new();
 
     // RTT
-    private int minimumRtt; // Minimum rtt (mics)
-    private int smoothedRtt; // Smoothed rtt (mics)
-    private int latestRtt; // Latest rtt (mics)
-    private int rttvar; // Rtt variation (mics)
+    private readonly Lock rttLock = new();
+    private volatile int minimumRtt; // Minimum rtt (mics)
+    private volatile int smoothedRtt; // Smoothed rtt (mics)
+    private volatile int latestRtt; // Latest rtt (mics)
+    private volatile int rttvar; // Rtt variation (mics)
     private int sendCount;
     private int resendCount;
 
@@ -275,11 +272,16 @@ public abstract class Connection : IDisposable
         => this.Dispose();
 
     internal void ResetTaichi()
-        => this.Taichi = 1;
+        => Interlocked.Exchange(ref this.Taichi, 1);
 
     internal void DoubleTaichi()
     {
-        this.Taichi = (int)Math.Min((long)this.Taichi * 2, int.MaxValue);
+        int current;
+        do
+        {
+            current = Volatile.Read(ref this.Taichi);
+        }
+        while (Interlocked.CompareExchange(ref this.Taichi, (int)Math.Min((long)current * 2, int.MaxValue), current) != current);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -421,7 +423,15 @@ Retry:
         }
 
 Wait:
-        await Task.Delay(NetConstants.CreateTransmissionDelay, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await Task.Delay(NetConstants.CreateTransmissionDelay, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {// Report the cancellation through the result instead of an exception.
+            return default;
+        }
+
         timeout -= NetConstants.CreateTransmissionDelay;
         goto Retry;
     }
@@ -619,6 +629,7 @@ Wait:
 
     internal void AddRtt(int rttMics)
     {
+        using var scope = this.rttLock.EnterScope();
         if (rttMics < LowerRttLimit)
         {
             rttMics = LowerRttLimit;
@@ -668,7 +679,9 @@ Wait:
             return;
         }
 
-        this.PacketTerminal.SendPacket(this.DestinationNode.Address, rentArray, default, this.MinimumNumberOfRelays, EndpointResolution.PreferIpv6, false);
+        // Resolve to the address family of DestinationEndpoint. PreferIpv6 could pick the other family, and the peer drops protected packets from an unexpected endpoint.
+        var endpointResolution = this.DestinationEndpoint.EndPoint?.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? EndpointResolution.Ipv6 : EndpointResolution.Ipv4;
+        this.PacketTerminal.SendPacket(this.DestinationNode.Address, rentArray, default, this.MinimumNumberOfRelays, endpointResolution, this.IsServer); // Server connections use the incoming circuit (CorrespondingRelayKey).
     }
 
     internal void SendCloseFrame()
@@ -767,6 +780,13 @@ Wait:
 
             var rentMemory = toBeShared.Slice(PacketHeader.Length + ProtectedPacket.Length + 2, written - 2);
             var frameType = (FrameType)BitConverter.ToUInt16(span); // FrameType
+            if (frameType != FrameType.Close &&
+                this.CurrentState == State.Closed &&
+                this is ServerConnection serverConnection)
+            {// The packet is authenticated, so the closed server connection can be reopened.
+                this.ConnectionTerminal.ReopenServerConnection(serverConnection);
+            }
+
             if (frameType == FrameType.Close)
             {// Close 2
                 this.ConnectionTerminal.CloseInternal(this, false);
@@ -1049,6 +1069,7 @@ ProcessGene:
 
         ReceiveTransmission? transmission;
         var transmissionId = BitConverter.ToUInt32(toBeShared.Span);
+        var refresh = false;
         using (this.receiveTransmissions.LockObject.EnterScope())
         {
             if (!this.receiveTransmissions.TransmissionIdChain.TryGetValue(transmissionId, out transmission))
@@ -1060,6 +1081,23 @@ ProcessGene:
             {
                 return;
             }
+
+            // The sender knocks while the receive window is full, so the local reader may simply be slow. Keep the transmission and
+            // the connection alive while the reader still consumes data, but not indefinitely: a reader that stopped must not hold them.
+            if (transmission.Mode == NetTransmissionMode.Stream &&
+                Mics.FastSystem - transmission.LastReadMics < NetConstants.MaxStreamReadStallMics &&
+                transmission.ReceivedOrDisposedNode is { } node &&
+                node.List == this.receiveReceivedList)
+            {
+                transmission.ReceivedOrDisposedMics = Mics.FastSystem;
+                this.receiveReceivedList.MoveToLast(node);
+                refresh = true;
+            }
+        }
+
+        if (refresh)
+        {
+            this.UpdateLastEventMics();
         }
 
         Span<byte> frame = stackalloc byte[KnockResponseFrame.Length];
@@ -1091,7 +1129,11 @@ ProcessGene:
                 var maxReceivePosition = BitConverter.ToInt32(span);
                 span = span.Slice(sizeof(int));
 
-                transmission.ProcessReceive_KnockResponse(maxReceivePosition);
+                if (transmission.ProcessReceive_KnockResponse(maxReceivePosition))
+                {// The receiver is alive but its reader has not freed the window yet; this is not an idle or lost transmission.
+                    this.UpdateAckedNode(transmission);
+                    this.UpdateLastEventMics();
+                }
 
                 if (NetConstants.LogLowLevelNet)
                 {
@@ -1326,68 +1368,6 @@ ProcessGene:
 
     internal virtual void OnStateChanged()
     {
-    }
-
-    internal void TerminateInternal()
-    {
-        Queue<SendTransmission>? sendQueue = default;
-        using (this.sendTransmissions.LockObject.EnterScope())
-        {
-            foreach (var x in this.sendTransmissions)
-            {
-                if (x.Mode == NetTransmissionMode.Stream ||
-                    x.Mode == NetTransmissionMode.StreamCompleted)
-                {// Terminate stream transmission.
-                    x.DisposeTransmission();
-                }
-
-                if (x.IsDisposed)
-                {
-                    sendQueue ??= new();
-                    sendQueue.Enqueue(x);
-                }
-            }
-
-            if (sendQueue is not null)
-            {
-                while (sendQueue.TryDequeue(out var t))
-                {
-                    t.Goshujin = default;
-                }
-            }
-        }
-
-        Queue<ReceiveTransmission>? receiveQueue = default;
-        using (this.receiveTransmissions.LockObject.EnterScope())
-        {
-            foreach (var x in this.receiveTransmissions)
-            {
-                if (x.Mode == NetTransmissionMode.Stream ||
-                    x.Mode == NetTransmissionMode.StreamCompleted)
-                {// Terminate stream transmission.
-                    x.DisposeTransmission();
-                }
-
-                if (x.IsDisposed)
-                {
-                    receiveQueue ??= new();
-                    receiveQueue.Enqueue(x);
-                }
-            }
-
-            if (receiveQueue is not null)
-            {
-                while (receiveQueue.TryDequeue(out var t))
-                {
-                    if (t.ReceivedOrDisposedNode is { } node)
-                    {
-                        node.List?.Remove(node);
-                    }
-
-                    t.Goshujin = default;
-                }
-            }
-        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

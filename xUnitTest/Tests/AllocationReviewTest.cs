@@ -258,7 +258,7 @@ public class AllocationReviewTest
         var slice = await service.SliceMemory(data);
         await service.Memory();
         Assert.Equal(data, readOnly.ToArray());
-        Assert.Equal(length == 0 ? null : data, array);
+        Assert.Equal(data, array);
         Assert.Equal(data.AsSpan(length / 2).ToArray(), slice.ToArray());
     }
 }

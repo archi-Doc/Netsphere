@@ -168,6 +168,11 @@ public sealed class TransmissionContext : ITransmissionContextInternal
         this.IsSent = true;
         var result = transmission.SendBlock(0, dataId, rentMemory, default);
         rentMemory.Return();
+        if (result != NetResult.Success)
+        {
+            this.ReleaseUnsentTransmission(transmission, result);
+        }
+
         return result; // SendTransmission is automatically disposed either upon completion of transmission or in case of an Ack timeout.
     }
 
@@ -335,7 +340,23 @@ public sealed class TransmissionContext : ITransmissionContextInternal
 
         this.IsSent = true;
         var result = transmission.SendBlock(0, dataId, toBeShared, default);
+        if (result != NetResult.Success)
+        {
+            this.ReleaseUnsentTransmission(transmission, result);
+        }
+
         return result; // SendTransmission is automatically disposed either upon completion of transmission or in case of an Ack timeout.
+    }
+
+    internal NetResult SendAndForgetOrResult(BytePool.RentedMemory toBeShared, NetResult result)
+    {// Sends the block, or the error when it cannot be sent (for example, BlockSizeLimit), so that the client does not wait until its timeout.
+        var sendResult = this.SendAndForget(toBeShared, (ulong)result);
+        if (sendResult != NetResult.Success && !this.IsSent)
+        {
+            this.SendResultAndForget(sendResult);
+        }
+
+        return sendResult;
     }
 
     internal bool CreateReceiveStream(ReceiveTransmission receiveTransmission, long maxLength)
@@ -360,9 +381,10 @@ public sealed class TransmissionContext : ITransmissionContextInternal
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void CheckReceiveStream()
     {
-        if (this.receiveStream is { } stream &&
+        if (this.Result == NetResult.Success &&
+            this.receiveStream is { } stream &&
             stream.ReceiveTransmission.Mode != NetTransmissionMode.Disposed)
-        {// Not completed
+        {// Not completed. Keep an error that the handler has already set (for example, NotAuthenticated).
             this.Result = NetResult.NotReceived;
         }
     }
@@ -382,5 +404,13 @@ public sealed class TransmissionContext : ITransmissionContextInternal
             this.sendStream.Dispose(false);
             this.sendStream = default;
         }
+    }
+
+    private void ReleaseUnsentTransmission(SendTransmission transmission, NetResult result)
+    {// SendBlock failed before starting, so the transmission is not disposed automatically. Release it so that an error result can still be sent,
+     // and record the failure so that a fallback reply (for example, from InvokeRPC or InvokeStream) does not report success.
+        transmission.Dispose();
+        this.IsSent = false;
+        this.Result = result;
     }
 }

@@ -25,9 +25,10 @@ public class TestStreamResponder : INetResponder
             return;
         }
 
+        transmissionContext.Return(); // Only the size is needed; release the request lease.
         Task.Run(async () =>
         {
-            size = Math.Min(size, MaxLength);
+            size = Math.Clamp(size, 0, MaxLength);
             var r = new Xoshiro256StarStar((ulong)size);
             var buffer = new byte[size];
             r.NextBytes(buffer);

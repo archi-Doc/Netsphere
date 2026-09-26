@@ -85,14 +85,15 @@ public partial class CertificateToken<T> : ISignAndVerify, IEquatable<Certificat
 
         return this.PublicKey.Equals(other.PublicKey) &&
             this.Signature.SequenceEqual(other.Signature) &&
-            this.SignedMics == other.SignedMics;
+            this.SignedMics == other.SignedMics &&
+            this.Salt == other.Salt;
     }
 
     public override string ToString()
         => TokenHelper.ToBase64(this, Identifier);
 
     public int GetStringLength()
-        => -1;
+        => TokenHelper.CalculateMaxStringLength(this); // The target has no fixed size, so MaxStringLength is not an upper bound.
 
     public bool TryFormat(Span<char> destination, out int written, IConversionOptions? conversionOptions = default)
         => TokenHelper.TryFormat(this, Identifier, destination, out written, conversionOptions);

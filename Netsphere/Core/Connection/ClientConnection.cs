@@ -106,7 +106,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
             if (transmissionAndTimeout.Transmission is null)
             {
                 rentMemory.Return();
-                return NetResult.NoTransmission;
+                return NoTransmissionResult(cancellationToken);
             }
 
             var tcs = new TaskCompletionSource<NetResult>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -119,7 +119,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
 
             try
             {
-                result = await tcs.Task.WaitAsync(transmissionAndTimeout.Timeout).ConfigureAwait(false);
+                result = await tcs.Task.WaitAsync(transmissionAndTimeout.Timeout, cancellationToken).ConfigureAwait(false);
             }
             catch (TimeoutException)
             {
@@ -154,7 +154,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
             if (transmissionAndTimeout.Transmission is null)
             {
                 rentMemory.Return();
-                return new(NetResult.NoTransmission);
+                return new(NoTransmissionResult(cancellationToken));
             }
 
             var tcs = new TaskCompletionSource<NetResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -400,7 +400,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
             if (transmissionAndTimeout.Transmission is null)
             {
                 rentMemory.Return();
-                return (NetResult.NoTransmission, default);
+                return (NoTransmissionResult(cancellationToken), default);
             }
 
             var tcs = new TaskCompletionSource<NetResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -441,8 +441,9 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
             }
         }
 
-        if (response.Additional == 0)
-        {// No stream
+        if (response.Received.Owner is not null)
+        {// An empty block response: the peer returned a result (DataId) without opening a stream.
+            response.Return();
             receiveTransmission.Dispose();
             return ((NetResult)response.DataId, default);
         }
@@ -523,7 +524,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         {
             if (transmissionAndTimeout.Transmission is null)
             {
-                return new(NetResult.NoTransmission, 0, default);
+                return new(NoTransmissionResult(cancellationToken), 0, default);
             }
 
             var tcs = new TaskCompletionSource<NetResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -607,7 +608,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
         {
             if (transmissionAndTimeout.Transmission is null)
             {
-                return (NetResult.NoTransmission, default);
+                return (NoTransmissionResult(cancellationToken), default);
             }
 
             var tcs = new TaskCompletionSource<NetResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -646,10 +647,12 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
             }
         }
 
-        /*if (response.Additional == 0)
-        {// No stream
+        if (response.Received.Owner is not null)
+        {// An empty block response: the service returned a result (DataId) without opening a stream.
+            response.Return();
+            receiveTransmission.Dispose();
             return ((NetResult)response.DataId, default);
-        }*/
+        }
 
         var stream = new ReceiveStream(receiveTransmission, response.DataId, response.Additional);
         return new(NetResult.Success, stream);
@@ -800,21 +803,25 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
     }
 
     internal override void OnStateChanged()
-    {
+    {// Called while the non-reentrant connection lock is held, so token callbacks (including await continuations) must not run inline:
+     // a continuation that disposes this connection would deadlock. The source is not disposed, because callbacks may still be pending
+     // and CancellationToken must stay readable; it has no timer, so it holds no resources.
         if (this.CurrentState == State.Open)
         {// Reopen
-            this.cts.Dispose();
-            this.cts = new();
-        }
-        else if (this.CurrentState == State.Closed)
-        {// Close
-            this.cts.Cancel();
+            if (this.cts.IsCancellationRequested)
+            {
+                this.cts = new();
+            }
         }
         else
-        {// Disposed
-            this.cts.Dispose();
+        {// Closed or disposed
+            _ = this.cts.CancelAsync();
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static NetResult NoTransmissionResult(CancellationToken cancellationToken)
+        => cancellationToken.IsCancellationRequested ? NetResult.Canceled : NetResult.NoTransmission;
 
     private (NetResult Result, SendTransmission? SendTransmission) PrepareSendStream(long maxLength)
     {

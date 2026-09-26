@@ -87,7 +87,7 @@ public class RestartCommand : ISimpleCommand<RestartOptions>
 
             if (!options.IsValidContainerPort)
             {
-                success++;
+                Interlocked.Increment(ref success); // Parallel iterations run concurrently.
                 return;
             }
 
@@ -101,7 +101,7 @@ public class RestartCommand : ISimpleCommand<RestartOptions>
             {
                 if (await this.Ping(address, endpointResolution))
                 {
-                    success++;
+                    Interlocked.Increment(ref success); // Parallel iterations run concurrently.
                     return;
                 }
 

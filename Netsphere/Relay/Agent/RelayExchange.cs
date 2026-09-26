@@ -1,9 +1,5 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
 namespace Netsphere.Relay;
 
 [ValueLinkObject(Isolation = IsolationLevel.Serializable)]
@@ -66,8 +62,6 @@ internal partial class RelayExchange
 
     internal byte[] OuterKeyAndNonce { get; set; } = [];
 
-    private ReadOnlySpan<byte> RelayKey => this.InnerKeyAndNonce.AsSpan(0, Aegis128L.KeySize);
-
     #endregion
 
     public bool DecrementAndCheck()
@@ -82,27 +76,6 @@ internal partial class RelayExchange
             this.LastAccessMics = Mics.FastSystem;
             return true;
         }
-    }
-
-    public unsafe void Encrypt(Span<byte> plaintext, uint salt4)
-    {
-        fixed (byte* pointer = plaintext)
-        {
-            var ciphertext = new Span<byte>(pointer, plaintext.Length + Aegis128L.MinTagSize);
-            Span<byte> nonce16 = stackalloc byte[Aegis128L.NonceSize];
-            this.CreateNonce(nonce16, salt4);
-
-            Aegis128L.Encrypt(ciphertext, plaintext, nonce16, this.RelayKey);
-        }
-    }
-
-    public unsafe bool TryDecrypt(Span<byte> ciphertext, uint salt4)
-    {
-        Debug.Assert(ciphertext.Length >= Aegis128L.MinTagSize);
-        Span<byte> nonce16 = stackalloc byte[Aegis128L.NonceSize];
-        this.CreateNonce(nonce16, salt4);
-
-        return Aegis128L.TryDecrypt(ciphertext.Slice(0, ciphertext.Length - Aegis128L.MinTagSize), ciphertext, nonce16, this.RelayKey);
     }
 
     public override string ToString()
@@ -120,14 +93,5 @@ internal partial class RelayExchange
 
             this.ServerConnection.CloseInternal();
         }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void CreateNonce(Span<byte> nonce16, uint salt4)
-    {
-        Debug.Assert(nonce16.Length == Aegis128L.NonceSize);
-
-        this.InnerKeyAndNonce.AsSpan(Aegis128L.KeySize, Aegis128L.NonceSize).CopyTo(nonce16);
-        MemoryMarshal.AsRef<uint>(nonce16) ^= salt4;
     }
 }

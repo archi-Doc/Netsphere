@@ -1,7 +1,7 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Drawing;
+using System.Security.Cryptography;
 
 namespace Netsphere.Crypto;
 
@@ -80,6 +80,11 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
 
     public static SeedKey New(SeedKey baseSeedKey, ReadOnlySpan<byte> additional)
     {
+        if (!baseSeedKey.IsValid)
+        {// An empty or cleared seed would derive a key that anyone can compute.
+            throw new ArgumentException("The base seed key is not valid.", nameof(baseSeedKey));
+        }
+
         Span<byte> hash = stackalloc byte[SeedKeyHelper.SeedSize];
         using var hasher = Blake3Hasher.New();
         hasher.Update(baseSeedKey.seed);
@@ -117,36 +122,25 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
             return false;
         }
 
+        // Only the exact encoded length can hold a seed and checksum. Checking it first also avoids
+        // GetDecodedLength, which throws for invalid lengths.
         var span2 = span.Slice(0, bracketPosition);
-        var decodedLength = FastBase64Url.GetDecodedLength(span2);
-        var spanowner = new SpanOwner<byte>(stackalloc byte[BaseHelper.StackallocThreshold], decodedLength);
-        try
+        if (span2.Length != SeedKeyHelper.SeedLengthInBase64 - (SeedKeyHelper.PrivateKeyBracket.Length * 2))
         {
-            var seedSpan = spanowner.Span;
-            if (!FastBase64Url.TryDecode(span2, seedSpan, out _))
-            {
-                return false;
-            }
-
-            if (seedSpan.Length != (SeedKeyHelper.SeedSize + SeedKeyHelper.ChecksumSize))
-            {
-                seedSpan.Clear();
-                return false;
-            }
-
-            if (!SeedKeyHelper.ValidateChecksum(seedSpan))
-            {
-                seedSpan.Clear();
-                return false;
-            }
-
-            seedSpan.Slice(0, SeedKeyHelper.SeedSize).CopyTo(seed);
-            seedSpan.Clear();
+            return false;
         }
-        finally
+
+        Span<byte> seedSpan = stackalloc byte[SeedKeyHelper.SeedAndChecksumSize];
+        if (!FastBase64Url.TryDecode(span2, seedSpan, out var decodedLength) ||
+            decodedLength != SeedKeyHelper.SeedAndChecksumSize ||
+            !SeedKeyHelper.ValidateChecksum(seedSpan))
         {
-            spanowner.Dispose();
+            CryptographicOperations.ZeroMemory(seedSpan);
+            return false;
         }
+
+        seedSpan.Slice(0, SeedKeyHelper.SeedSize).CopyTo(seed);
+        CryptographicOperations.ZeroMemory(seedSpan);
 
         span = span.Slice(bracketPosition + SeedKeyHelper.PrivateKeyBracket.Length);
         if (span.Length == 0 || span[0] != SeedKeyHelper.PublicKeyOpenBracket)
@@ -182,7 +176,7 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
             Span<byte> encryptionSecretKey = stackalloc byte[CryptoBox.SecretKeySize];
             Span<byte> encryptionPublicKey = stackalloc byte[CryptoBox.PublicKeySize];
             CryptoBox.CreateKeyPair(seed, encryptionSecretKey, encryptionPublicKey);
-            var key2 = new EncryptionPublicKey(key);
+            CryptographicOperations.ZeroMemory(encryptionSecretKey);
             if (CryptoDual.BoxPublicKeyEquals(key, encryptionPublicKey))
             {
                 read = initialLength - span.Length + parsedLength;
@@ -194,6 +188,7 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
             Span<byte> signatureSecretKey = stackalloc byte[CryptoSign.SecretKeySize];
             Span<byte> signaturePublicKey = stackalloc byte[CryptoSign.PublicKeySize];
             CryptoSign.CreateKeyPair(seed, signatureSecretKey, signaturePublicKey);
+            CryptographicOperations.ZeroMemory(signatureSecretKey);
             if (key.SequenceEqual(signaturePublicKey))
             {
                 read = initialLength - span.Length + parsedLength;
@@ -208,12 +203,15 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
     #region FieldAndProperty
 
     [Key(0)]
-    private readonly byte[] seed = Array.Empty<byte>();
+    private byte[] seed = Array.Empty<byte>();
 
     [Key(1)]
     public KeyOrientation KeyOrientation { get; private set; } = KeyOrientation.NotSpecified;
 
-    public bool IsValid => this.seed.Length > 0;
+    /// <summary>
+    /// Gets a value indicating whether this instance holds a seed; it becomes <see langword="false"/> after <see cref="Clear"/>.
+    /// </summary>
+    public bool IsValid => this.seed.Length == SeedKeyHelper.SeedSize;
 
     private Lock lockObject = new();
     private byte[]? encryptionSecretKey; // X25519 32bytes
@@ -242,6 +240,11 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
             this.signaturePublicKey is not null)
             {
                 return;
+            }
+
+            if (!this.IsValid)
+            {// Deriving from an empty or cleared seed would produce a publicly computable key pair.
+                throw new InvalidOperationException("The seed key is not valid or has been cleared.");
             }
 
             var signSecret = new byte[CryptoSign.SecretKeySize];
@@ -320,6 +323,7 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
             return false;
         }
 
+        this.PrepareKey();
         return CryptoBox.TryDecrypt(cipher, nonce24, this.encryptionSecretKey, publicKey32, data);
     }
 
@@ -345,11 +349,36 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
         CryptoBox.DeriveSharedSecret(this.encryptionSecretKey, publicKey.AsSpan(), keyMaterial);
     }
 
+    /// <summary>
+    /// Derives shared key material, returning <see langword="false"/> instead of throwing when the peer's public key is not usable for key agreement (for example, a low-order point).
+    /// </summary>
+    /// <param name="publicKey">The peer's encryption public key.</param>
+    /// <param name="keyMaterial">The destination; its length must be <see cref="CryptoBox.SharedSecretSize"/>. It is cleared on failure.</param>
+    /// <returns><see langword="true"/> if the key material was derived.</returns>
+    public bool TryDeriveKeyMaterial(EncryptionPublicKey publicKey, Span<byte> keyMaterial)
+    {
+        if (keyMaterial.Length != CryptoBox.SharedSecretSize)
+        {
+            return false;
+        }
+
+        this.PrepareKey();
+        try
+        {
+            CryptoBox.DeriveSharedSecret(this.encryptionSecretKey, publicKey.AsSpan(), keyMaterial);
+            return true;
+        }
+        catch (CryptographicException)
+        {
+            return false;
+        }
+    }
+
     public bool Equals(SeedKey? other)
-        => other is not null && this.seed.AsSpan().SequenceEqual(other.seed.AsSpan());
+        => other is not null && CryptographicOperations.FixedTimeEquals(this.seed, other.seed);
 
     public override int GetHashCode()
-        => BitConverter.ToInt32(this.seed.AsSpan()); // (int)XxHash3.Hash64(this.seed);
+        => (int)XxHash3.Hash64(this.seed); // Does not expose seed bytes, and accepts an empty seed.
 
     public override string ToString()
         => $"SeedKey";
@@ -357,13 +386,13 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
     public string UnsafeToString()
     {
         Span<char> span = stackalloc char[this.GetStringLength()];
-        this.UnsafeTryFormat(span, out _);
-        return span.ToString();
+        return this.UnsafeTryFormat(span, out var written) ? span.Slice(0, written).ToString() : string.Empty;
     }
 
     private bool UnsafeTryFormat(Span<char> destination, out int written)
     {// !!!seed!!!, !!!seed!!!(s:key)
-        if (destination.Length < SeedKeyHelper.SeedLengthInBase64)
+        if (!this.IsValid ||
+            destination.Length < SeedKeyHelper.SeedLengthInBase64)
         {
             written = 0;
             return false;
@@ -379,6 +408,7 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
 
         // Base64.Url.FromByteArrayToSpan(seedSpan, span, out var w);
         var w = FastBase64Url.Encode(seedSpan, span);
+        CryptographicOperations.ZeroMemory(seedSpan);
         span = span.Slice(w);
 
         SeedKeyHelper.PrivateKeyBracket.CopyTo(span);
@@ -409,28 +439,25 @@ public sealed partial class SeedKey : IEquatable<SeedKey>, IStringConvertible<Se
     }
 
     public void Clear()
-    {
-        this.seed.AsSpan().Clear();
-        this.KeyOrientation = KeyOrientation.NotSpecified;
-
-        if (this.encryptionSecretKey is not null)
+    {// Detach the arrays so that later use fails instead of deriving or reusing all-zero keys.
+        using (this.lockObject.EnterScope())
         {
-            this.encryptionSecretKey.AsSpan().Clear();
+            CryptographicOperations.ZeroMemory(this.seed);
+            this.seed = Array.Empty<byte>();
+            this.KeyOrientation = KeyOrientation.NotSpecified;
+            ClearKey(ref this.encryptionSecretKey);
+            ClearKey(ref this.encryptionPublicKey);
+            ClearKey(ref this.signatureSecretKey);
+            ClearKey(ref this.signaturePublicKey);
         }
 
-        if (this.encryptionPublicKey is not null)
+        static void ClearKey(ref byte[]? key)
         {
-            this.encryptionPublicKey.AsSpan().Clear();
-        }
-
-        if (this.signatureSecretKey is not null)
-        {
-            this.signatureSecretKey.AsSpan().Clear();
-        }
-
-        if (this.signaturePublicKey is not null)
-        {
-            this.signaturePublicKey.AsSpan().Clear();
+            if (key is not null)
+            {
+                CryptographicOperations.ZeroMemory(key);
+                key = null;
+            }
         }
     }
 

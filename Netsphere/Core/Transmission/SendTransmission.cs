@@ -136,8 +136,8 @@ internal sealed partial class SendTransmission : IDisposable
     }
 
     internal async Task<NetResult> Wait(Task<NetResult> task, int timeoutInMilliseconds, CancellationToken cancellationToken)
-    {// I don't think this is a smart approach, but...
-        var remainingMilliseconds = timeoutInMilliseconds;
+    {
+        var started = Stopwatch.GetTimestamp();
         while (true)
         {
             if (task.IsCompletedSuccessfully)
@@ -162,22 +162,22 @@ internal sealed partial class SendTransmission : IDisposable
 
             try
             {
-                var result = await task.WaitAsync(NetConstants.WaitIntervalTimeSpan, cancellationToken).ConfigureAwait(false);
+                var remainingMilliseconds = timeoutInMilliseconds < 0 ? double.PositiveInfinity :
+                    Math.Max(0, timeoutInMilliseconds - Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+                var interval = TimeSpan.FromMilliseconds(Math.Min(remainingMilliseconds, NetConstants.WaitIntervalMilliseconds));
+                var result = await task.WaitAsync(interval, cancellationToken).ConfigureAwait(false);
                 return result;
             }
             catch (TimeoutException)
             {
-                if (remainingMilliseconds < 0)
-                {// Wait indefinitely.
-                }
-                else if (remainingMilliseconds > NetConstants.WaitIntervalMilliseconds)
-                {// Reduce the time and continue waiting.
-                    remainingMilliseconds -= NetConstants.WaitIntervalMilliseconds;
-                }
-                else
-                {// Timeout
+                if (timeoutInMilliseconds >= 0 && Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutInMilliseconds)
+                {
                     return NetResult.Timeout;
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {// Report cancellation as a result, like the other stream operations, instead of throwing from SendStream.Complete.
+                return NetResult.Canceled;
             }
         }
     }
@@ -746,14 +746,17 @@ internal sealed partial class SendTransmission : IDisposable
         this.Mode = NetTransmissionMode.StreamCompleted;
     }*/
 
-    internal void ProcessReceive_KnockResponse(int maxReceivePosition)
-    {
+    internal bool ProcessReceive_KnockResponse(int maxReceivePosition)
+    {// Returns true if this is a stream transmission and the receiver still has a live window (0 means the receiver disposed it).
         using (this.lockObject.EnterScope())
         {
             if (maxReceivePosition >= 0 && (this.Mode == NetTransmissionMode.Stream || this.Mode == NetTransmissionMode.StreamCompleted))
             {
                 this.UpdateReceiveWindow(maxReceivePosition);
+                return maxReceivePosition > 0;
             }
+
+            return false;
         }
     }
 
@@ -786,11 +789,9 @@ internal sealed partial class SendTransmission : IDisposable
         }
 
         var addSend = false;
+        var delay = NetConstants.InitialSendStreamDelayMilliseconds;
         while (true)
         {
-            var delay = NetConstants.InitialSendStreamDelayMilliseconds;
-
-Loop:
             cancellationToken.ThrowIfCancellationRequested();
             if (this.Mode == NetTransmissionMode.StreamCompleted)
             {
@@ -814,17 +815,6 @@ Loop:
             else if (this.GeneSerialMax >= this.MaxReceivePosition)
             {
                 SendKnockFrame();
-
-                // await Console.Out.WriteLineAsync($"Delay {this.MaxReceivePosition}/{this.GeneSerialMax}");
-                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-                delay = Math.Min(delay << 1, NetConstants.MaxSendStreamDelayMilliseconds);
-
-                if (this.Connection.CloseIfTransmissionHasTimedOut())
-                {
-                    return NetResult.Closed;
-                }
-
-                goto Loop;
             }
 
             using (this.lockObject.EnterScope())
@@ -879,6 +869,7 @@ Loop:
                     gene.Goshujin = this.genes;
                     chain.Add(gene);
                     addSend = true;
+                    delay = NetConstants.InitialSendStreamDelayMilliseconds;
                     Debug.Assert(gene.GeneSerial == this.GeneSerialMax);
 
                     buffer = buffer.Slice(size);
@@ -904,6 +895,15 @@ Loop:
             {
                 addSend = false;
                 this.Connection.AddSend(this);
+            }
+
+            // Both the peer's receive window and the local ACK buffer can be full.
+            // A KnockResponse may advance the former before ACKs release the latter.
+            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+            delay = Math.Min(delay << 1, NetConstants.MaxSendStreamDelayMilliseconds);
+            if (this.Connection.CloseIfTransmissionHasTimedOut())
+            {
+                return NetResult.Closed;
             }
         }
 

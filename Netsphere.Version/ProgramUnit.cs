@@ -82,6 +82,8 @@ internal class ProgramUnit : UnitBase, IUnitPreparable, IUnitExecutable
                 {
                     netOptions = netOptions with { Port = 0, EnableServer = false, };
                 }
+
+                context.SetOptions(netOptions); // The record copies above take effect only when set.
             });
 
             this.AddBuilder(new NetUnit.Builder());

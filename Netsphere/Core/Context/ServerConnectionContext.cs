@@ -129,17 +129,15 @@ public class ServerConnectionContext
     public bool DisableNetService<TService>()
     {
         var serviceId = StaticNetService.GetServiceId<TService>();
+        INetObject? netObject = null;
+        var found = false;
         lock (this.netServiceSync)
         {
             for (var i = 0; i < this.netServiceItems.Length; i++)
             {
                 if (this.netServiceItems[i].NetServiceInfo.ServiceId == serviceId)
                 {
-                    if (this.netServiceItems[i].Instance is INetObject netObject)
-                    {
-                        netObject.OnConnectionClosed();
-                    }
-
+                    netObject = this.netServiceItems[i].Instance as INetObject;
                     var newArray = new NetServiceItem[this.netServiceItems.Length - 1];
                     if (i > 0)
                     {
@@ -152,13 +150,15 @@ public class ServerConnectionContext
                     }
 
                     this.netServiceItems = newArray;
-                    return true;
+                    found = true;
+                    break;
                 }
             }
         }
 
-        // Not found
-        return false;
+        // Notify after removal and outside the lock, so that a throwing handler cannot leave the service enabled.
+        netObject?.OnConnectionClosed();
+        return found;
     }
 
     public TService? GetOrCreateNetService<TService>()
@@ -257,7 +257,7 @@ public class ServerConnectionContext
                         var result = transmissionContext.Result;
                         if (result == NetResult.Success)
                         {// Success
-                            transmissionContext.SendAndForget(transmissionContext.RentMemory, (ulong)result);
+                            transmissionContext.SendAndForgetOrResult(transmissionContext.RentMemory, result);
                         }
                         else
                         {// Failure
@@ -368,7 +368,7 @@ public class ServerConnectionContext
                     }
                     else
                     {
-                        transmissionContext.SendAndForget(transmissionContext.RentMemory, (ulong)transmissionContext.Result);
+                        transmissionContext.SendAndForgetOrResult(transmissionContext.RentMemory, transmissionContext.Result);
                     }
 
                     /*var result = transmissionContext.Result;
@@ -507,8 +507,9 @@ public class ServerConnectionContext
         foreach (var x in items)
         {
             if (x.Instance is INetObject netObject)
-            {
-                netObject.OnConnectionClosed();
+            {// Disposal runs while the non-reentrant connection lock is held. Run user code outside it, so that it can use the
+             // connection terminal and its exceptions cannot interrupt cleanup.
+                _ = Task.Run(netObject.OnConnectionClosed);
             }
         }
     }

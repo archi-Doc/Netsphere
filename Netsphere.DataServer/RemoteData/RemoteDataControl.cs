@@ -133,21 +133,24 @@ public class RemoteDataControl
 
     private string? IdentifierToPath(string identifier)
     {
-        if (string.IsNullOrEmpty(identifier))
-        {
-            return null;
-        }
-        else if (identifier.Contains("../") ||
-            identifier.Contains("..\\"))
-        {
-            return null;
-        }
-        else if (Path.IsPathRooted(identifier))
+        if (string.IsNullOrEmpty(identifier) ||
+            Path.IsPathRooted(identifier))
         {
             return null;
         }
 
-        return Path.Combine(this.DataDirectory, identifier);
+        // Resolve the path and require it to stay inside the data directory; substring checks miss forms such as "a/.." or "a:b".
+        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.DataDirectory)) + Path.DirectorySeparatorChar;
+        var path = Path.GetFullPath(Path.Combine(root, identifier));
+        var isWindows = OperatingSystem.IsWindows();
+        if (!path.StartsWith(root, isWindows ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) ||
+            path.Length == root.Length ||
+            (isWindows && path.AsSpan(root.Length).Contains(':')))
+        {// Outside the data directory, the directory itself, or an NTFS alternate data stream.
+            return null;
+        }
+
+        return path;
     }
 
     private void ThrowIfNotInitialized()

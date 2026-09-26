@@ -31,13 +31,22 @@ internal class RemoteControlAgent : IRemoteControl
             return NetResult.NotAuthenticated;
         }
 
-        var machine = this.bigMachine.RunMachine.GetOrCreate();
-        _ = machine.Command.Restart();
+        // Restart only the machine created by the running command. GetOrCreate would create an unconfigured machine of the other
+        // kind, whose pending work keeps the runner from exiting, or claim the machine before the command configures it.
+        var result = NetResult.InvalidOperation;
+        if (this.bigMachine.RunMachine.TryGet(out var machine))
+        {
+            _ = machine.Command.Restart();
+            result = NetResult.Success;
+        }
 
-        var machine2 = this.bigMachine.RestartMachine.GetOrCreate();
-        _ = machine2.Command.Restart();
+        if (this.bigMachine.RestartMachine.TryGet(out var machine2))
+        {
+            _ = machine2.Command.Restart();
+            result = NetResult.Success;
+        }
 
-        return NetResult.Success;
+        return result;
 
         /*var address = this.information.TryGetDualAddress();
         if (!address.IsValid)

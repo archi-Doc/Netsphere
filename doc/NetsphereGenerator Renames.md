@@ -141,6 +141,8 @@
 | `CreateBlock(string blockKey, out GeneratorBlock block)` | `TryCreateBlock(string blockKey, out GeneratorBlock block)` |
 | `GeneratorBlock.SSB` | `GeneratorBlock.Ssb` |
 
+`GeneratorState` and `GeneratorBlock` were later removed (2026-09-24) because the generator never read their state; `ServiceFilterSet.FilterSet`, `AddRange`, and `Merge` were removed at the same time.
+
 ## Search-and-replace cautions
 
 Do not replace these names blindly; limit replacements to the generator types listed above.

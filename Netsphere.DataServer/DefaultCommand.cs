@@ -1,7 +1,6 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using Arc;
 using Microsoft.Extensions.DependencyInjection;
 using Netsphere.Crypto;
@@ -26,6 +25,12 @@ public class DefaultCommand : ISimpleCommand<DefaultCommandOptions>
     {
         var netOptions = this.unit.Context.ServiceProvider.GetRequiredService<NetOptions>();
         netOptions.Port = options.Port;
+
+        // Prepare before running: the server must not start with a temporary node key, and every connection must offer the service
+        // (the enabled services are captured when a connection is created).
+        this.PrepareKey(options);
+        this.remoteData.Initialize(options.DataDirectory);
+        this.netUnit.Services.EnableNetService<Netsphere.Interfaces.IRemoteData>();
         await this.unit.Run(netOptions, false); // Execute the created unit with the specified options.
 
         var address = await NetStatsHelper.GetOwnAddress((ushort)options.Port, cancellationToken);
@@ -35,14 +40,11 @@ public class DefaultCommand : ISimpleCommand<DefaultCommandOptions>
         await ntpCorrection.CorrectMicsAndUnitLogger();
 
         // await Console.Out.WriteLineAsync(netOptions.ToString());
-        await Console.Out.WriteLineAsync(options.ToString());
+        await Console.Out.WriteLineAsync((options with { NodeSecretKey = string.Empty, }).ToString()); // Do not write the secret key to the console or container logs.
         await Console.Out.WriteLineAsync();
 
-        this.PrepareKey(options);
-        var netNode = new NetNode(address, this.remoteSeedKey.GetEncryptionPublicKey());
-
+        var netNode = new NetNode(address, this.netUnit.NetTerminal.NodePublicKey); // The key the node actually uses.
         await this.PunchNode(options.PunchNode);
-        this.remoteData.Initialize(options.DataDirectory);
 
         await Console.Out.WriteLineAsync($"{this.netUnit.NetBase.NetOptions.NodeName}");
         await Console.Out.WriteLineAsync($"Node: {netNode.ToString()}");
@@ -60,7 +62,6 @@ public class DefaultCommand : ISimpleCommand<DefaultCommandOptions>
         }
     }
 
-    [MemberNotNull(nameof(remoteSeedKey))]
     private void PrepareKey(DefaultCommandOptions options)
     {
         if (SeedKey.TryParse(options.NodeSecretKey, out var seedKey))
@@ -73,8 +74,6 @@ public class DefaultCommand : ISimpleCommand<DefaultCommandOptions>
             this.netUnit.NetBase.SetNodeSeedKey(seedKey);
             this.netUnit.NetTerminal.SetNodeSeedKey(seedKey);
         }
-
-        this.remoteSeedKey = seedKey ?? SeedKey.NewEncryption();
 
         if (SignaturePublicKey.TryParse(options.RemotePublicKey, out var publicKey, out _))
         {
@@ -109,7 +108,6 @@ public class DefaultCommand : ISimpleCommand<DefaultCommandOptions>
     private readonly NetUnit netUnit;
     private readonly ILogger logger;
     private readonly RemoteDataControl remoteData;
-    private SeedKey? remoteSeedKey;
 }
 
 public record DefaultCommandOptions

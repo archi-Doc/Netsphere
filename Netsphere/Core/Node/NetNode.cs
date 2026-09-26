@@ -177,6 +177,9 @@ public partial class NetNode : IStringConvertible<NetNode>, IValidatable, IEquat
             this.PublicKey.Equals(other.PublicKey);
     }
 
+    public override bool Equals(object? obj)
+        => this.Equals(obj as NetNode); // Consistent with GetHashCode and IEquatable (e.g., for non-generic collections and object.Equals).
+
     public override int GetHashCode()
         => HashCode.Combine(this.Address, this.PublicKey);
 }
