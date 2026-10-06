@@ -137,9 +137,11 @@ public sealed partial class TrustSource<T>
             }
 
             Item item;
-            if (this.items.Count >= this.Capacity)
-            {
-                item = this.items.QueueChain.Dequeue();
+            if (this.items.Count >= this.Capacity &&
+                this.items.QueueChain.TryPeek(out var oldest))
+            {// Reuse the oldest item. Detach it from the owner; Dequeue() alone leaves the owner reference, so re-adding below would be a no-op.
+                item = oldest;
+                item.Goshujin = null;
                 if (this.counters.ValueChain.TryGetValue(item.Value, out var counter2))
                 {
                     counter2.CountValue--;

@@ -63,20 +63,27 @@ public class ServiceMethod
             if (fullName == NetsphereBody.GenericTaskFullName)
             {// Task<TResult>
             }
-            else if (fullName is null &&
+            else if (returnObject.FullName == "void" &&
                 method.Method_Parameters.Length > 0 &&
                 (method.Method_Parameters[method.Method_Parameters.Length - 1].StartsWith(ServiceMethod.ResponseChannelPrefix) ||
                 method.Method_Parameters[method.Method_Parameters.Length - 1].StartsWith(ServiceMethod.ResponseChannelFullNamePrefix)))
             {// void Method(int x, ResponseChannel<TReceive> channel);
             }
             else
-            {// Invalid return type
+            {// Invalid return type (OriginalDefinition is null for every primitive, so the ResponseChannel form must be checked by the void return type).
                 method.Body.ReportDiagnostic(NetsphereBody.Error_MethodReturnType, method.Location);
             }
         }
 
         if (method.Body.Abort)
         {
+            return null;
+        }
+
+        var methodSymbol = method.TryGetMethodSymbol();
+        if (methodSymbol is { IsGenericMethod: true })
+        {// A type parameter cannot be serialized or declared in the generated frontend.
+            method.Body.AddDiagnostic(NetsphereBody.Error_GenericType, method.Location);
             return null;
         }
 
@@ -117,7 +124,7 @@ public class ServiceMethod
         }
 
         if (returnObject.FullName == "void" &&
-            method.TryGetMethodSymbol() is { } methodSymbol)
+            methodSymbol is not null)
         {// void Method(params, ref ResponseChannel<TResponse> channel);
             var parameters = methodSymbol.Parameters;
             if (parameters.Length == 0 ||
@@ -129,6 +136,19 @@ public class ServiceMethod
 
             serviceMethod.ReturnKind = PayloadKind.ResponseChannel;
             serviceMethod.ParameterKind = PayloadKind.ResponseChannel;
+        }
+
+        if (methodSymbol is not null &&
+            serviceMethod.ReturnKind != PayloadKind.ResponseChannel)
+        {// The generated frontend of a Task method is 'async', which cannot declare ref/in/out parameters (the ResponseChannel form is synchronous and allows them).
+            foreach (var parameter in methodSymbol.Parameters)
+            {
+                if (parameter.RefKind != RefKind.None)
+                {
+                    method.Body.AddDiagnostic(NetsphereBody.Error_ParameterRefKind, method.Location);
+                    return null;
+                }
+            }
         }
 
         /*if (serviceMethod.ReturnKind == PayloadKind.SendStream)
@@ -198,6 +218,11 @@ public class ServiceMethod
     public string SimpleName => "@" + this.method.SimpleName;
 
     public string LocalName => this.method.LocalName;
+
+    /// <summary>
+    /// Gets the full name of the interface that declares the method, which differs from the service interface for inherited methods.
+    /// </summary>
+    public string? DeclaringInterfaceFullName => this.method.ContainingObject?.FullName;
 
     public int ParameterCount => this.method.Method_Parameters.Length;
 

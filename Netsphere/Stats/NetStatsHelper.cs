@@ -53,7 +53,7 @@ public static class NetStatsHelper
             using (var httpClient = new HttpClient())
             {
                 var result = await httpClient.GetStringAsync(IcanhazipUriIPv4, cancellationToken).WaitAsync(GetTimeout).ConfigureAwait(false);
-                var ipString = result.Replace("\\r\\n", string.Empty).Replace("\\n", string.Empty).Trim();
+                var ipString = result.Trim(); // Removes the trailing line break.
                 IPAddress.TryParse(ipString, out var ipAddress);
                 return new(IcanhazipUriIPv4, ipAddress);
             }
@@ -72,7 +72,7 @@ public static class NetStatsHelper
             {
                 // httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
                 var result = await httpClient.GetStringAsync(IcanhazipUriIPv6, cancellationToken).WaitAsync(GetTimeout).ConfigureAwait(false);
-                var ipString = result.Replace("\\r\\n", string.Empty).Replace("\\n", string.Empty).Trim();
+                var ipString = result.Trim(); // Removes the trailing line break.
                 IPAddress.TryParse(ipString, out var ipAddress);
                 return new(IcanhazipUriIPv6, ipAddress);
             }

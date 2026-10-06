@@ -131,10 +131,16 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             }
 
             this.ServiceInterfaces = new();
-            foreach (var x in this.InterfaceObjects)
-            {
-                if (x.AllInterfaces.Any(x => x == NetServiceInterfaceMock.FullName))
+            for (var obj = this; obj is not null; obj = obj.BaseObject)
+            {// Service interfaces implemented by this class or by a base class (an implementation may be inherited), but not those inherited by another interface.
+                foreach (var x in obj.InterfaceObjects)
                 {
+                    if (!x.AllInterfaces.Any(y => y == NetServiceInterfaceMock.FullName) ||
+                        this.ServiceInterfaces.Contains(x))
+                    {
+                        continue;
+                    }
+
                     if (x.NetServiceAttribute == null)
                     {
                         if (!TryGetNetServiceAttribute(x))
@@ -150,7 +156,8 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             }
 
             if (this.ServiceInterfaces.Count == 0)
-            {
+            {// For example, the interface is implemented by a base class only; without a diagnostic every call would fail with NoNetService.
+                this.Body.AddDiagnostic(NetsphereBody.Warning_NoServiceInterface, this.Location, this.SimpleName);
                 return;
             }
 
@@ -253,12 +260,13 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 }
             }
 
-            foreach (var x in this.GetMembers(VisceralTarget.Method))
+            if (this.symbol is INamedTypeSymbol { IsAbstract: false })
             {
-                if (x.Method_IsConstructor && x.ContainingObject == this)
-                {// Constructor
-                    if (x.Method_Parameters.Length == 0)
-                    {
+                foreach (var x in this.GetMembers(VisceralTarget.Method))
+                {
+                    if (x.Method_IsConstructor && x.ContainingObject == this && x.Method_Parameters.Length == 0 &&
+                        x.symbol is IMethodSymbol { DeclaredAccessibility: Accessibility.Public or Accessibility.Internal })
+                    {// A parameterless constructor that the generated code can call; otherwise the agent is created through DI only.
                         this.ObjectFlags |= NetsphereObjectFlags.HasDefaultConstructor;
                         break;
                     }
@@ -305,11 +313,16 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         }
     }
 
+    private static readonly SymbolDisplayFormat PropertyTypeFormat = SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+        SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
+        SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier |
+        SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers);
+
     private static string ToPropertyDefinitionString(IPropertySymbol property)
-    {
+    {// The stub lives in Netsphere.Generated, so the type must be fully qualified and keep its nullable annotation.
         var sb = new StringBuilder();
 
-        sb.Append($"public {property.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)} {property.Name} {{");
+        sb.Append($"public {property.Type.ToDisplayString(PropertyTypeFormat)} @{property.Name} {{");
 
         if (property.GetMethod is not null)
         {
@@ -349,6 +362,17 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 {
                     var definitionString = ToPropertyDefinitionString(propertySymbol);
                     ssb.AppendLine(definitionString);
+                }
+            }
+
+            foreach (var @interface in this.AllInterfaceObjects)
+            {// Properties declared by base interfaces must be implemented as well (methods are collected the same way in Check()).
+                foreach (var x in @interface.GetMembers(VisceralTarget.Property).Where(y => y.ContainingObject == @interface))
+                {
+                    if (x.symbol is IPropertySymbol propertySymbol)
+                    {
+                        ssb.AppendLine(ToPropertyDefinitionString(propertySymbol));
+                    }
                 }
             }
 
@@ -659,6 +683,16 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             return serviceFilter2;
         }
 
+        if (method.DeclaringInterfaceFullName is { } declaringInterface &&
+            declaringInterface != serviceInterface.FullName)
+        {// Explicit implementation of a method declared by a base interface (for example, INetServiceWithUpdateAgreement.UpdateAgreement).
+            var inheritedName = this.FullName + "." + declaringInterface + "." + method.LocalName;
+            if (this.MethodNameToFilterGroup.TryGetValue(inheritedName, out var serviceFilter3))
+            {
+                return serviceFilter3;
+            }
+        }
+
         return null;
     }
 
@@ -737,6 +771,14 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             using (ssb.ScopeBrace($"if (!NetHelper.Deserialize<{method.GetParameterTypes(decrement)}>(context.RentMemory, out var value))"))
             {
                 this.Generate_DeserializationFailed(ssb);
+            }
+
+            if (method.TryGetNullCheck("value", decrement, out var channelCondition))
+            {// A nil payload for a non-nullable reference parameter must not reach the handler.
+                using (ssb.ScopeBrace($"if ({channelCondition})"))
+                {
+                    this.Generate_DeserializationFailed(ssb);
+                }
             }
 
             ssb.AppendLine($"agent.{method.SimpleName}({method.GetTupleItemArguments("value", decrement, method.HasCancellationTokenParameter)});");
@@ -834,9 +876,19 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             if (method.ParameterCount > 1)
             {
                 ssb.AppendLine($"var rr = await ((IReceiveStreamInternal)context.GetReceiveStream()).ReceiveBlock<{method.GetParameterTypes(1)}>().ConfigureAwait(false);");
-                using (var scopeIf = ssb.ScopeBrace("if (rr.IsFailure)"))
-                {
-                    this.Generate_DeserializationFailed(ssb);
+                using (var scopeIf = ssb.ScopeBrace("if (rr.Result != NetResult.Success)"))
+                {// Completed is not a failure, but a stream that ends before the block carries no argument (rr.Value is default).
+                    this.Generate_ReturnRentMemory(ssb);
+                    ssb.AppendLine("context.Result = rr.Result == NetResult.Completed ? NetResult.DeserializationFailed : rr.Result;");
+                    ssb.AppendLine("return;");
+                }
+
+                if (method.TryGetNullCheck("rr.Value", 1, out var blockCondition))
+                {// A nil payload for a non-nullable reference parameter must not reach the handler.
+                    using (ssb.ScopeBrace($"if ({blockCondition})"))
+                    {
+                        this.Generate_DeserializationFailed(ssb);
+                    }
                 }
 
                 ssb.AppendLine($"{prefix}await agent.{method.SimpleName}({method.GetTupleItemArguments("rr.Value!", decrement + 1, method.HasCancellationTokenParameter)}, context.GetReceiveStream().MaxStreamLength).ConfigureAwait(false);");

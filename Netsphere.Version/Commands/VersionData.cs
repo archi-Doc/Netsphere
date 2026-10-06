@@ -47,31 +47,52 @@ public partial record VersionData
     [Key(1)]
     public CertificateToken<VersionInfo>? Release { get; private set; }
 
+    private readonly Lock lockObject = new();
     private GetVersionResponse developmentResponse = new();
     private GetVersionResponse releaseResponse = new();
 
-    public void Update(CertificateToken<VersionInfo> token)
+    /// <summary>
+    /// Stores the token when it is newer than the current one for its kind, and persists the data.
+    /// </summary>
+    /// <param name="token">The signed version token.</param>
+    /// <returns>True if the token was stored; false if an equal or newer version is already stored.</returns>
+    public bool TryUpdate(CertificateToken<VersionInfo> token)
     {
-        if (token.Target.VersionKind == VersionInfo.Kind.Development)
-        {
-            this.Development = token;
-            this.developmentResponse = new(token);
-        }
-        else if (token.Target.VersionKind == VersionInfo.Kind.Release)
-        {
-            this.Release = token;
-            this.releaseResponse = new(token);
-        }
+        using (this.lockObject.EnterScope())
+        {// Check and update atomically, and save under the lock: concurrent saves would race on the file and could persist an older token last.
+            if (token.Target.VersionMics <= this.GetCurrentMics(token.Target.VersionKind))
+            {
+                return false;
+            }
 
-        _ = Task.Run(() => this.Save());
+            if (token.Target.VersionKind == VersionInfo.Kind.Development)
+            {
+                this.Development = token;
+                this.developmentResponse = new(token);
+            }
+            else if (token.Target.VersionKind == VersionInfo.Kind.Release)
+            {
+                this.Release = token;
+                this.releaseResponse = new(token);
+            }
+            else
+            {
+                return false;
+            }
+
+            this.Save();
+            return true;
+        }
     }
 
     public void Save()
     {
         try
-        {
+        {// Write to a temporary file first so that an interrupted write cannot leave a truncated file, which Load() would read as empty data.
             var bin = TinyhandSerializer.SerializeObjectToUtf8(this);
-            File.WriteAllBytes(Filename, bin);
+            var temporary = Filename + ".tmp";
+            File.WriteAllBytes(temporary, bin);
+            File.Move(temporary, Filename, true);
         }
         catch
         {

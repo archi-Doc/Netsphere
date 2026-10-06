@@ -58,6 +58,11 @@ internal partial class RelayExchange
 
     public bool AllowUnknownIncoming { get; private set; }
 
+    /// <summary>
+    /// Gets or sets when a packet from an unknown node was last accepted; the restricted interval applies per exchange.
+    /// </summary>
+    internal long LastRestrictedMics { get; set; }
+
     internal byte[] InnerKeyAndNonce { get; private set; }
 
     internal byte[] OuterKeyAndNonce { get; set; } = [];
@@ -90,6 +95,7 @@ internal partial class RelayExchange
             this.InnerRelayId = default;
             this.OuterRelayId = default;
             this.OuterEndpoint = default;
+            this.ServerConnection.InnerRelayId = 0; // A reopened connection must not act on an id that a later exchange may reuse.
 
             this.ServerConnection.CloseInternal();
         }

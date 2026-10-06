@@ -104,7 +104,8 @@ public sealed partial class NetStats
         }
 
         endPoint = default;
-        if (endpointResolution == EndpointResolution.PreferIpv6)
+        if (endpointResolution == EndpointResolution.PreferIpv6 ||
+            endpointResolution == EndpointResolution.NetAddress)
         {
             if (this.IsIpv6Supported || !address.IsValidIpv4)
             {// Ipv6 supported or Ipv6 only
@@ -116,19 +117,6 @@ public sealed partial class NetStats
             }
 
             // Ipv4
-            return address.TryCreateIpv4(ref endPoint);
-        }
-        else if (endpointResolution == EndpointResolution.NetAddress)
-        {
-            if (this.IsIpv6Supported || !address.IsValidIpv4)
-            {// Ipv6 supported or Ipv6 only
-                address.TryCreateIpv6(ref endPoint);
-                if (endPoint.IsValid)
-                {
-                    return true;
-                }
-            }
-
             return address.TryCreateIpv4(ref endPoint);
         }
         else if (endpointResolution == EndpointResolution.Ipv4)

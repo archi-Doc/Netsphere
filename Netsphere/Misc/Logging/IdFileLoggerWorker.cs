@@ -175,6 +175,11 @@ internal partial class IdFileLoggerWorker : TaskCore
                     stream = new Stream(this, id);
                     this.goshujin.Add(stream);
                 }
+                else
+                {// Move to the tail of the limit queue so that eviction is least-recently-used; otherwise an active id that was created early is deleted.
+                    stream.Goshujin = null;
+                    stream.Goshujin = this.goshujin;
+                }
 
                 stream.Enqueue(work);
             }

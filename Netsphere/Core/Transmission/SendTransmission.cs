@@ -788,6 +788,11 @@ internal sealed partial class SendTransmission : IDisposable
             }
         }
 
+        if (buffer.IsEmpty && dataControl == DataControl.Valid)
+        {// Nothing to send: an empty gene would only consume a window slot and a packet.
+            return NetResult.Success;
+        }
+
         var addSend = false;
         var delay = NetConstants.InitialSendStreamDelayMilliseconds;
         while (true)

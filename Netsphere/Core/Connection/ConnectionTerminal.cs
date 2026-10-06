@@ -507,7 +507,7 @@ public class ConnectionTerminal
                     return;
                 }
 
-                connection.CloseSendTransmission();
+                connection.CloseTransmissions();
                 if (releaseReference)
                 {// Clamp a count made negative by redundant Dispose calls. A forced close keeps the count: holders still own their
                  // references, and resetting it would let a stale Dispose close the connection after Connect() has reused it.
@@ -545,7 +545,7 @@ public class ConnectionTerminal
             ClientConnection? bidirectionalConnection;
             using (g2.LockObject.EnterScope())
             {
-                connection.CloseSendTransmission();
+                connection.CloseTransmissions();
                 if (connection.CurrentState == Connection.State.Open)
                 {// Open -> Close
                     connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{connection.ConnectionIdText} Open -> Closed, SendCloseFrame {sendCloseFrame}");
@@ -573,7 +573,7 @@ public class ConnectionTerminal
         }
         else
         {
-            connection.CloseSendTransmission();
+            connection.CloseTransmissions();
         }
     }
 

@@ -1366,6 +1366,40 @@ ProcessGene:
         }
     }
 
+    /// <summary>
+    /// Completes every pending receive wait (responses, callbacks, and stream reads) with <see cref="NetResult.Closed"/>.
+    /// The transmissions stay registered until they are cleaned so that resent genes are still acknowledged.
+    /// </summary>
+    internal void CloseReceiveTransmission()
+    {
+        if (this.receiveReceivedList.Count == 0)
+        {
+            return;
+        }
+
+        using (this.receiveTransmissions.LockObject.EnterScope())
+        {
+            var currentMics = Mics.FastSystem;
+            while (this.receiveReceivedList.First is { } node)
+            {// ReceivedList -> DisposedList
+                var transmission = node.Value;
+                this.receiveReceivedList.Remove(node);
+                transmission.ReceivedOrDisposedMics = currentMics;
+                transmission.ReceivedOrDisposedNode = this.receiveDisposedList.AddLast(transmission);
+                transmission.DisposeTransmission();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Releases the transmissions of a connection that is being closed: no further send completes, and no further response arrives.
+    /// </summary>
+    internal void CloseTransmissions()
+    {
+        this.CloseSendTransmission();
+        this.CloseReceiveTransmission();
+    }
+
     internal virtual void OnStateChanged()
     {
     }

@@ -98,6 +98,14 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
         id: "NSG016", title: "CancellationToken", messageFormat: "CancellationToken parameters must come last",
         category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
+    public static readonly DiagnosticDescriptor Error_ParameterRefKind = new DiagnosticDescriptor(
+        id: "NSG017", title: "Parameter modifier", messageFormat: "Parameters of a service method that returns Task cannot be ref, in, or out",
+        category: GeneratorName, DiagnosticSeverity.Error, isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor Warning_NoServiceInterface = new DiagnosticDescriptor(
+        id: "NSG018", title: "No NetService interface", messageFormat: "NetObject '{0}' does not directly implement an interface with NetServiceAttribute, so no service is generated for it",
+        category: GeneratorName, DiagnosticSeverity.Warning, isEnabledByDefault: true);
+
     public NetsphereBody(SourceProductionContext context)
         : base(context)
     {

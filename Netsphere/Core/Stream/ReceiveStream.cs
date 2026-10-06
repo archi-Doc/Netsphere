@@ -185,7 +185,7 @@ public class ReceiveStream : IReceiveStreamInternal // , IDisposable
             }
 
             var memory = rentArray.AsMemory(sizeof(int));
-            if (memory.Length > length)
+            if (memory.Length >= length)
             {
                 memory = memory.Slice(0, length);
             }
