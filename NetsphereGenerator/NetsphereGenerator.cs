@@ -104,7 +104,7 @@ public class NetsphereGenerator : IIncrementalGenerator, IGeneratorInformation
         this.AssemblyId = this.AssemblyName.GetHashCode();
         this.OutputKind = compilation.Options.OutputKind;
 
-        var body = new NetsphereBody(context);
+        var body = new NetsphereBody(context, compilation);
 #pragma warning disable RS1024 // Symbols should be compared for equality
         var processed = new HashSet<INamedTypeSymbol?>();
 #pragma warning restore RS1024 // Symbols should be compared for equality

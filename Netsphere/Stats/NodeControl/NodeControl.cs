@@ -20,6 +20,7 @@ public sealed partial class NodeControl
     public static readonly int GetActiveNodesMax = 16;
     public static readonly long LifelineCheckIntervalMics = Mics.FromDays(1);
     public static readonly long OnlineValidMics = Mics.FromMinutes(5);
+    private static readonly long FutureConnectedToleranceMics = Mics.FromMinutes(1); // Allows clock skew between nodes.
 
     public NodeControl(NetBase netBase)
     {
@@ -396,8 +397,9 @@ public sealed partial class NodeControl
                 while (!reader.End)
                 {
                     var node = TinyhandSerializer.DeserializeObject<ActiveNode>(ref reader);
-                    if (node is null || !node.Validate())
-                    {
+                    if (node is null || !node.Validate() ||
+                        node.LastConnectedMics > Mics.FastCorrected + FutureConnectedToleranceMics)
+                    {// A gossiped time far in the future would replace the stored key for the address and pin the entry at the head of the list.
                         continue;
                     }
 

@@ -83,6 +83,10 @@ public class DefaultCommand : ISimpleCommand<DefaultCommandOptions>
         {
             this.remoteData.RemotePublicKey = publicKey;
         }
+        else
+        {// Every Get/Put is refused with NotAuthenticated until a remote public key is configured.
+            this.logger.GetWriter(LogLevel.Error)?.Write($"Remote public key is not specified (option RemotePublicKey or environment variable {NetConstants.RemotePublicKeyName}).");
+        }
     }
 
     private async Task PunchNode(string punchNode)

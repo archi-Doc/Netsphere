@@ -53,9 +53,9 @@ public class Alias : IConversionOptions
 
     public void Add(string alias, Identifier identifier)
     {
-        if (alias.Length > MaxAliasLength)
+        if (!IsValid(alias))
         {
-            throw new ArgumentOutOfRangeException(nameof(alias), $"Alias length must be less than {MaxAliasLength}.");
+            throw new ArgumentException($"Alias must start with a letter and contain only letters, digits, or underscores, up to {MaxAliasLength} characters.", nameof(alias));
         }
 
         using (this.lockIdentifier.EnterScope())
@@ -77,9 +77,9 @@ public class Alias : IConversionOptions
 
     public void TryAdd(string alias, Identifier identifier)
     {
-        if (alias.Length > MaxAliasLength)
+        if (!IsValid(alias))
         {
-            throw new ArgumentOutOfRangeException(nameof(alias), $"Alias length must be less than {MaxAliasLength}.");
+            throw new ArgumentException($"Alias must start with a letter and contain only letters, digits, or underscores, up to {MaxAliasLength} characters.", nameof(alias));
         }
 
         using (this.lockIdentifier.EnterScope())
@@ -95,9 +95,9 @@ public class Alias : IConversionOptions
 
     public void Add(string alias, SignaturePublicKey publicKey)
     {
-        if (alias.Length > MaxAliasLength)
+        if (!IsValid(alias))
         {
-            throw new ArgumentOutOfRangeException(nameof(alias), $"Alias length must be less than {MaxAliasLength}.");
+            throw new ArgumentException($"Alias must start with a letter and contain only letters, digits, or underscores, up to {MaxAliasLength} characters.", nameof(alias));
         }
 
         using (this.lockPublicKey.EnterScope())
@@ -119,9 +119,9 @@ public class Alias : IConversionOptions
 
     public void TryAdd(string alias, SignaturePublicKey publicKey)
     {
-        if (alias.Length > MaxAliasLength)
+        if (!IsValid(alias))
         {
-            throw new ArgumentOutOfRangeException(nameof(alias), $"Alias length must be less than {MaxAliasLength}.");
+            throw new ArgumentException($"Alias must start with a letter and contain only letters, digits, or underscores, up to {MaxAliasLength} characters.", nameof(alias));
         }
 
         using (this.lockPublicKey.EnterScope())

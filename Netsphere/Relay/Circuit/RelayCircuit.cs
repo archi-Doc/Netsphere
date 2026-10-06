@@ -103,7 +103,6 @@ public class RelayCircuit
         {
             var relayId = assignRelayResponse.InnerRelayId;
             ClientConnection? lastConnection;
-            RelayKey previousKey;
             using (this.relayNodes.LockObject.EnterScope())
             {
                 var result = this.CanAddRelayInternal(relayId, clientConnection.DestinationEndpoint);
@@ -112,13 +111,12 @@ public class RelayCircuit
                     return result;
                 }
 
-                if (!clientConnection.IsOpen)
+                if (!clientConnection.IsOpen || clientConnection.MinimumNumberOfRelays != this.relayNodes.Count)
                 {
                     return RelayResult.ConnectionFailure;
                 }
 
                 lastConnection = this.relayNodes.LinkedListChain.Last?.ClientConnection;
-                previousKey = this.relayKey;
             }
 
             var node = new RelayNode(assignRelayBlock, assignRelayResponse, clientConnection);
@@ -129,6 +127,8 @@ public class RelayCircuit
                 var response = await lastConnection.SendAndReceive<SetupRelayBlock, SetupRelayResponse>(block, SetupRelayBlock.DataId).ConfigureAwait(false);
                 if (response.Result != NetResult.Success || response.Value is null)
                 {
+                    // A lost response may hide a successful remote setup. The old last hop can no longer be used as an exit.
+                    await this.CloseCore().ConfigureAwait(false);
                     return RelayResult.ConnectionFailure;
                 }
 
@@ -138,17 +138,27 @@ public class RelayCircuit
                 }
             }
 
+            var connectionFailure = false;
             using (this.relayNodes.LockObject.EnterScope())
             {
-                if (!ReferenceEquals(previousKey, this.relayKey) || !clientConnection.IsOpen || lastConnection is { IsOpen: false })
+                if (!clientConnection.IsOpen || lastConnection is { IsOpen: false })
                 {
-                    return RelayResult.ConnectionFailure;
+                    connectionFailure = true;
                 }
+                else
+                {
+                    clientConnection.UseIncomingRelay = this.IsIncoming;
+                    clientConnection.MinimumNumberOfRelays = -this.relayNodes.Count - 1; // Configure it as a relay connection and specify the relay circuit number to send data through the relay (use NetAddress.Relay).
+                    clientConnection.Agreement.MinimumConnectionRetentionMics = assignRelayResponse.RetensionMics;
+                    this.relayNodes.Add(node);
+                    this.ResetRelayKeyInternal();
+                }
+            }
 
-                clientConnection.MinimumNumberOfRelays = -clientConnection.MinimumNumberOfRelays - 1; // Configure it as a relay connection and specify the relay circuit number to send data through the relay (use NetAddress.Relay).
-                clientConnection.Agreement.MinimumConnectionRetentionMics = assignRelayResponse.RetensionMics;
-                this.relayNodes.Add(node);
-                this.ResetRelayKeyInternal();
+            if (connectionFailure)
+            {
+                await this.CloseCore().ConfigureAwait(false);
+                return RelayResult.ConnectionFailure;
             }
 
             return RelayResult.Success;
@@ -160,35 +170,57 @@ public class RelayCircuit
     }
 
     /// <summary>
-    /// Removes a closed relay and all dependent outer hops, publishing new keys only when the circuit changes.
+    /// Removes a circuit containing a closed relay, publishing new keys only when the circuit changes.
     /// </summary>
     public void Clean()
     {
-        using (this.relayNodes.LockObject.EnterScope())
+        if (!this.mutationLock.Wait(0))
         {
-            var changed = false;
-            var x = this.relayNodes.LinkedListChain.First;
-            while (x is not null)
+            return;
+        }
+
+        try
+        {
+            using (this.relayNodes.LockObject.EnterScope())
             {
-                var next = x.LinkedListLink.Next;
-                if (changed || !x.ClientConnection.IsOpen)
-                {// Connection is closed
-                    if (NetConstants.LogRelay)
+                var broken = false;
+                var x = this.relayNodes.LinkedListChain.First;
+                while (x is not null)
+                {
+                    if (!x.ClientConnection.IsOpen)
                     {
-                        this.logger.GetWriter(LogLevel.Information)?.Write($"Removed (Clean) {x.ToString()}");
+                        broken = true;
+                        break;
                     }
 
-                    x.Remove();
-                    changed = true;
+                    x = x.LinkedListLink.Next;
                 }
 
-                x = next;
-            }
+                if (!broken)
+                {
+                    return;
+                }
 
-            if (changed)
-            {
+                // The healthy prefix still points to the removed outer hop on its relay servers.
+                // Without a protocol operation to clear those endpoints, publishing that prefix would leave a broken circuit.
+                while (this.relayNodes.LinkedListChain.Last is { } node)
+                {
+                    if (NetConstants.LogRelay)
+                    {
+                        this.logger.GetWriter(LogLevel.Information)?.Write($"Removed (Clean) {node.ToString()}");
+                    }
+
+                    node.Remove();
+                }
+
                 this.ResetRelayKeyInternal();
             }
+
+            this.netTerminal.ConnectionTerminal.CloseRelayedConnections(this.IsIncoming);
+        }
+        finally
+        {
+            this.mutationLock.Release();
         }
     }
 
@@ -315,7 +347,7 @@ public class RelayCircuit
             this.ResetRelayKeyInternal();
         }
 
-        this.netTerminal.ConnectionTerminal.CloseRelayedConnections();
+        this.netTerminal.ConnectionTerminal.CloseRelayedConnections(this.IsIncoming);
     }
 
     private void ResetRelayKeyInternal()

@@ -162,7 +162,9 @@ public abstract class Connection : IDisposable
     internal UnorderedLinkedList<SendTransmission> SendList = new(); // lock (this.ConnectionTerminal.SyncSend)
     internal UnorderedLinkedList<Connection>.Node? SendNode; // lock (this.ConnectionTerminal.SyncSend)
 
-    internal RelayKey CorrespondingRelayKey => this.IsClient ? this.NetTerminal.OutgoingCircuit.RelayKey : this.NetTerminal.IncomingCircuit.RelayKey;
+    internal bool UseIncomingRelay { get; set; }
+
+    internal RelayKey CorrespondingRelayKey => this.UseIncomingRelay ? this.NetTerminal.IncomingCircuit.RelayKey : this.NetTerminal.OutgoingCircuit.RelayKey;
 
     #region Embryo
 
@@ -215,6 +217,7 @@ public abstract class Connection : IDisposable
         this.ConnectionId = connectionId;
         this.DestinationNode = node;
         this.DestinationEndpoint = endPoint;
+        this.UseIncomingRelay = this.IsServer;
 
         this.smoothedRtt = DefaultRtt;
         this.minimumRtt = 0;
@@ -225,6 +228,8 @@ public abstract class Connection : IDisposable
         : this(connection.PacketTerminal, connection.ConnectionTerminal, connection.ConnectionId, connection.DestinationNode, connection.DestinationEndpoint)
     {
         this.Initialize(connection.Agreement, connection.embryo);
+        this.MinimumNumberOfRelays = connection.MinimumNumberOfRelays;
+        this.UseIncomingRelay = connection.UseIncomingRelay;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -269,7 +274,7 @@ public abstract class Connection : IDisposable
     /// Closes the connection regardless of its open reference count.
     /// </summary>
     internal void CloseInternal()
-        => this.Dispose();
+        => this.ConnectionTerminal.CloseInternal(this, true);
 
     internal void ResetTaichi()
         => Interlocked.Exchange(ref this.Taichi, 1);
@@ -681,7 +686,7 @@ Wait:
 
         // Resolve to the address family of DestinationEndpoint. PreferIpv6 could pick the other family, and the peer drops protected packets from an unexpected endpoint.
         var endpointResolution = this.DestinationEndpoint.EndPoint?.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? EndpointResolution.Ipv6 : EndpointResolution.Ipv4;
-        this.PacketTerminal.SendPacket(this.DestinationNode.Address, rentArray, default, this.MinimumNumberOfRelays, endpointResolution, this.IsServer); // Server connections use the incoming circuit (CorrespondingRelayKey).
+        this.PacketTerminal.SendPacket(this.DestinationNode.Address, rentArray, default, this.MinimumNumberOfRelays, endpointResolution, this.UseIncomingRelay);
     }
 
     internal void SendCloseFrame()
@@ -919,6 +924,11 @@ Wait:
         var startStream = false;
         using (this.receiveTransmissions.LockObject.EnterScope())
         {
+            if (this.IsClosedOrDisposed)
+            {// A close may have completed after authenticating this packet.
+                return;
+            }
+
             if (this.IsClient)
             {// Client side
                 if (!this.receiveTransmissions.TransmissionIdChain.TryGetValue(transmissionId, out transmission))
@@ -1364,6 +1374,35 @@ ProcessGene:
             // Every chain must be cleared; otherwise the transmissions stay linked in AckedListChain.
             this.sendTransmissions.ClearChains();
         }
+    }
+
+    /// <summary>
+    /// Completes every pending receive wait (responses, callbacks, and stream reads) with <see cref="NetResult.Closed"/>.
+    /// The transmissions stay registered until they are cleaned so that resent genes are still acknowledged.
+    /// </summary>
+    internal void CloseReceiveTransmission()
+    {
+        using (this.receiveTransmissions.LockObject.EnterScope())
+        {
+            var currentMics = Mics.FastSystem;
+            while (this.receiveReceivedList.First is { } node)
+            {// ReceivedList -> DisposedList
+                var transmission = node.Value;
+                this.receiveReceivedList.Remove(node);
+                transmission.ReceivedOrDisposedMics = currentMics;
+                transmission.ReceivedOrDisposedNode = this.receiveDisposedList.AddLast(transmission);
+                transmission.DisposeTransmission();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Releases the transmissions of a connection that is being closed: no further send completes, and no further response arrives.
+    /// </summary>
+    internal void CloseTransmissions()
+    {
+        this.CloseSendTransmission();
+        this.CloseReceiveTransmission();
     }
 
     internal virtual void OnStateChanged()

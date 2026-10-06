@@ -41,7 +41,7 @@ public class RestartCommand : ISimpleCommand<RestartOptions>
         }
 
         var success = 0;
-        await Parallel.ForEachAsync(nodeList, async (netNode, cancellationToken) =>
+        await Parallel.ForEachAsync(nodeList, cancellationToken, async (netNode, cancellationToken) =>
         {
             var endpointResolution = EndpointResolution.PreferIpv6;
 
@@ -93,7 +93,7 @@ public class RestartCommand : ISimpleCommand<RestartOptions>
 
             // Wait
             // this.logger.GetWriter()?.Write($"Waiting...");
-            await Task.Delay(TimeSpan.FromSeconds(WaitIntervalInSeconds));
+            await Task.Delay(TimeSpan.FromSeconds(WaitIntervalInSeconds), cancellationToken);
 
             // Ping container
             var sec = PingIntervalInSeconds;
@@ -105,7 +105,7 @@ public class RestartCommand : ISimpleCommand<RestartOptions>
                     return;
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(sec));
+                await Task.Delay(TimeSpan.FromSeconds(sec), cancellationToken);
                 sec *= 2;
             }
         });

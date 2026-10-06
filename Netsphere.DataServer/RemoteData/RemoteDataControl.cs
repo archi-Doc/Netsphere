@@ -75,15 +75,25 @@ public class RemoteDataControl
             return default;
         }
 
+        FileStream fileStream;
         try
         {
-            using var fileStream = File.OpenRead(path);
-            (_, var sendStream) = transmissionContext.GetSendStream(fileStream.Length);
+            fileStream = File.OpenRead(path);
+        }
+        catch
+        {
+            transmissionContext.Result = NetResult.NotFound;
+            return default;
+        }
+
+        try
+        {
+            (var streamResult, var sendStream) = transmissionContext.GetSendStream(fileStream.Length);
             if (sendStream is null)
-            {
-                transmissionContext.Result = NetResult.NotFound;
+            {// For example, the file exceeds the agreed stream length.
+                transmissionContext.Result = streamResult;
                 return default;
-                }
+            }
 
             this.logger.GetWriter(LogLevel.Information)?.Write($"Get: {identifier}");
             var result = await NetHelper.StreamToSendStream(fileStream, sendStream);
@@ -91,8 +101,12 @@ public class RemoteDataControl
         }
         catch
         {
-            transmissionContext.Result = NetResult.NotFound;
+            transmissionContext.Result = NetResult.UnknownError;
             return default;
+        }
+        finally
+        {
+            fileStream.Dispose();
         }
 
         return default;
@@ -110,20 +124,41 @@ public class RemoteDataControl
             return default;
         }
 
+        // Receive into a temporary file: an interrupted upload must neither destroy the previous content nor leave a partial file,
+        // and the result is reported only after the data has been flushed and moved into place.
+        var temporaryPath = path + ".tmp";
         var result = NetResult.UnknownError;
         try
         {
-            using var fileStream = File.Create(path);
             var receiveStream = transmissionContext.GetReceiveStream<NetResult>();
-
             this.logger.GetWriter(LogLevel.Information)?.Write($"Put: {identifier}");
-            result = await NetHelper.ReceiveStreamToStream(receiveStream, fileStream);
+            using (var fileStream = File.Create(temporaryPath))
+            {
+                result = await NetHelper.ReceiveStreamToStream(receiveStream, fileStream);
+            }
+
             this.logger.GetWriter(LogLevel.Information)?.Write($"Put({result}): {identifier} {receiveStream.ReceivedLength} bytes");
+            if (result == NetResult.Success)
+            {
+                File.Move(temporaryPath, path, true);
+            }
+            else
+            {
+                File.Delete(temporaryPath);
+            }
 
             receiveStream.SendAndDispose(result);
         }
         catch
         {
+            try
+            {
+                File.Delete(temporaryPath);
+            }
+            catch
+            {
+            }
+
             transmissionContext.Result = NetResult.InvalidOperation;
             return default;
         }

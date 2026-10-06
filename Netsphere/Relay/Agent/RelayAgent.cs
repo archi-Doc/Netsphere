@@ -19,7 +19,8 @@ public partial class RelayAgent
 
     internal enum EndpointOperation
     {
-        None,
+        None, // Resolve and cache the endpoint without changing its restriction.
+        Lookup, // Query only: an unknown endpoint is not added to the cache.
         Update,
         SetUnrestricted,
         SetRestricted,
@@ -73,7 +74,6 @@ public partial class RelayAgent
     private readonly ConcurrentQueue<NetSender.Item> sendItems = new();
 
     private long lastCleanMics;
-    private long lastRestrictedMics;
     private bool stopped;
 
     #endregion
@@ -92,7 +92,16 @@ public partial class RelayAgent
         return sb.ToString();
     }
 
-    public RelayResult AddExchange(ServerConnection serverConnection, AssignRelayBlock block, out RelayId innerRelayId, out RelayId outerRelayId)
+    /// <summary>
+    /// Allocates a relay exchange for the connection.
+    /// </summary>
+    /// <param name="serverConnection">The inner connection of the exchange.</param>
+    /// <param name="block">The assignment request.</param>
+    /// <param name="innerRelayId">The relay id used by the inner node.</param>
+    /// <param name="outerRelayId">The relay id used by outer nodes.</param>
+    /// <param name="relayPoint">The initial relay points, granted before the exchange is published so that the first packet cannot exhaust it.</param>
+    /// <returns>The allocation result.</returns>
+    public RelayResult AddExchange(ServerConnection serverConnection, AssignRelayBlock block, out RelayId innerRelayId, out RelayId outerRelayId, long relayPoint = 0)
     {
         innerRelayId = 0;
         outerRelayId = 0;
@@ -136,7 +145,9 @@ public partial class RelayAgent
                 }
             }
 
-            this.items.Add(new(this.relayControl, innerRelayId, outerRelayId, serverConnection, block));
+            var exchange = new RelayExchange(this.relayControl, innerRelayId, outerRelayId, serverConnection, block);
+            exchange.RelayPoint = Math.Clamp(relayPoint, 0, this.relayControl.DefaultMaxRelayPoint);
+            this.items.Add(exchange);
         }
 
         return RelayResult.Success;
@@ -231,8 +242,8 @@ public partial class RelayAgent
         using (this.items.LockObject.EnterScope())
         {
             var exchange = this.items.RelayIdChain.FindFirst(serverConnection.InnerRelayId);
-            if (exchange is null)
-            {
+            if (exchange is null || !ReferenceEquals(exchange.ServerConnection, serverConnection))
+            {// A connection whose exchange was released keeps its stale id; it must not configure an exchange that reused the id.
                 transmissionContext.SendAndForget(new SetupRelayResponse(RelayResult.InvalidEndpoint), SetupRelayBlock.DataId);
                 return;
             }
@@ -357,16 +368,8 @@ public partial class RelayAgent
                     span = span.Slice(sizeof(RelayId));
                     MemoryMarshal.Write(span, relayHeader.NetAddress.RelayId); // DestinationRelayId
 
-                    var operation = EndpointOperation.Update;
                     var packetType = MemoryMarshal.Read<Netsphere.Packet.PacketType>(span.Slice(sizeof(RelayId) + sizeof(uint)));
-                    if (packetType == Packet.PacketType.Connect)
-                    {// Connect
-                        operation = EndpointOperation.SetUnrestricted;
-                    }
-                    else
-                    {// Other
-                        operation = EndpointOperation.Update;
-                    }
+                    var operation = packetType == Packet.PacketType.Connect ? EndpointOperation.SetUnrestricted : EndpointOperation.Update;
 
                     // Close -> EndPointOperation.SetRestricted ?
 
@@ -445,12 +448,12 @@ public partial class RelayAgent
             else
             {// Outermost relay
                 // Other (unrestricted or restricted)
-                var ep2 = this.GetEndPointCore(new(endpoint), EndpointOperation.None);
+                var ep2 = this.GetEndPointCore(new(endpoint), EndpointOperation.Lookup); // Unknown senders must not fill the cache.
                 if (!ep2.Unrestricted)
                 {// Restricted
                     if (exchange.AllowUnknownIncoming &&
                        exchange.RestrictedIntervalMics != 0 &&
-                       Mics.FastSystem > this.lastRestrictedMics + exchange.RestrictedIntervalMics)
+                       Mics.FastSystem > exchange.LastRestrictedMics + exchange.RestrictedIntervalMics)
                     {// Unknown incoming
                         goto AcceptIncoming;
                     }
@@ -473,12 +476,14 @@ public partial class RelayAgent
                     goto Exit;
 
 AcceptIncoming:
-                    this.lastRestrictedMics = Mics.FastSystem;
+                    exchange.LastRestrictedMics = Mics.FastSystem;
                 }
             }
 
-            var sourceRelayId = MemoryMarshal.Read<RelayId>(source.Span);
-            var extraLength = Aegis128L.MinTagSize + (sourceRelayId == 0 ? RelayHeader.Length : 0);
+            // An outermost relay receives ordinary packets even when their sender is another relay.
+            // Only packets authenticated by the configured outer hop already contain our relay envelope.
+            var needsRelayHeader = !exchange.OuterEndpoint.IsValid || MemoryMarshal.Read<RelayId>(source.Span) == 0;
+            var extraLength = Aegis128L.MinTagSize + (needsRelayHeader ? RelayHeader.Length : 0);
             if (source.Length > NetConstants.MaxPacketLength - extraLength ||
                 !source.Owner!.AsSpan().Overlaps(source.Span, out var offset) ||
                 source.Length > source.Owner.Array.Length - offset - extraLength)
@@ -486,7 +491,7 @@ AcceptIncoming:
                 goto Exit;
             }
 
-            if (sourceRelayId == 0)
+            if (needsRelayHeader)
             {// RelayId(Source/Destination), RelayHeader, Content(span)
                 var sourceSpan = source.Owner.Array.AsSpan(offset + RelayHeader.RelayIdLength);
                 span.CopyTo(sourceSpan.Slice(RelayHeader.Length));
@@ -496,9 +501,6 @@ AcceptIncoming:
                 // RelayHeader
                 var relayHeader = new RelayHeader(RandomVault.Default.NextUInt32(), new(endpoint));
                 MemoryMarshal.Write(sourceSpan, relayHeader);
-                sourceSpan = sourceSpan.Slice(RelayHeader.Length);
-
-                sourceSpan = sourceSpan.Slice(contentLength);
 
                 source = source.Owner.AsMemory(offset, RelayHeader.RelayIdLength + RelayHeader.Length + contentLength);
                 span = source.Span.Slice(RelayHeader.RelayIdLength);
@@ -571,31 +573,23 @@ Exit:
 
     internal PingRelayResponse? ProcessPingRelay(RelayId destinationRelayId)
     {
-        if (this.NumberOfExchanges == 0)
-        {
-            return null;
-        }
-
-        RelayExchange? exchange;
-        PingRelayResponse? packet;
         using (this.items.LockObject.EnterScope())
         {
-            exchange = this.items.RelayIdChain.FindFirst(destinationRelayId);
-            if (exchange is null)
-            {
-                return null;
-            }
-
-            packet = new PingRelayResponse(exchange);
+            var exchange = this.items.RelayIdChain.FindFirst(destinationRelayId);
+            return exchange is null ? null : new PingRelayResponse(exchange);
         }
-
-        return packet;
     }
 
     private (IPEndPoint? EndPoint, bool Unrestricted) GetEndPointCore(NetAddress netAddress, EndpointOperation operation)
     {// Caller holds items.LockObject, which is not reentrant.
+        netAddress = this.ToEndpointKey(netAddress);
         if (!this.endPointCache.NetAddressChain.TryGetValue(netAddress, out var item))
         {
+            if (operation == EndpointOperation.Lookup)
+            {// Unknown endpoints must not populate the bounded cache; otherwise unsolicited packets evict the known entries.
+                return (null, false);
+            }
+
             this.netTerminal.NetStats.TryCreateEndpoint(ref netAddress, EndpointResolution.PreferIpv6, out var endpoint);
             item = new(netAddress, endpoint.EndPoint);
             this.endPointCache.Add(item);
@@ -637,5 +631,18 @@ Exit:
         }
 
         return (item.EndPoint, unrestricted);
+    }
+
+    private NetAddress ToEndpointKey(NetAddress address)
+    {// The cache answers "is this IP endpoint known?". Senders name dual-stack destinations and relay ids differ by direction,
+     // while replies arrive from a single address family. Key by the family that TryCreateEndpoint(PreferIpv6) selects, without the relay id.
+        if (address.IsValidIpv4 && address.IsValidIpv6)
+        {
+            return this.netTerminal.NetStats.IsIpv6Supported ?
+                new(0, 0, address.Address6A, address.Address6B, address.Port) :
+                new(0, address.Address4, 0, 0, address.Port);
+        }
+
+        return address.RelayId == 0 ? address : new(0, address);
     }
 }

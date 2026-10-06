@@ -141,7 +141,9 @@ public partial class RunMachine : Machine
             this.ChangeStateAndRunImmediately(State.NoContainer);
             return StateResult.Continue;
         }
-        else if (this.options.ContainerPort != 0)
+
+        this.createContainerRetries = 0; // The container is running: the limit counts consecutive failed launches, not launches over the lifetime.
+        if (this.options.ContainerPort != 0)
         {// Check health
             this.ChangeStateAndRunImmediately(State.CheckHealth);
             return StateResult.Continue;
@@ -171,9 +173,16 @@ public partial class RunMachine : Machine
         }
 
         var r = await this.docker.GetContainer();
-        if (!r.IsRunning || r.Address is null)
+        if (!r.IsRunning)
         {
             this.ChangeStateAndRunImmediately(State.NoContainer);
+            return StateResult.Continue;
+        }
+        else if (r.Address is null && PathHelper.IsRunningInContainer)
+        {// The container reports no address (host or none network mode): the health check cannot reach it, so keep waiting instead of
+         // cycling NoContainer -> Running -> CheckHealth without delay.
+            this.logger.GetWriter()?.Write("Status: No container address");
+            this.TimeUntilRun = TimeSpan.FromSeconds(CheckInvervalInSeconds);
             return StateResult.Continue;
         }
 
@@ -270,7 +279,7 @@ public partial class RunMachine : Machine
         this.ChangeState(state, true);
     }
 
-    private async Task<NetResult> Ping(IPAddress addresss)
+    private async Task<NetResult> Ping(IPAddress? addresss)
     {
         if (this.options == null)
         {
@@ -280,6 +289,11 @@ public partial class RunMachine : Machine
         NetAddress netAddress;
         if (PathHelper.IsRunningInContainer)
         {// In container. Use Container address.
+            if (addresss is null)
+            {
+                return NetResult.NoNetwork;
+            }
+
             netAddress = new NetAddress(addresss, this.options.ContainerPort);
         }
         else

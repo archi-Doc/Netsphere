@@ -135,17 +135,18 @@ public class TransportDeepReviewTest
     }
 
     [Fact]
-    public async Task FailedRelaySetupDoesNotPublishNewHop()
+    public async Task FailedRelaySetupDiscardsUncertainCircuit()
     {
         using var first = this.CreateConnection(12345);
         using var second = this.CreateConnection(12346);
         var circuit = new RelayCircuit(this.fixture.NetUnit.NetTerminal, false);
         Assert.Equal(RelayResult.Success, await circuit.AddRelay(circuit.NewAssignRelayBlock(), new(RelayResult.Success, 1, 2, 100, 1_000_000, null), first));
         var key = circuit.RelayKey;
+        second.MinimumNumberOfRelays = 1; // Pass depth validation and exercise the failed remote SetupRelay request.
         Assert.Equal(RelayResult.ConnectionFailure, await circuit.AddRelay(circuit.NewAssignRelayBlock(), new(RelayResult.Success, 3, 4, 100, 1_000_000, null), second));
-        Assert.Same(key, circuit.RelayKey);
-        Assert.Equal(1, circuit.NumberOfRelays);
-        Assert.Equal(0, second.MinimumNumberOfRelays);
+        Assert.NotSame(key, circuit.RelayKey);
+        Assert.Equal(0, circuit.NumberOfRelays);
+        Assert.Equal(1, second.MinimumNumberOfRelays);
     }
 
     [Fact]
@@ -163,7 +164,7 @@ public class TransportDeepReviewTest
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
-    public async Task RelayCleanupRemovesHopsBeyondBrokenLink(int broken)
+    public async Task RelayCleanupClosesCircuitContainingBrokenLink(int broken)
     {
         var terminal = this.fixture.NetUnit.NetTerminal;
         using var first = await terminal.Connect(Alternative.NetNode, Connection.ConnectMode.NoReuse);
@@ -182,9 +183,10 @@ public class TransportDeepReviewTest
 
         connections[broken].CloseInternal();
         circuit.Clean();
-        Assert.Equal(broken, circuit.NumberOfRelays);
+        Assert.Equal(0, circuit.NumberOfRelays);
         Assert.False(third.IsOpen);
-        Assert.Equal(broken > 0, first.IsOpen);
+        Assert.False(second.IsOpen);
+        Assert.False(first.IsOpen);
     }
 
     [Fact]

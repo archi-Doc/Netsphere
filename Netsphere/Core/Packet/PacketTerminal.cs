@@ -55,8 +55,13 @@ public sealed partial class PacketTerminal
 
         public int ResentCount { get; set; }
 
-        public void CopyPacketForRetry()
+        public void PreparePacketForRetry()
         {
+            if (this.MemoryOwner.Owner?.ReferenceCount == 1)
+            {// The previous datagram has already left the send queue; the item owns the only lease.
+                return;
+            }
+
             var copy = BytePool.Default.Rent(this.MemoryOwner.Length).AsMemory(0, this.MemoryOwner.Length);
             this.MemoryOwner.Span.CopyTo(copy.Span);
             this.MemoryOwner.Return();
@@ -333,7 +338,7 @@ public sealed partial class PacketTerminal
                 if (MemoryMarshal.Read<RelayId>(item.MemoryOwner.Span.Slice(sizeof(RelayId))) == 0)
                 {// No relay
                     // The previous attempt may still be queued by NetSender.
-                    item.CopyPacketForRetry();
+                    item.PreparePacketForRetry();
                     var span = item.MemoryOwner.Span;
                     // Reset packet id in order to improve the accuracy of RTT measurement.
                     var newPacketId = RandomVault.Default.NextUInt64();

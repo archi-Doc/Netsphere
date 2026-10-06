@@ -88,6 +88,14 @@ public sealed partial class NtpCorrection
     public void OnDeserialized()
     {
         this.AddHostnames();
+
+        using (this.lockObject.EnterScope())
+        {
+            if (this.timeoffsetCount > 0)
+            {// A persisted correction is reported as valid (NtpMachine skips correction for an hour), so install it for the corrected clocks.
+                this.SetNtpCorrection();
+            }
+        }
     }
 
     public async Task Correct(CancellationToken cancellationToken)

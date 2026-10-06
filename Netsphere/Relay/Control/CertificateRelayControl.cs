@@ -13,6 +13,13 @@ public class CertificateRelayControl : IRelayControl
 {
     public static readonly IRelayControl Instance = new CertificateRelayControl();
 
+    private volatile CertificateKey certificateKey = new(default);
+
+    private sealed class CertificateKey(SignaturePublicKey publicKey)
+    {
+        public SignaturePublicKey PublicKey { get; } = publicKey;
+    }
+
     private class CreateRelayResponder : AsyncResponder<CertificateToken<AssignRelayBlock>, AssignRelayResponse>
     {
         public CreateRelayResponder(CertificateRelayControl relayControl)
@@ -30,12 +37,14 @@ public class CertificateRelayControl : IRelayControl
             }
 
             var relayAgent = this.ServerConnection.NetTerminal.RelayAgent;
-            var result = relayAgent.AddExchange(this.ServerConnection, token.Target, out var innerRelayId, out var outerRelayId);
             var relayPoint = this.relayControl.DefaultMaxRelayPoint;
             var retensionMics = this.relayControl.DefaultRelayRetensionMics;
+            var result = relayAgent.AddExchange(this.ServerConnection, token.Target, out var innerRelayId, out var outerRelayId, relayPoint);
             var response = new AssignRelayResponse(result, innerRelayId, outerRelayId, relayPoint, retensionMics, this.ServerConnection.NetTerminal.NetStats.OwnNetNode);
-            this.ServerConnection.Agreement.MinimumConnectionRetentionMics = retensionMics;
-            relayAgent.AddRelayPoint(innerRelayId, relayPoint);
+            if (result == RelayResult.Success)
+            {
+                this.ServerConnection.Agreement.MinimumConnectionRetentionMics = retensionMics;
+            }
 
             return new(NetResult.Success, response);
         }
@@ -55,7 +64,7 @@ public class CertificateRelayControl : IRelayControl
     public long DefaultRestrictedIntervalMics
         => 20_000;
 
-    public SignaturePublicKey CertificatePublicKey { get; private set; }
+    public SignaturePublicKey CertificatePublicKey => this.certificateKey.PublicKey;
 
     public void RegisterResponder(ResponderControl responders)
     {
@@ -64,6 +73,7 @@ public class CertificateRelayControl : IRelayControl
 
     public void SetCertificatePublicKey(SignaturePublicKey publicKey)
     {
-        this.CertificatePublicKey = publicKey;
+        // Publish the 32-byte key atomically while allocation requests may be verifying it.
+        this.certificateKey = new(publicKey);
     }
 }

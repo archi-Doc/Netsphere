@@ -910,22 +910,6 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
         return true;
     }
 
-    private bool IsLocalLoopbackAddressIPv4()
-    {
-        Span<byte> address = stackalloc byte[4];
-        if (!BitConverter.TryWriteBytes(address, this.Address4))
-        {
-            return false;
-        }
-
-        return address[0] == 127 && address[1] == 0 && address[2] == 0;
-    }
-
-    private unsafe bool IsLocalLoopbackAddressIPv6()
-    {
-        return this.Address6A == 0 && this.Address6B == 0x0100000000000000;
-    }
-
     private bool IsPrivateOrLocalLoopbackAddressIPv4()
     {
         Span<byte> address = stackalloc byte[4];

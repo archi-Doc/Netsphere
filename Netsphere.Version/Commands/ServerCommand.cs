@@ -16,9 +16,10 @@ internal class ServerCommand : ISimpleCommand<ServerOptions>
     private const int DelayMilliseconds = 1_000; // 1 second
     private const int NtpCorrectionCount = 3600; // 3600 x 1000ms = 1 hour
 
-    public ServerCommand(ILogger<ServerCommand> logger, NetUnit netUnit, IRelayControl relayControl, NtpCorrection ntpCorrection)
+    public ServerCommand(UnitContext unitContext, ILogger<ServerCommand> logger, NetUnit netUnit, IRelayControl relayControl, NtpCorrection ntpCorrection)
     {
         staticInstance = this;
+        this.unitContext = unitContext;
         this.logger = logger;
         this.netUnit = netUnit;
         this.relayControl = relayControl;
@@ -53,8 +54,11 @@ internal class ServerCommand : ISimpleCommand<ServerOptions>
         while (true)
         {
             try
-            {
-                await Task.Delay(1_000, cancellationToken);
+            {// The execution root is terminated by Ctrl+C; the command token is not linked to it.
+                if (!await this.unitContext.ExecutionRoot.TryDelay(DelayMilliseconds, cancellationToken).ConfigureAwait(false))
+                {
+                    return;
+                }
             }
             catch
             {
@@ -87,9 +91,9 @@ internal class ServerCommand : ISimpleCommand<ServerOptions>
         if (packetType == PacketType.GetVersion)
         {
             var versionKind = VersionInfo.Kind.Development;
-            if (packet.Length >= 2)
-            {
-                versionKind = (VersionInfo.Kind)packet.Span[1];
+            if (TinyhandSerializer.TryDeserialize<GetVersionPacket>(packet.Span, out var getVersionPacket))
+            {// Deserialize instead of reading the wire layout, which would break silently if the packet gained a field.
+                versionKind = getVersionPacket.VersionKind;
             }
 
             if (staticInstance?.versionData.GetVersionResponse(versionKind) is { } response)
@@ -143,25 +147,24 @@ internal class ServerCommand : ISimpleCommand<ServerOptions>
             return new(UpdateVersionResult.WrongSignature);
         }
 
-        // Check mics
-        var currentMics = this.versionData.GetCurrentMics(versionInfo.VersionKind);
-        if (currentMics >= versionInfo.VersionMics)
-        {
-            return new(UpdateVersionResult.OldMics);
-        }
-
         if (versionInfo.VersionMics > Mics.GetCorrected() + Mics.FromSeconds(5))
         {
             return new(UpdateVersionResult.FutureMics);
         }
 
-        this.versionData.Update(token);
+        // Check mics and update atomically.
+        if (!this.versionData.TryUpdate(token))
+        {
+            return new(UpdateVersionResult.OldMics);
+        }
+
         this.logger.GetWriter()?.Write($"Updated: {token.Target.ToString()}");
         return new(UpdateVersionResult.Success);
     }
 
     private static ServerCommand? staticInstance;
 
+    private readonly UnitContext unitContext;
     private readonly ILogger logger;
     private readonly NetUnit netUnit;
     private readonly IRelayControl relayControl;

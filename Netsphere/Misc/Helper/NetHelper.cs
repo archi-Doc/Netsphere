@@ -5,6 +5,7 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
+using Netsphere.Core;
 using Netsphere.Crypto;
 using Netsphere.Packet;
 using Tinyhand.IO;
@@ -230,11 +231,15 @@ public static class NetHelper
 
             result = await sendStream.Complete(cancellationToken).ConfigureAwait(false);
         }
-        catch
+        catch (OperationCanceledException)
         {// The caller's token may already be canceled, which would skip the Cancel frame and leave the peer waiting until its timeout.
-            using var timeout = new CancellationTokenSource(NetConstants.DefaultTransmissionTimeout);
-            await sendStream.Cancel(timeout.Token).ConfigureAwait(false);
+            await TryCancel(sendStream).ConfigureAwait(false);
             result = NetResult.Canceled;
+        }
+        catch
+        {// A source stream failure is not a cancellation: tell the peer, then surface the exception to the caller.
+            await TryCancel(sendStream).ConfigureAwait(false);
+            throw;
         }
         finally
         {
@@ -263,11 +268,15 @@ public static class NetHelper
             var r = await sendStream.CompleteSendAndReceive(cancellationToken).ConfigureAwait(false);
             return r;
         }
-        catch
+        catch (OperationCanceledException)
         {// The caller's token may already be canceled, which would skip the Cancel frame and leave the peer waiting until its timeout.
-            using var timeout = new CancellationTokenSource(NetConstants.DefaultTransmissionTimeout);
-            await sendStream.Cancel(timeout.Token).ConfigureAwait(false);
+            await TryCancel(sendStream).ConfigureAwait(false);
             result = NetResult.Canceled;
+        }
+        catch
+        {// A source stream failure is not a cancellation: tell the peer, then surface the exception to the caller.
+            await TryCancel(sendStream).ConfigureAwait(false);
+            throw;
         }
         finally
         {
@@ -275,6 +284,18 @@ public static class NetHelper
         }
 
         return new(result);
+    }
+
+    private static async Task TryCancel(SendStreamBase sendStream)
+    {// Best effort: the original failure must not be replaced by a cancellation failure.
+        try
+        {
+            using var timeout = new CancellationTokenSource(NetConstants.DefaultTransmissionTimeout);
+            await sendStream.Cancel(timeout.Token).ConfigureAwait(false);
+        }
+        catch
+        {
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -556,20 +577,28 @@ public static class NetHelper
             return default;
         }
 
-        var service = connection.GetService<TService>();
-
-        var agreement = connection.Agreement with { MaxStreamLength = maxStreamLength, };
-        var token = new CertificateToken<ConnectionAgreement>(agreement);
-        connection.SignWithSalt(token, signaturePrivateKey);
-
-        var result = await service.UpdateAgreement(token).ConfigureAwait(false);
-        if (result != NetResult.Success)
+        try
         {
-            connection.Dispose();
-            return default;
-        }
+            var service = connection.GetService<TService>();
 
-        return (connection, service);
+            var agreement = connection.Agreement with { MaxStreamLength = maxStreamLength, };
+            var token = new CertificateToken<ConnectionAgreement>(agreement);
+            connection.SignWithSalt(token, signaturePrivateKey);
+
+            var result = await service.UpdateAgreement(token).ConfigureAwait(false);
+            if (result != NetResult.Success)
+            {
+                connection.Dispose();
+                return default;
+            }
+
+            return (connection, service);
+        }
+        catch
+        {// The connection is not returned to the caller, so release it here.
+            connection.Dispose();
+            throw;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

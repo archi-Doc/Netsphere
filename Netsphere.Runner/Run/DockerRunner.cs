@@ -20,6 +20,7 @@ internal class DockerRunner
         }
         catch
         {// No docker
+            client.Dispose();
             return null;
         }
 
@@ -51,8 +52,19 @@ internal class DockerRunner
         foreach (var x in list)
         {
             if (x.Image.StartsWith(this.options.Image))
-            {
-                IPAddress.TryParse(x.NetworkSettings.Networks.FirstOrDefault().Value.IPAddress, out var address);
+            {// A container may have no network (host/none mode) or several; use the first address that is reported.
+                IPAddress? address = null;
+                if (x.NetworkSettings?.Networks is { } networks)
+                {
+                    foreach (var network in networks.Values)
+                    {
+                        if (IPAddress.TryParse(network.IPAddress, out address))
+                        {
+                            break;
+                        }
+                    }
+                }
+
                 return (true, address);
             }
         }

@@ -48,6 +48,9 @@ public class InjectedTransportFilter : IServiceFilter
 
     public InjectedTransportFilter(TransportFilterDependency dependency) => this.dependency = dependency;
 
+    private InjectedTransportFilter()
+        => throw new InvalidOperationException("The generated backend must use the accessible DI constructor.");
+
     public async Task Invoke(TransmissionContext context, Func<TransmissionContext, Task> invoker)
     {
         if (this.dependency.Value != 42)

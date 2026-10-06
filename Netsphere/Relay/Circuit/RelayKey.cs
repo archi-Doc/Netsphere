@@ -54,7 +54,7 @@ internal class RelayKey
     public bool TryDecrypt(NetEndpoint endpoint, ref BytePool.RentedMemory rentMemory, out NetAddress originalAddress, out int relayNumber)
     {
         relayNumber = 0;
-        if (!endpoint.Equals(this.FirstEndpoint))
+        if (rentMemory.Owner is null || !endpoint.Equals(this.FirstEndpoint))
         {
             originalAddress = default;
             return false;
@@ -79,11 +79,6 @@ internal class RelayKey
 
         for (var i = 0; i < this.NumberOfRelays; i++)
         {
-            if (rentMemory.Owner is null)
-            {
-                goto Exit;
-            }
-
             RelayHelper.CreateNonce(salt4, this.EmbryoSaltArray[i], this.EmbryoSecretArray[i], nonce32);
             Aegis256.TryDecrypt(encryptedSpan, encryptedSpan, nonce32, this.EmbryoKeyArray[i], default, 0);
 
@@ -105,8 +100,6 @@ internal class RelayKey
                 return true;
             }
         }
-
-        goto Exit; // It might not be encrypted.
 
 Exit:
         originalAddress = default;
@@ -165,7 +158,6 @@ Exit:
 
         // Content
         content.CopyTo(span);
-        span = span.Slice(content.Length);
 
         var encryptionContent = encrypted.Span.Slice(RelayHeader.RelayIdLength + RelayHeader.PlainLength, RelayHeader.CipherLength + content.Length);
         Span<byte> nonce32 = stackalloc byte[32];

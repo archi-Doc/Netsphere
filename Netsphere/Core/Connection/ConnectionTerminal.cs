@@ -63,6 +63,8 @@ public class ConnectionTerminal
     private readonly ClientConnection.GoshujinClass clientConnections = new();
     private readonly ServerConnection.GoshujinClass serverConnections = new();
     private volatile bool terminating;
+    private int closingIncomingRelayedConnections;
+    private int closingOutgoingRelayedConnections;
 
     #endregion
 
@@ -182,8 +184,9 @@ public class ConnectionTerminal
         }
 
         var circuit = incomingRelay ? this.NetTerminal.IncomingCircuit : this.NetTerminal.OutgoingCircuit;
+        var relayKey = circuit.RelayKey;
         if (targetNumberOfRelays < 0 ||
-            circuit.NumberOfRelays != targetNumberOfRelays)
+            relayKey.NumberOfRelays != targetNumberOfRelays)
         {// When making a relay connection, it is necessary to specify the appropriate number of relays (the outermost layer of relays).
             return null;
         }
@@ -207,10 +210,12 @@ public class ConnectionTerminal
         }
 
         newConnection.MinimumNumberOfRelays = targetNumberOfRelays;
+        newConnection.UseIncomingRelay = incomingRelay;
         newConnection.AddRtt(t.RttMics);
         using (this.clientConnections.LockObject.EnterScope())
         {// ConnectionStateCode
-            if (this.terminating)
+            if (this.terminating || this.IsClosingRelayedConnections(incomingRelay) ||
+                !ReferenceEquals(relayKey, circuit.RelayKey))
             {
                 return null;
             }
@@ -249,6 +254,7 @@ public class ConnectionTerminal
             minimumNumberOfRelays = this.NetTerminal.MinimumNumberOfRelays;
         }
 
+        var relayKey = minimumNumberOfRelays > 0 ? this.NetTerminal.OutgoingCircuit.RelayKey : null;
         var seedKey = this.NetTerminal.NodeSeedKey;
         var publicKey = this.NetTerminal.NodePublicKey;
         if (minimumNumberOfRelays > 0)
@@ -270,7 +276,8 @@ public class ConnectionTerminal
             {// Attempts to reuse a connection that has already been connected or disconnected (but not yet disposed).
                 if (this.clientConnections.DestinationEndpointChain.TryGetValue(endPoint, out var connection))
                 {
-                    if (connection.MinimumNumberOfRelays >= minimumNumberOfRelays)
+                    if (connection.MinimumNumberOfRelays >= minimumNumberOfRelays &&
+                        connection.DestinationNode.PublicKey.Equals(node.PublicKey))
                     {
                         Debug.Assert(!connection.IsDisposed);
                         connection.IncrementOpenCount();
@@ -314,7 +321,8 @@ public class ConnectionTerminal
         newConnection.AddRtt(t.RttMics);
         using (this.clientConnections.LockObject.EnterScope())
         {// ConnectionStateCode
-            if (this.terminating)
+            if (this.terminating || (relayKey is not null &&
+                (this.IsClosingRelayedConnections(false) || !ReferenceEquals(relayKey, this.NetTerminal.OutgoingCircuit.RelayKey))))
             {
                 return null;
             }
@@ -326,42 +334,48 @@ public class ConnectionTerminal
         return newConnection;
     }
 
-    internal void CloseRelayedConnections()
+    internal void CloseRelayedConnections(bool incoming = false)
     {
-        TemporaryList<ClientConnection> list = default;
-        using (this.clientConnections.LockObject.EnterScope())
+        // A reverse connection is registered under the other owner's lock. Keep registration closed
+        // through both snapshots and disposal without acquiring the two owner locks together.
+        ref var closing = ref (incoming ? ref this.closingIncomingRelayedConnections : ref this.closingOutgoingRelayedConnections);
+        Interlocked.Increment(ref closing);
+        try
         {
-            foreach (var x in this.clientConnections)
+            var connections = new List<Connection>();
+            using (this.clientConnections.LockObject.EnterScope())
             {
-                if (x.MinimumNumberOfRelays > 0)
+                foreach (var connection in this.clientConnections.ToArray())
                 {
-                    list.Add(x);
+                    if (connection.MinimumNumberOfRelays > 0 && connection.UseIncomingRelay == incoming)
+                    {
+                        connection.Goshujin = null;
+                        connections.Add(connection);
+                    }
                 }
             }
-        }
 
-        foreach (var x in list)
-        {// Dispose every transmission, not only streams: the connection is detached below and would never release block requests,
-         // their buffers, or response callbacks.
-            x.CloseAllTransmission();
-        }
-
-        using (this.clientConnections.LockObject.EnterScope())
-        {
-            foreach (var x in list)
+            using (this.serverConnections.LockObject.EnterScope())
             {
-                if (x.IsOpen)
+                foreach (var connection in this.serverConnections.ToArray())
                 {
-                    x.ChangeStateInternal(Connection.State.Closed);
+                    if (connection.MinimumNumberOfRelays > 0 && connection.UseIncomingRelay == incoming)
+                    {
+                        connection.Goshujin = null;
+                        connections.Add(connection);
+                    }
                 }
-
-                if (x.IsClosed)
-                {
-                    x.ChangeStateInternal(Connection.State.Disposed);
-                }
-
-                x.Goshujin = null;
             }
+
+            var errors = DisposeConnections(connections);
+            if (errors is not null)
+            {
+                throw new AggregateException(errors);
+            }
+        }
+        finally
+        {
+            Interlocked.Decrement(ref closing);
         }
     }
 
@@ -370,6 +384,9 @@ public class ConnectionTerminal
         using (this.clientConnections.LockObject.EnterScope())
         {
             ObjectDisposedException.ThrowIf(this.terminating, this);
+            ObjectDisposedException.ThrowIf(
+                serverConnection.IsClosedOrDisposed || (serverConnection.MinimumNumberOfRelays > 0 && this.IsClosingRelayedConnections(serverConnection.UseIncomingRelay)),
+                serverConnection);
             if (this.clientConnections.ConnectionIdChain.TryGetValue(serverConnection.ConnectionId, out var connection))
             {
                 connection.IncrementOpenCount();
@@ -391,6 +408,9 @@ public class ConnectionTerminal
         using (this.serverConnections.LockObject.EnterScope())
         {
             ObjectDisposedException.ThrowIf(this.terminating, this);
+            ObjectDisposedException.ThrowIf(
+                clientConnection.IsClosedOrDisposed || (clientConnection.MinimumNumberOfRelays > 0 && this.IsClosingRelayedConnections(clientConnection.UseIncomingRelay)),
+                clientConnection);
             if (this.serverConnections.ConnectionIdChain.TryGetValue(clientConnection.ConnectionId, out var connection))
             {// ReuseServerConnection
                 // Reusing a Connection may cause inconsistencies in the enabled NetServices, but for now the current implementation does not change the NetServices.
@@ -507,7 +527,6 @@ public class ConnectionTerminal
                     return;
                 }
 
-                connection.CloseSendTransmission();
                 if (releaseReference)
                 {// Clamp a count made negative by redundant Dispose calls. A forced close keeps the count: holders still own their
                  // references, and resetting it would let a stale Dispose close the connection after Connect() has reused it.
@@ -525,6 +544,8 @@ public class ConnectionTerminal
 
                     clientConnection.ChangeStateInternal(Connection.State.Closed);
                 }
+
+                connection.CloseTransmissions();
 
                 bidirectionalConnection = clientConnection.BidirectionalConnection;
                 if (bidirectionalConnection is not null)
@@ -545,7 +566,6 @@ public class ConnectionTerminal
             ClientConnection? bidirectionalConnection;
             using (g2.LockObject.EnterScope())
             {
-                connection.CloseSendTransmission();
                 if (connection.CurrentState == Connection.State.Open)
                 {// Open -> Close
                     connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{connection.ConnectionIdText} Open -> Closed, SendCloseFrame {sendCloseFrame}");
@@ -557,6 +577,8 @@ public class ConnectionTerminal
 
                     serverConnection.ChangeStateInternal(Connection.State.Closed);
                 }
+
+                connection.CloseTransmissions();
 
                 bidirectionalConnection = serverConnection.BidirectionalConnection;
                 if (bidirectionalConnection is not null)
@@ -573,7 +595,7 @@ public class ConnectionTerminal
         }
         else
         {
-            connection.CloseSendTransmission();
+            connection.CloseTransmissions();
         }
     }
 
@@ -658,11 +680,6 @@ public class ConnectionTerminal
 
         if (packetUInt16 < 384)
         {// Client -> Server
-            if (outgoingRelay)
-            {
-                return;
-            }
-
             ServerConnection? connection = default;
             using (this.serverConnections.LockObject.EnterScope())
             {
@@ -670,8 +687,10 @@ public class ConnectionTerminal
             }
 
             if (connection is not null &&
+                (!outgoingRelay || !connection.UseIncomingRelay) &&
                 connection.DestinationEndpoint.Equals(endpoint))
-            {// A closed connection is reopened by Connection.ProcessReceive() only after the packet has been authenticated.
+            {// Outgoing circuits can carry requests for an existing bidirectional connection.
+             // A closed connection is reopened by Connection.ProcessReceive() only after authentication.
                 connection.ProcessReceive(endpoint, toBeShared, currentSystemMics);
             }
         }
@@ -727,20 +746,14 @@ public class ConnectionTerminal
 
         // Shutdown must release all leases even when cancellation or a user callback fails.
         // Invoke callbacks after detaching connections and releasing the owner locks.
-        List<Exception>? errors = null;
-        foreach (var connection in clients)
-        {
-            TerminateConnection(connection);
-        }
-
-        foreach (var connection in servers)
-        {
-            TerminateConnection(connection);
-        }
-
+        var errors = DisposeConnections(clients.Concat<Connection>(servers));
         return errors is null ? Task.CompletedTask : Task.FromException(new AggregateException(errors));
+    }
 
-        void TerminateConnection(Connection connection)
+    private static List<Exception>? DisposeConnections(IEnumerable<Connection> connections)
+    {
+        List<Exception>? errors = null;
+        foreach (var connection in connections)
         {
             try
             {
@@ -760,11 +773,18 @@ public class ConnectionTerminal
             {
                 (errors ??= new()).Add(exception);
             }
-            finally
+
+            try
             {
                 connection.CloseAllTransmission();
             }
+            catch (Exception exception)
+            {
+                (errors ??= new()).Add(exception);
+            }
         }
+
+        return errors;
     }
 
     private enum CleanAction
@@ -793,4 +813,7 @@ public class ConnectionTerminal
 
         return CleanAction.None;
     }
+
+    private bool IsClosingRelayedConnections(bool incoming)
+        => incoming ? Volatile.Read(ref this.closingIncomingRelayedConnections) > 0 : Volatile.Read(ref this.closingOutgoingRelayedConnections) > 0;
 }
