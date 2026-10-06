@@ -13,6 +13,13 @@ public class CertificateRelayControl : IRelayControl
 {
     public static readonly IRelayControl Instance = new CertificateRelayControl();
 
+    private volatile CertificateKey certificateKey = new(default);
+
+    private sealed class CertificateKey(SignaturePublicKey publicKey)
+    {
+        public SignaturePublicKey PublicKey { get; } = publicKey;
+    }
+
     private class CreateRelayResponder : AsyncResponder<CertificateToken<AssignRelayBlock>, AssignRelayResponse>
     {
         public CreateRelayResponder(CertificateRelayControl relayControl)
@@ -57,7 +64,7 @@ public class CertificateRelayControl : IRelayControl
     public long DefaultRestrictedIntervalMics
         => 20_000;
 
-    public SignaturePublicKey CertificatePublicKey { get; private set; }
+    public SignaturePublicKey CertificatePublicKey => this.certificateKey.PublicKey;
 
     public void RegisterResponder(ResponderControl responders)
     {
@@ -66,6 +73,7 @@ public class CertificateRelayControl : IRelayControl
 
     public void SetCertificatePublicKey(SignaturePublicKey publicKey)
     {
-        this.CertificatePublicKey = publicKey;
+        // Publish the 32-byte key atomically while allocation requests may be verifying it.
+        this.certificateKey = new(publicKey);
     }
 }

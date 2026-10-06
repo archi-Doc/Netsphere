@@ -1,7 +1,6 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
 using System;
-using System.Collections.Concurrent;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Arc.Collections;
@@ -252,20 +251,15 @@ public class CubicCongestionControl : ICongestionControl
 
     void ICongestionControl.AddRtt(int rttMics)
     {
-        if (this.slowstart)
+        using (this.lockObject.EnterScope())
         {
-            Interlocked.Increment(ref this.currentRttSamples);
-
-            int current;
-            do
+            if (this.slowstart)
             {
-                current = this.currentMinRtt;
-                if (current < rttMics)
-                {
-                    return;
-                }
+                // The sample count and minimum belong to the same round. Updating them under the
+                // reset lock prevents a concurrent sample from being split between two rounds.
+                this.currentRttSamples++;
+                this.currentMinRtt = Math.Min(this.currentMinRtt, rttMics);
             }
-            while (Interlocked.CompareExchange(ref this.currentMinRtt, rttMics, current) != current);
         }
     }
 
@@ -506,8 +500,8 @@ public class CubicCongestionControl : ICongestionControl
                     this.previousMinRtt = currentMinRtt;
                 }
 
-                Volatile.Write(ref this.currentRttSamples, 0);
-                Volatile.Write(ref this.currentMinRtt, int.MaxValue);
+                this.currentRttSamples = 0;
+                this.currentMinRtt = int.MaxValue;
             }
         }
 

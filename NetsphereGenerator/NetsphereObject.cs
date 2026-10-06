@@ -265,7 +265,8 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 foreach (var x in this.GetMembers(VisceralTarget.Method))
                 {
                     if (x.Method_IsConstructor && x.ContainingObject == this && x.Method_Parameters.Length == 0 &&
-                        x.symbol is IMethodSymbol { DeclaredAccessibility: Accessibility.Public or Accessibility.Internal })
+                        x.symbol is IMethodSymbol constructor &&
+                        this.Body.Compilation.IsSymbolAccessibleWithin(constructor, this.Body.Compilation.Assembly))
                     {// A parameterless constructor that the generated code can call; otherwise the agent is created through DI only.
                         this.ObjectFlags |= NetsphereObjectFlags.HasDefaultConstructor;
                         break;
@@ -318,11 +319,13 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier |
         SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers);
 
-    private static string ToPropertyDefinitionString(IPropertySymbol property)
+    private static string ToPropertyDefinitionString(IPropertySymbol property, bool explicitImplementation = false)
     {// The stub lives in Netsphere.Generated, so the type must be fully qualified and keep its nullable annotation.
         var sb = new StringBuilder();
 
-        sb.Append($"public {property.Type.ToDisplayString(PropertyTypeFormat)} @{property.Name} {{");
+        var prefix = explicitImplementation ? string.Empty : "public ";
+        var name = explicitImplementation ? $"{property.ContainingType.ToDisplayString(PropertyTypeFormat)}.@{property.Name}" : $"@{property.Name}";
+        sb.Append($"{prefix}{property.Type.ToDisplayString(PropertyTypeFormat)} {name} {{");
 
         if (property.GetMethod is not null)
         {
@@ -371,7 +374,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 {
                     if (x.symbol is IPropertySymbol propertySymbol)
                     {
-                        ssb.AppendLine(ToPropertyDefinitionString(propertySymbol));
+                        ssb.AppendLine(ToPropertyDefinitionString(propertySymbol, true));
                     }
                 }
             }
@@ -394,6 +397,10 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         var taskString = $"Task{genericString}";
         var deserializeString = method.TaskResultObject == null ? "NetResult" : returnTypeName;
         var decrement = method.HasCancellationTokenParameter ? 1 : 0;
+        // Separate inherited contracts even when they declare the same method signature.
+        var inherited = method.DeclaringInterfaceFullName != this.FullName;
+        var access = inherited ? string.Empty : "public ";
+        var methodName = inherited ? $"{method.DeclaringInterfaceFullName}.{method.SimpleName}" : method.SimpleName;
 
         var asyncPrefix = "async ";
         if (method.Kind == ServiceMethod.ServiceMethodKind.UpdateAgreement ||
@@ -404,7 +411,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
         if (method.ReturnKind == ServiceMethod.PayloadKind.ResponseChannel)
         {
-            using (var scopeMethod = ssb.ScopeBrace($"public void {method.SimpleName}({method.GetParameterDeclarations()})"))
+            using (var scopeMethod = ssb.ScopeBrace($"{access}void {methodName}({method.GetParameterDeclarations()})"))
             {
                 var channelName = $"{NetsphereBody.ArgumentPrefix}{method.ParameterCount}";
                 using (var scopeSerialize = ssb.ScopeBrace($"if (!NetHelper.TrySerialize({method.GetParameterNames(NetsphereBody.ArgumentPrefix, decrement)}, out var owner))"))
@@ -429,7 +436,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
             return;
         }
 
-        using (var scopeMethod = ssb.ScopeBrace($"public {asyncPrefix}{taskString} {method.SimpleName}({method.GetParameterDeclarations()})"))
+        using (var scopeMethod = ssb.ScopeBrace($"{access}{asyncPrefix}{taskString} {methodName}({method.GetParameterDeclarations()})"))
         {
             if (method.Kind == ServiceMethod.ServiceMethodKind.UpdateAgreement)
             {
@@ -664,32 +671,30 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         this.GenerateBackend_AgentInfo(ssb, serviceInterface);
     }
 
-    internal ServiceFilterGroup? GetServiceFilter(NetsphereObject serviceInterface, ServiceMethod method)
+    internal ServiceFilterGroup? GetServiceFilter(ServiceMethod method)
     {
         if (this.MethodNameToFilterGroup == null)
         {
             return null;
         }
 
-        var explicitName = this.FullName + "." + serviceInterface.FullName + "." + method.LocalName;
-        if (this.MethodNameToFilterGroup.TryGetValue(explicitName, out var serviceFilter))
+        // Resolve the actual implementation, including explicit and inherited methods.
+        // Guessing its name using this class loses filters declared on a base class.
+        if (this.symbol is INamedTypeSymbol type && method.MethodSymbol is { } contract &&
+            type.FindImplementationForInterfaceMember(contract) is IMethodSymbol implementation)
         {
-            return serviceFilter;
-        }
-
-        var name = this.FullName + "." + method.LocalName;
-        if (this.MethodNameToFilterGroup.TryGetValue(name, out var serviceFilter2))
-        {
-            return serviceFilter2;
-        }
-
-        if (method.DeclaringInterfaceFullName is { } declaringInterface &&
-            declaringInterface != serviceInterface.FullName)
-        {// Explicit implementation of a method declared by a base interface (for example, INetServiceWithUpdateAgreement.UpdateAgreement).
-            var inheritedName = this.FullName + "." + declaringInterface + "." + method.LocalName;
-            if (this.MethodNameToFilterGroup.TryGetValue(inheritedName, out var serviceFilter3))
+            // The interface map may name the base virtual method even though dispatch
+            // reaches an override. Members are ordered from this class toward its bases.
+            foreach (var candidate in this.GetMembers(VisceralTarget.Method))
             {
-                return serviceFilter3;
+                for (var target = candidate.TryGetMethodSymbol(); target is not null; target = target.OverriddenMethod)
+                {
+                    if (SymbolEqualityComparer.Default.Equals(target, implementation))
+                    {
+                        this.MethodNameToFilterGroup.TryGetValue(candidate.FullName, out var serviceFilter);
+                        return serviceFilter;
+                    }
+                }
             }
         }
 
@@ -703,7 +708,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
         // Callers await the delegate inside try blocks, so synchronous exceptions are handled the same as faulted tasks.
         using (var scopeMethod = ssb.ScopeBrace($"private static Task {method.GeneratedMethodName}(object obj, TransmissionContext c0)"))
         {
-            var methodFilters = this.GetServiceFilter(serviceInterface, method);
+            var methodFilters = this.GetServiceFilter(method);
             var filters = ServiceFilterGroup.CombineItems(this.ClassFilterGroup, methodFilters);
 
             var code = $"Core(({serviceInterface.FullName})obj, c0)";
@@ -766,6 +771,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
     internal void GenerateBackend_MethodCore(ScopingStringBuilder ssb, NetsphereObject serviceInterface, ServiceMethod method, int decrement)
     {
+        var agent = method.DeclaringInterfaceFullName == serviceInterface.FullName ? "agent" : $"(({method.DeclaringInterfaceFullName})agent)";
         if (method.ReturnKind == ServiceMethod.PayloadKind.ResponseChannel)
         {
             using (ssb.ScopeBrace($"if (!NetHelper.Deserialize<{method.GetParameterTypes(decrement)}>(context.RentMemory, out var value))"))
@@ -781,7 +787,7 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                 }
             }
 
-            ssb.AppendLine($"agent.{method.SimpleName}({method.GetTupleItemArguments("value", decrement, method.HasCancellationTokenParameter)});");
+            ssb.AppendLine($"{agent}.{method.SimpleName}({method.GetTupleItemArguments("value", decrement, method.HasCancellationTokenParameter)});");
             var responseValue = method.ParameterCount == 1 ? "value" : $"value.Item{method.ParameterCount}";
             using (ssb.ScopeBrace($"if (NetHelper.TrySerialize({responseValue}, out var owner2))"))
             {
@@ -891,16 +897,16 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
                     }
                 }
 
-                ssb.AppendLine($"{prefix}await agent.{method.SimpleName}({method.GetTupleItemArguments("rr.Value!", decrement + 1, method.HasCancellationTokenParameter)}, context.GetReceiveStream().MaxStreamLength).ConfigureAwait(false);");
+                ssb.AppendLine($"{prefix}await {agent}.{method.SimpleName}({method.GetTupleItemArguments("rr.Value!", decrement + 1, method.HasCancellationTokenParameter)}, context.GetReceiveStream().MaxStreamLength).ConfigureAwait(false);");
             }
             else
             {
-                ssb.AppendLine($"{prefix}await agent.{method.SimpleName}(context.GetReceiveStream().MaxStreamLength).ConfigureAwait(false);");
+                ssb.AppendLine($"{prefix}await {agent}.{method.SimpleName}(context.GetReceiveStream().MaxStreamLength).ConfigureAwait(false);");
             }
         }
         else
         {
-            ssb.AppendLine($"{prefix}await agent.{method.SimpleName}({method.GetTupleItemArguments("value", decrement, method.HasCancellationTokenParameter)}).ConfigureAwait(false);");
+            ssb.AppendLine($"{prefix}await {agent}.{method.SimpleName}({method.GetTupleItemArguments("value", decrement, method.HasCancellationTokenParameter)}).ConfigureAwait(false);");
         }
 
         // ssb.AppendLine("context.Return();"); -> try-finally

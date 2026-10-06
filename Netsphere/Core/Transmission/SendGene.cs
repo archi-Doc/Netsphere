@@ -104,15 +104,22 @@ internal partial class SendGene
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Dispose(bool ack)
+    public int? Dispose(bool ack)
     {// using (SendTransmissions.lockObject.EnterScope())
+        int? rtt;
         using (this.CongestionControl.SyncObject.EnterScope())
         {
+            // Retransmissions update both fields under the congestion lock. Capture the RTT and remove
+            // the gene in the same critical section so a retransmission cannot make this sample ambiguous.
+            rtt = ack && this.CurrentState == State.Sent && this.Packet.IsRented
+                ? (int)Math.Clamp(Mics.FastSystem - this.SentMics, 0, int.MaxValue)
+                : null;
             this.CongestionControl.RemoveInFlight(this, ack);
             this.Packet = this.Packet.Return();
         }
 
         this.Goshujin = null;
+        return rtt;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

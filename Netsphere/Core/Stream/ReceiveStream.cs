@@ -110,7 +110,7 @@ public class ReceiveStream : IReceiveStreamInternal // , IDisposable
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            this.Dispose();
+            this.ReceiveTransmission.Dispose(NetResult.Canceled);
             return (NetResult.Canceled, 0);
         }
     }
@@ -150,7 +150,7 @@ public class ReceiveStream : IReceiveStreamInternal // , IDisposable
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            this.Dispose();
+            this.ReceiveTransmission.Dispose(NetResult.Canceled);
             return new(NetResult.Canceled);
         }
     }
@@ -161,7 +161,7 @@ public class ReceiveStream : IReceiveStreamInternal // , IDisposable
         try
         {
             var (result, written) = await this.ReceiveCore(rentArray.AsMemory(0, sizeof(int)).Memory, cancellationToken).ConfigureAwait(false);
-            if (result != NetResult.Success)
+            if (result.IsError() || (result == NetResult.Completed && written == 0))
             {
                 return new(result);
             }
@@ -182,6 +182,12 @@ public class ReceiveStream : IReceiveStreamInternal // , IDisposable
             {
                 this.Dispose();
                 return new(NetResult.BlockSizeLimit);
+            }
+
+            if (length > this.MaxStreamLength - this.ReceivedLength)
+            {// Reject a truncated block before renting its claimed payload buffer.
+                this.Dispose();
+                return new(NetResult.DeserializationFailed);
             }
 
             var memory = rentArray.AsMemory(sizeof(int));

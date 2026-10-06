@@ -480,8 +480,10 @@ AcceptIncoming:
                 }
             }
 
-            var sourceRelayId = MemoryMarshal.Read<RelayId>(source.Span);
-            var extraLength = Aegis128L.MinTagSize + (sourceRelayId == 0 ? RelayHeader.Length : 0);
+            // An outermost relay receives ordinary packets even when their sender is another relay.
+            // Only packets authenticated by the configured outer hop already contain our relay envelope.
+            var needsRelayHeader = !exchange.OuterEndpoint.IsValid || MemoryMarshal.Read<RelayId>(source.Span) == 0;
+            var extraLength = Aegis128L.MinTagSize + (needsRelayHeader ? RelayHeader.Length : 0);
             if (source.Length > NetConstants.MaxPacketLength - extraLength ||
                 !source.Owner!.AsSpan().Overlaps(source.Span, out var offset) ||
                 source.Length > source.Owner.Array.Length - offset - extraLength)
@@ -489,7 +491,7 @@ AcceptIncoming:
                 goto Exit;
             }
 
-            if (sourceRelayId == 0)
+            if (needsRelayHeader)
             {// RelayId(Source/Destination), RelayHeader, Content(span)
                 var sourceSpan = source.Owner.Array.AsSpan(offset + RelayHeader.RelayIdLength);
                 span.CopyTo(sourceSpan.Slice(RelayHeader.Length));

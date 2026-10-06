@@ -490,34 +490,34 @@ internal sealed partial class SendTransmission : IDisposable
 
         if (this.gene0 is not null)
         {
-            if (this.gene0.CurrentState == SendGene.State.Sent)
+            if (this.gene0.Dispose(true) is { } rtt)
             {// Exclude resent genes as they do not allow for accurate RTT measurement.
-                this.Connection.AddRtt((int)(Mics.FastSystem - this.gene0.SentMics));
+                this.Connection.AddRtt(rtt);
+                this.gene0.CongestionControl.AddRtt(rtt);
             }
 
-            this.gene0.Dispose(true);
             this.gene0 = null;
         }
 
         if (this.gene1 is not null)
         {
-            if (this.gene1.CurrentState == SendGene.State.Sent)
+            if (this.gene1.Dispose(true) is { } rtt)
             {// Exclude resent genes as they do not allow for accurate RTT measurement.
-                this.Connection.AddRtt((int)(Mics.FastSystem - this.gene1.SentMics));
+                this.Connection.AddRtt(rtt);
+                this.gene1.CongestionControl.AddRtt(rtt);
             }
 
-            this.gene1.Dispose(true);
             this.gene1 = null;
         }
 
         if (this.gene2 is not null)
         {
-            if (this.gene2.CurrentState == SendGene.State.Sent)
+            if (this.gene2.Dispose(true) is { } rtt)
             {// Exclude resent genes as they do not allow for accurate RTT measurement.
-                this.Connection.AddRtt((int)(Mics.FastSystem - this.gene2.SentMics));
+                this.Connection.AddRtt(rtt);
+                this.gene2.CongestionControl.AddRtt(rtt);
             }
 
-            this.gene2.Dispose(true);
             this.gene2 = null;
         }
 
@@ -587,20 +587,11 @@ internal sealed partial class SendTransmission : IDisposable
             {
                 if (chain.GetOrDefault(i) is { } gene)
                 {
-                    if (gene.CurrentState == SendGene.State.Sent)
+                    if (gene.Dispose(true) is { } rtt)
                     {// Exclude resent genes as they do not allow for accurate RTT measurement.
-                        var rtt = (int)(Mics.FastSystem - gene.SentMics);
-
-                        if (NetConstants.LogLowLevelNet)
-                        {
-                            // this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"ReceiveAck {gene.GeneSerial} {rtt} mics");
-                        }
-
                         this.Connection.AddRtt(rtt);
-                        congestionControl.AddRtt(rtt);
+                        gene.CongestionControl.AddRtt(rtt);
                     }
-
-                    gene.Dispose(true); // this.genes.GeneSerialListChain.Remove(gene);
                 }
             }
 
@@ -634,20 +625,11 @@ internal sealed partial class SendTransmission : IDisposable
                 {
                     if (chain.GetOrDefault(i) is { } gene)
                     {
-                        if (gene.CurrentState == SendGene.State.Sent)
+                        if (gene.Dispose(true) is { } rtt)
                         {// Exclude resent genes as they do not allow for accurate RTT measurement.
-                            var rtt = (int)(Mics.FastSystem - gene.SentMics);
-
-                            if (NetConstants.LogLowLevelNet)
-                            {
-                                // this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"ReceiveAck {gene.GeneSerial} {rtt} mics");
-                            }
-
                             this.Connection.AddRtt(rtt);
-                            congestionControl.AddRtt(rtt);
+                            gene.CongestionControl.AddRtt(rtt);
                         }
-
-                        gene.Dispose(true); // this.genes.GeneSerialListChain.Remove(gene);
                     }
                 }
 

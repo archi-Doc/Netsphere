@@ -16,9 +16,10 @@ public class ServiceFilterGroup
 
     public class FilterItem
     {
-        public FilterItem(NetsphereObject filterObject, NetsphereObject? callContextObject, string identifier, string? arguments, int order, bool isAsync)
+        public FilterItem(NetsphereObject filterObject, string filterInterfaceFullName, NetsphereObject? callContextObject, string identifier, string? arguments, int order, bool isAsync)
         {
             this.FilterObject = filterObject;
+            this.FilterInterfaceFullName = filterInterfaceFullName;
             this.CallContextObject = callContextObject;
             this.Identifier = identifier;
             this.Arguments = arguments;
@@ -27,6 +28,8 @@ public class ServiceFilterGroup
         }
 
         public NetsphereObject FilterObject { get; private set; }
+
+        public string FilterInterfaceFullName { get; private set; }
 
         public NetsphereObject? CallContextObject { get; private set; }
 
@@ -83,7 +86,9 @@ public class ServiceFilterGroup
             {
                 if (a.Method_IsConstructor && a.ContainingObject == x.FilterObject)
                 {// Constructor
-                    if (a.Method_Parameters.Length == 0)
+                    if (a.Method_Parameters.Length == 0 &&
+                        a.TryGetMethodSymbol() is { ContainingType.IsAbstract: false } constructor &&
+                        x.FilterObject.Body.Compilation.IsSymbolAccessibleWithin(constructor, x.FilterObject.Body.Compilation.Assembly))
                     {
                         hasDefaultConstructor = true;
                         break;
@@ -94,11 +99,11 @@ public class ServiceFilterGroup
             // ssb.AppendLine($"this.{x.Identifier} = ({x.FilterObject.FullName}){context}.ServiceFilters.GetOrAdd(typeof({x.FilterObject.FullName}), x => (IServiceFilter){newInstance});");
             if (hasDefaultConstructor)
             {
-                ssb.AppendLine($"var {x.Identifier} = new {x.FilterObject.FullName}();");
+                ssb.AppendLine($"{x.FilterInterfaceFullName} {x.Identifier} = new {x.FilterObject.FullName}();");
             }
             else
             {
-                ssb.AppendLine($"var {x.Identifier} = {serviceProvider}?.GetService(typeof({x.FilterObject.FullName})) as {x.FilterObject.FullName};");
+                ssb.AppendLine($"{x.FilterInterfaceFullName}? {x.Identifier} = {serviceProvider}?.GetService(typeof({x.FilterObject.FullName})) as {x.FilterObject.FullName};");
             }
 
             if (!hasDefaultConstructor)
@@ -153,7 +158,7 @@ public class ServiceFilterGroup
                 argument = filterList[i].Arguments;
             }
 
-            var item = new FilterItem(obj, callContextObject, this.OwnerObject.Identifier.GetIdentifier(), argument, filterList[i].Order, isAsync);
+            var item = new FilterItem(obj, filterObject.FullName, callContextObject, this.OwnerObject.Identifier.GetIdentifier(), argument, filterList[i].Order, isAsync);
             items[i] = item;
         }
 

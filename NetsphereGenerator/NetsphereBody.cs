@@ -106,10 +106,13 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
         id: "NSG018", title: "No NetService interface", messageFormat: "NetObject '{0}' does not directly implement an interface with NetServiceAttribute, so no service is generated for it",
         category: GeneratorName, DiagnosticSeverity.Warning, isEnabledByDefault: true);
 
-    public NetsphereBody(SourceProductionContext context)
+    public NetsphereBody(SourceProductionContext context, Compilation compilation)
         : base(context)
     {
+        this.Compilation = compilation;
     }
+
+    public Compilation Compilation { get; }
 
     internal Dictionary<uint, NetsphereObject> IdToNetInterface = new();
 
@@ -377,6 +380,7 @@ public class NetsphereBody : VisceralBody<NetsphereObject>
         ssb.AddUsing("System.Collections.Generic");
         ssb.AddUsing("System.Diagnostics.CodeAnalysis");
         ssb.AddUsing("System.Runtime.CompilerServices");
+        ssb.AddUsing("System.Threading.Tasks");
         ssb.AddUsing("Arc.Collections");
         ssb.AddUsing("Netsphere");
 

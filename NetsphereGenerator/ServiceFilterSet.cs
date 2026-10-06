@@ -1,5 +1,6 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using Arc.Visceral;
 using Microsoft.CodeAnalysis;
 
 #pragma warning disable RS1024 // Compare symbols correctly
@@ -12,7 +13,7 @@ public class ServiceFilterSet
     {
         List<NetServiceFilterAttributeMock>? filterList = null;
         var errorFlag = false;
-        foreach (var x in obj.AllAttributes)
+        foreach (var x in GetInheritedAttributes(obj))
         {
             if (x.FullName.StartsWith(NetServiceFilterAttributeMock.GenericFullNamePrefix) && x.FullName.EndsWith(">"))
             {
@@ -124,4 +125,26 @@ public class ServiceFilterSet
     }
 
     public List<NetServiceFilterAttributeMock> FilterList { get; private set; }
+
+    private static IEnumerable<VisceralAttribute> GetInheritedAttributes(NetsphereObject obj)
+    {
+        for (NetsphereObject? current = obj; current is not null;)
+        {
+            foreach (var attribute in current.AllAttributes)
+            {
+                yield return attribute;
+            }
+
+            // NetServiceFilterAttribute is inherited. Roslyn's GetAttributes only
+            // returns attributes declared on this symbol, including for overrides.
+            if (current.TryGetMethodSymbol() is { } method)
+            {
+                current = method.OverriddenMethod is { } overridden ? obj.Body.Add(overridden) : null;
+            }
+            else
+            {
+                current = current.BaseObject;
+            }
+        }
+    }
 }

@@ -488,6 +488,8 @@ public class ServiceMethod
         }
     }
 
+    internal IMethodSymbol? MethodSymbol => this.method.TryGetMethodSymbol();
+
     private static string GetValueTupleTypeArguments(IReadOnlyList<string> parameters, int length, int offset)
     {
         var numberOfItems = Math.Min(7, length - offset);
