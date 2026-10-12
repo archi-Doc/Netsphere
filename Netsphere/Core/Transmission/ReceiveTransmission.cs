@@ -56,6 +56,17 @@ internal sealed partial class ReceiveTransmission : IDisposable
     internal bool IsDisposed
         => this.Mode == NetTransmissionMode.Disposed;
 
+    internal NetResult Result
+    {
+        get
+        {
+            using (this.lockObject.EnterScope())
+            {
+                return this.IsDisposed ? this.streamResult : NetResult.NotReceived;
+            }
+        }
+    }
+
 #pragma warning disable SA1401 // Fields should be private
     // Received/Disposed list, lock (Connection.receiveTransmissions.SyncObject)
     internal UnorderedLinkedList<ReceiveTransmission>.Node? ReceivedOrDisposedNode;
@@ -70,7 +81,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
     private TaskCompletionSource<NetResponse>? receivedTcs;
     private IResponseChannelInternal? receivedNetUnion;
     private volatile int successiveReceivedPosition;
-    private NetResult streamResult = NetResult.Closed; // How the reader ended the stream; any other disposal (cleanup, termination) is reported as Closed.
+    private NetResult streamResult = NetResult.Closed; // Successful block receipt or the stream reader's result; other disposal is reported as Closed.
     private ReceiveGene? gene0; // Gene 0
     private ReceiveGene? gene1; // Gene 1
     private ReceiveGene? gene2; // Gene 2
@@ -278,6 +289,20 @@ internal sealed partial class ReceiveTransmission : IDisposable
 
             if (this.Mode == NetTransmissionMode.Disposed)
             {// The case that the ACK has not arrived after the receive transmission was disposed.
+                if (this.totalGene >= 0)
+                {
+                    if (this.streamResult != NetResult.Success || dataPosition >= this.totalGene || dataControl != DataControl.Valid)
+                    {// A discarded block cannot acknowledge genes it never received.
+                        return;
+                    }
+
+                    if (this.totalGene <= NetHelper.BurstGenes)
+                    {
+                        this.Connection.ConnectionTerminal.AckQueue.AckBurst(this.Connection, this);
+                        return;
+                    }
+                }
+
                 this.Connection.ConnectionTerminal.AckQueue.AckBlock(this.Connection, this, dataPosition);
                 return;
             }
@@ -388,7 +413,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
             }
 
             if (completeFlag)
-            {// Complete (Burst, Stream)
+            {// Complete (Burst, Block)
                 this.ProcessReceive_GeneComplete(out dataKind, out dataId, out rentMemory);
                 burst = this.Mode == NetTransmissionMode.Burst;
                 receivedTcs = this.receivedTcs;
@@ -396,7 +421,7 @@ internal sealed partial class ReceiveTransmission : IDisposable
                 this.receivedTcs = default;
                 this.receivedNetUnion = default;
                 // this.Goshujin = null; // -> this.Connection.RemoveTransmission(this);
-                this.DisposeInternal();
+                this.DisposeInternal(NetResult.Success);
             }
         }
 
@@ -788,10 +813,8 @@ Cancel:
                 }
             }
 
-            if (this.IsDisposed)
-            {// Transmission
-                return (new(NetResult.Closed), false);
-            }
+            // Completing a block disposes its genes before delivering the captured response task.
+            // Actual disposal completes that task itself, so the mode alone must not abort this wait.
         }
     }
 }

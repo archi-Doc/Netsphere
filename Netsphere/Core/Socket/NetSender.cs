@@ -35,6 +35,7 @@ internal class NetSender
         public static void Process(object? parameter)
         {
             var core = (SendCore)parameter!;
+            using var microSleep = new MicroSleep();
             while (core.CanContinue)
             {
                 var prev = Mics.GetSystem();
@@ -45,7 +46,7 @@ internal class NetSender
                 {
                     // core.socket.Logger?.GetWriter()?.Write($"Nanosleep: {nano}");
                     // core.TryNanoSleep(nano);
-                    core.microSleep.Sleep((int)mics);
+                    microSleep.Sleep((int)mics);
                 }
             }
         }
@@ -60,7 +61,6 @@ internal class NetSender
         }
 
         private readonly NetSender sender;
-        private readonly MicroSleep microSleep = new();
         // private MultimediaTimer? timer;
     }
 
@@ -99,47 +99,41 @@ internal class NetSender
 
     public async Task<bool> StartAsync(ExecutionGroup group)
     {
-        var port = this.netTerminal.Port;
-        int retry;
-
-        retry = 0;
-        while (true)
+        var attempt = new object();
+        using (this.lifecycleLock.EnterScope())
         {
-            if (this.netSocketIpv4.Start(group, port, false, out var boundPort))
+            if (this.startAttempt is not null || this.sendCore is not null || !group.CanContinue)
             {
-                if (port == 0)
-                {
-                    port = boundPort;
-                    this.netTerminal.SetAutoAssignedPort(port);
-                }
-
-                break;
+                return false;
             }
 
-            if (retry++ >= RetryLimit)
-            {
-                this.logger.GetWriter(LogLevel.Fatal)?.Write($"Could not create a UDP socket with port number {port}.");
-                throw new PanicException();
-            }
-            else
-            {
-                this.logger.GetWriter(LogLevel.Warning)?.Write($"Retry creating a UDP socket with port number {port}.");
-                await Task.Delay(RetryIntervalInMilliseconds);
-            }
+            this.startAttempt = attempt;
         }
 
-        if (!System.Net.Sockets.Socket.OSSupportsIPv6)
-        {// IPv6 sockets cannot be created on this host; queued IPv6 packets are discarded by Send().
-            this.logger.GetWriter(LogLevel.Warning)?.Write("IPv6 is not supported on this host. Only the IPv4 socket is created.");
-        }
-        else
+        var started = false;
+        try
         {
-            retry = 0;
+            var port = this.netTerminal.Port;
+            var retry = 0;
             while (true)
             {
-                if (this.netSocketIpv6.Start(group, port, true, out _))
+                using (this.lifecycleLock.EnterScope())
                 {
-                    break;
+                    if (!ReferenceEquals(this.startAttempt, attempt) || !group.CanContinue)
+                    {
+                        return false;
+                    }
+
+                    if (this.netSocketIpv4.Start(group, port, false, out var boundPort))
+                    {
+                        if (port == 0)
+                        {
+                            port = boundPort;
+                            this.netTerminal.SetAutoAssignedPort(port);
+                        }
+
+                        break;
+                    }
                 }
 
                 if (retry++ >= RetryLimit)
@@ -153,24 +147,78 @@ internal class NetSender
                     await Task.Delay(RetryIntervalInMilliseconds);
                 }
             }
-        }
 
-        this.sendCore ??= new SendCore(group, this);
-        this.sendCore.SendSignal(ExecutionSignal.Start);
-        return true;
+            if (!System.Net.Sockets.Socket.OSSupportsIPv6)
+            {// IPv6 sockets cannot be created on this host; queued IPv6 packets are discarded by Send().
+                this.logger.GetWriter(LogLevel.Warning)?.Write("IPv6 is not supported on this host. Only the IPv4 socket is created.");
+            }
+            else
+            {
+                retry = 0;
+                while (true)
+                {
+                    using (this.lifecycleLock.EnterScope())
+                    {
+                        if (!ReferenceEquals(this.startAttempt, attempt) || !group.CanContinue)
+                        {
+                            return false;
+                        }
+
+                        if (this.netSocketIpv6.Start(group, port, true, out _))
+                        {
+                            break;
+                        }
+                    }
+
+                    if (retry++ >= RetryLimit)
+                    {
+                        this.logger.GetWriter(LogLevel.Fatal)?.Write($"Could not create a UDP socket with port number {port}.");
+                        throw new PanicException();
+                    }
+                    else
+                    {
+                        this.logger.GetWriter(LogLevel.Warning)?.Write($"Retry creating a UDP socket with port number {port}.");
+                        await Task.Delay(RetryIntervalInMilliseconds);
+                    }
+                }
+            }
+
+            using (this.lifecycleLock.EnterScope())
+            {
+                if (!ReferenceEquals(this.startAttempt, attempt) || !group.CanContinue)
+                {
+                    return false;
+                }
+
+                this.sendCore = new SendCore(group, this);
+                this.sendCore.SendSignal(ExecutionSignal.Start);
+                started = true;
+                return true;
+            }
+        }
+        finally
+        {
+            using (this.lifecycleLock.EnterScope())
+            {
+                if (ReferenceEquals(this.startAttempt, attempt))
+                {
+                    this.startAttempt = null;
+                    if (!started)
+                    {
+                        this.StopCore();
+                    }
+                }
+            }
+        }
     }
 
     public void Stop()
     {
-        this.netSocketIpv4.Stop();
-        this.netSocketIpv6.Stop();
-        var core = this.sendCore;
-        this.sendCore = null; // A disposed core cannot be restarted, so drop it and create a new one on the next start.
-        core?.Dispose();
-        using (this.lockObject.EnterScope())
+        using (this.lifecycleLock.EnterScope())
         {
-            ReturnQueuedMemory(this.itemsIpv4);
-            ReturnQueuedMemory(this.itemsIpv6);
+            // Invalidate delayed retries before releasing either socket.
+            this.startAttempt = null;
+            this.StopCore();
         }
     }
 
@@ -191,6 +239,8 @@ internal class NetSender
     private readonly ILogger logger;
     private readonly NetSocket netSocketIpv4;
     private readonly NetSocket netSocketIpv6;
+    private readonly Lock lifecycleLock = new();
+    private object? startAttempt;
     private SendCore? sendCore;
 
     private Lock lockObject = new();
@@ -225,6 +275,20 @@ internal class NetSender
         while (queue.TryDequeue(out var item))
         {
             item.MemoryOwner.Return();
+        }
+    }
+
+    private void StopCore()
+    {
+        this.netSocketIpv4.Stop();
+        this.netSocketIpv6.Stop();
+        var core = this.sendCore;
+        this.sendCore = null; // A disposed core cannot be restarted, so drop it and create a new one on the next start.
+        core?.Dispose();
+        using (this.lockObject.EnterScope())
+        {
+            ReturnQueuedMemory(this.itemsIpv4);
+            ReturnQueuedMemory(this.itemsIpv6);
         }
     }
 

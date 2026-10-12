@@ -496,14 +496,14 @@ public class VisceralBody<T>
                 sb = new StringBuilder();
 
                 sb.Append('(');
-                for (var i = 0; i < ts.TypeArguments.Length; i++)
+                for (var i = 0; i < ts.TupleElements.Length; i++)
                 {
                     if (i > 0)
                     {
                         sb.Append(", ");
                     }
 
-                    sb.Append(this.SymbolToName(ts.TypeArguments[i], NameFormat.AddNamespaceAndClass, addNullableAnnotation));
+                    sb.Append(this.SymbolToName(ts.TupleElements[i].Type, NameFormat.AddNamespaceAndClass, addNullableAnnotation));
                 }
 
                 sb.Append(')');

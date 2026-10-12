@@ -8,6 +8,9 @@ namespace Netsphere.Runner;
 
 internal static class RunnerHelper
 {
+    public static string QuoteArgument(string value)
+        => "'" + (OperatingSystem.IsWindows() ? value.Replace("'", "''") : value.Replace("'", "'\"'\"'")) + "'";
+
     public static bool CanReadFile(string path)
     {
         try
@@ -73,7 +76,7 @@ internal static class RunnerHelper
         }
     }*/
 
-    public static async Task DispatchCommand(ILogger logger, string command)
+    public static async Task<bool> DispatchCommand(ILogger logger, string command)
     {
         string shellName;
         if (Environment.OSVersion.Platform == PlatformID.Win32NT)
@@ -104,10 +107,12 @@ internal static class RunnerHelper
 
             var drainOutput = process.StandardOutput.BaseStream.CopyToAsync(Stream.Null);
             await Task.WhenAll(drainOutput, process.WaitForExitAsync()).ConfigureAwait(false);
+            return process.ExitCode == 0;
         }
         catch
         {
             logger.GetWriter(LogLevel.Fatal)?.Write("A fatal error occurred during execution.");
+            return false;
         }
     }
 

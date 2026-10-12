@@ -8,6 +8,7 @@ namespace Netsphere;
 /// <summary>
 /// Represents a server-side connection and its service context.
 /// </summary>
+/// <remarks>The local server context of a bidirectional client connection starts with no services enabled.</remarks>
 [ValueLinkObject(Isolation = IsolationLevel.Serializable, Restricted = true)]
 public sealed partial class ServerConnection : Connection, IEquatable<ServerConnection>, IComparable<ServerConnection>
 {
@@ -17,11 +18,17 @@ public sealed partial class ServerConnection : Connection, IEquatable<ServerConn
 
     public override bool IsServer => true;
 
-    public ClientConnection? BidirectionalConnection { get; internal set; } // lock (this.ConnectionTerminal.clientConnections.SyncObject)
+    public ClientConnection? BidirectionalConnection
+    {
+        get => Volatile.Read(ref this.bidirectionalConnection);
+        internal set => Interlocked.Exchange(ref this.bidirectionalConnection, value);
+    } // lock (this.ConnectionTerminal.clientConnections.SyncObject)
 
     internal ushort InnerRelayId { get; set; }
 
     private ServerConnectionContext context;
+
+    private ClientConnection? bidirectionalConnection;
 
     #endregion
 
@@ -48,16 +55,7 @@ public sealed partial class ServerConnection : Connection, IEquatable<ServerConn
         => (TContext)this.context;
 
     public ClientConnection PrepareBidirectionalConnection()
-    {
-        if (this.BidirectionalConnection is { } connection)
-        {
-            return connection;
-        }
-        else
-        {
-            return this.ConnectionTerminal.PrepareBidirectionalConnection(this);
-        }
-    }
+        => this.ConnectionTerminal.PrepareBidirectionalConnection(this);
 
     public bool Equals(ServerConnection? other)
     {
@@ -95,6 +93,12 @@ public sealed partial class ServerConnection : Connection, IEquatable<ServerConn
 
     public void Close()
         => this.Dispose();
+
+    internal ClientConnection? DetachBidirectionalConnection()
+        => Interlocked.Exchange(ref this.bidirectionalConnection, null);
+
+    internal bool TryClearBidirectionalConnection(ClientConnection expected)
+        => ReferenceEquals(Interlocked.CompareExchange(ref this.bidirectionalConnection, null, expected), expected);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal override void UpdateLastEventMics()

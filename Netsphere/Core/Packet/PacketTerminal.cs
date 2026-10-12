@@ -730,6 +730,25 @@ public sealed partial class PacketTerminal
         }
         else
         {// Relay
+            if (relayNumber > 0 && netAddress != NetAddress.Relay &&
+                endpointResolution is EndpointResolution.Ipv4 or EndpointResolution.Ipv6)
+            {// Encode an explicit family without relying on this host's reachability of the destination.
+                NetEndpoint destination = default;
+                var resolved = endpointResolution switch
+                {
+                    EndpointResolution.Ipv4 => netAddress.TryCreateIpv4(ref destination),
+                    EndpointResolution.Ipv6 => netAddress.TryCreateIpv6(ref destination),
+                    _ => false,
+                };
+                if (!resolved)
+                {
+                    dataToBeMoved.Return();
+                    return NetResult.NoNetwork;
+                }
+
+                netAddress = new NetAddress(destination);
+            }
+
             if (!circuit.RelayKey.TryEncrypt(relayNumber, netAddress, dataToBeMoved.Span, out var encrypted, out endpoint))
             {
                 dataToBeMoved.Return();
@@ -782,10 +801,11 @@ public sealed partial class PacketTerminal
 
     private void QueueConnectResponse(NetEndpoint endpoint, ConnectPacket request, ulong packetId, bool incomingRelay, int relayNumber)
     {
+        var relayKey = relayNumber > 0 ? (incomingRelay ? this.netTerminal.IncomingCircuit : this.netTerminal.OutgoingCircuit).RelayKey : null;
         _ = Task.Run(() =>
         {
             var packet = new ConnectPacketResponse(this.netBase.DefaultAgreement, endpoint);
-            if (!this.netTerminal.ConnectionTerminal.PrepareServerSide(endpoint, request, packet, relayNumber))
+            if (!this.netTerminal.ConnectionTerminal.PrepareServerSide(endpoint, request, packet, relayNumber, relayKey, incomingRelay))
             {
                 return;
             }

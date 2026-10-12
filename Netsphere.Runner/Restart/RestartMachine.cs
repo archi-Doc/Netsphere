@@ -216,33 +216,31 @@ public partial class RestartMachine : Machine
 
         if (string.IsNullOrEmpty(this.options.Service))
         {// Restart project
-            await this.Restart(container, true);
+            return await this.Restart(container, true) ? CommandStatus.Success : CommandStatus.Failure;
         }
         else
         {// Restart service
-            await this.Restart(container, false);
+            return await this.Restart(container, false) ? CommandStatus.Success : CommandStatus.Failure;
         }
-
-        return CommandStatus.Success;
     }
 
-    private async Task Restart(ContainerListResponse targetContainer, bool restartProject)
+    private async Task<bool> Restart(ContainerListResponse targetContainer, bool restartProject)
     {
         if (this.options == null)
         {
-            return;
+            return false;
         }
 
         if (this.docker is null)
         {
-            return;
+            return false;
         }
 
         var inspect = await this.docker.Containers.InspectContainerAsync(targetContainer.ID);
 
         if (!inspect.Config.Labels.TryGetValue("com.docker.compose.project", out var projectName))
         {
-            return;
+            return false;
         }
 
         this.logger.GetWriter()?.Write($"Project: {projectName}");
@@ -250,38 +248,32 @@ public partial class RestartMachine : Machine
         if (!this.TryGetConfigurationFile(inspect, out var configFile))
         {
             this.logger.GetWriter(LogLevel.Error)?.Write($"Failed to load the configuration file. Please specify it using 'volumes: - ./docker-compose.yml:{ConfigFile}:ro'");
-            return;
+            return false;
         }
 
         // this.ShowConfigurationFile(configFile);
 
         // Stop and remove container
-        var param = restartProject ? string.Empty : $" {this.options.Service}";
-        await RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {projectName} rm -sf{param}");
+        var param = restartProject ? string.Empty : $" {RunnerHelper.QuoteArgument(this.options.Service)}";
+        if (!await RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {RunnerHelper.QuoteArgument(projectName)} rm -sf{param}"))
+        {
+            return false;
+        }
+
         Console.WriteLine("\r");
 
         // Create and start container
-        param = restartProject ? string.Empty : $" --build {this.options.Service}";
-        await RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {projectName} -f {configFile} up -d{param}");
+        param = restartProject ? string.Empty : $" --build {RunnerHelper.QuoteArgument(this.options.Service)}";
+        if (!await RunnerHelper.DispatchCommand(this.logger, $"docker compose -p {RunnerHelper.QuoteArgument(projectName)} -f {RunnerHelper.QuoteArgument(configFile)} up -d{param}"))
+        {
+            return false;
+        }
+
         Console.WriteLine("\r");
 
         this.logger.GetWriter()?.Write($"Restart complete");
         Console.WriteLine();
-    }
-
-    private void ShowConfigurationFile(string configurationFile)
-    {
-        try
-        {
-            var lines = File.ReadAllLines(configurationFile);
-            foreach (var x in lines)
-            {
-                Console.WriteLine(x);
-            }
-        }
-        catch
-        {
-        }
+        return true;
     }
 
     private bool TryGetConfigurationFile(ContainerInspectResponse inspect, [MaybeNullWhen(false)] out string configurationFile)
@@ -303,29 +295,5 @@ public partial class RestartMachine : Machine
 
         configurationFile = default;
         return false;
-    }
-
-    private async Task RestartContainer(ContainerListResponse targetContainer)
-    {
-        if (this.docker is null)
-        {
-            return;
-        }
-
-        var inspect = await this.docker.Containers.InspectContainerAsync(targetContainer.ID);
-
-        // Stop container
-        await this.docker.Containers.StopContainerAsync(targetContainer.ID, new ContainerStopParameters());
-
-        // Remove container
-        await this.docker.Containers.RemoveContainerAsync(targetContainer.ID, new());
-
-        // Create container
-        var createParams = new CreateContainerParameters(inspect.Config);
-        createParams.Name = targetContainer.Names.First().Trim('/');
-        var created = await this.docker.Containers.CreateContainerAsync(createParams);
-
-        // Start container
-        await this.docker.Containers.StartContainerAsync(created.ID, new ContainerStartParameters());
     }
 }

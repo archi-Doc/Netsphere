@@ -9,6 +9,7 @@ namespace Netsphere;
 /// <summary>
 /// Provides microsecond clocks, cached timestamps, and time conversions.
 /// </summary>
+/// <remarks>The network sender refreshes cached timestamps while running. Use Get methods for fresh readings, or Update methods to refresh the caches explicitly.</remarks>
 public static class Mics
 {
     public const long DefaultMarginMics = MicsPerSecond * 5; // 5 seconds

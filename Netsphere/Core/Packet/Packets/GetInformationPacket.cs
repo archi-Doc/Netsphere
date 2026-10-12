@@ -5,7 +5,7 @@ using Netsphere.Crypto;
 namespace Netsphere.Packet;
 
 /// <summary>
-/// Requests a node's encryption public key.
+/// Requests a node's encryption public key and advertised node address.
 /// </summary>
 [TinyhandObject]
 public partial class GetInformationPacket : IPacket
@@ -18,7 +18,7 @@ public partial class GetInformationPacket : IPacket
 }
 
 /// <summary>
-/// Returns a node's encryption public key.
+/// Returns a node's encryption public key and optional advertised node address.
 /// </summary>
 [TinyhandObject]
 public partial class GetInformationPacketResponse : IPacket

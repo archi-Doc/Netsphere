@@ -177,8 +177,7 @@ public class ConnectionTerminal
             return null;
         }
 
-        var address = node.Address;
-        if (!this.netStats.TryCreateEndpoint(ref address, endpointResolution, out var endPoint))
+        if (!this.TryCreateConnectionEndpoint(node.Address, endpointResolution, targetNumberOfRelays > 0, out var endPoint))
         {
             return null;
         }
@@ -197,7 +196,8 @@ public class ConnectionTerminal
 
         // Create a new connection
         var packet = new ConnectPacket(publicKey, node.PublicKey.GetHashCode(), default);
-        var t = await this.packetTerminal.SendAndReceive<ConnectPacket, ConnectPacketResponse>(node.Address, packet, targetNumberOfRelays, default, endpointResolution, incomingRelay).ConfigureAwait(false); // < 0: target
+        var handshakeAddress = targetNumberOfRelays > 0 ? new NetAddress(endPoint) : node.Address;
+        var t = await this.packetTerminal.SendAndReceive<ConnectPacket, ConnectPacketResponse>(handshakeAddress, packet, targetNumberOfRelays, default, endpointResolution, incomingRelay).ConfigureAwait(false); // < 0: target
         if (t.Value is null)
         {
             return default;
@@ -243,15 +243,14 @@ public class ConnectionTerminal
             }
         }
 
-        var address = node.Address;
-        if (!this.netStats.TryCreateEndpoint(ref address, endpointResolution, out var endPoint))
-        {
-            return null;
-        }
-
         if (minimumNumberOfRelays < this.NetTerminal.MinimumNumberOfRelays)
         {
             minimumNumberOfRelays = this.NetTerminal.MinimumNumberOfRelays;
+        }
+
+        if (!this.TryCreateConnectionEndpoint(node.Address, endpointResolution, minimumNumberOfRelays > 0, out var endPoint))
+        {
+            return null;
         }
 
         var relayKey = minimumNumberOfRelays > 0 ? this.NetTerminal.OutgoingCircuit.RelayKey : null;
@@ -296,7 +295,8 @@ public class ConnectionTerminal
         // Create a new connection
         var sourceNetNode = this.netStats.OwnNetNode?.Address.IsValidIpv4AndIpv6 == true ? this.netStats.OwnNetNode : default;
         var packet = new ConnectPacket(publicKey, node.PublicKey.GetHashCode(), sourceNetNode);
-        var t = await this.packetTerminal.SendAndReceive<ConnectPacket, ConnectPacketResponse>(node.Address, packet, minimumNumberOfRelays, default, endpointResolution).ConfigureAwait(false); // Use the same address family as endPoint; the server binds the connection to the handshake's source.
+        var handshakeAddress = minimumNumberOfRelays > 0 ? new NetAddress(endPoint) : node.Address;
+        var t = await this.packetTerminal.SendAndReceive<ConnectPacket, ConnectPacketResponse>(handshakeAddress, packet, minimumNumberOfRelays, default, endpointResolution).ConfigureAwait(false); // Use the same address family as endPoint; the server binds the connection to the handshake's source.
         var response = t.Value;
         if (response is null)
         {
@@ -381,50 +381,100 @@ public class ConnectionTerminal
 
     internal ClientConnection PrepareBidirectionalConnection(ServerConnection serverConnection)
     {
+        ClientConnection? orphan = null;
         using (this.clientConnections.LockObject.EnterScope())
         {
             ObjectDisposedException.ThrowIf(this.terminating, this);
             ObjectDisposedException.ThrowIf(
                 serverConnection.IsClosedOrDisposed || (serverConnection.MinimumNumberOfRelays > 0 && this.IsClosingRelayedConnections(serverConnection.UseIncomingRelay)),
                 serverConnection);
-            if (this.clientConnections.ConnectionIdChain.TryGetValue(serverConnection.ConnectionId, out var connection))
+            if (this.clientConnections.ConnectionIdChain.TryGetValue(serverConnection.ConnectionId, out var connection) && !connection.IsDisposed)
             {
-                connection.IncrementOpenCount();
                 connection.ChangeStateInternal(Connection.State.Open);
             }
             else
             {
+                if (connection is not null)
+                {
+                    connection.Goshujin = null;
+                }
+
                 connection = new ClientConnection(serverConnection);
                 connection.Goshujin = this.clientConnections;
             }
 
+            connection.BidirectionalConnection = serverConnection;
             serverConnection.BidirectionalConnection = connection;
-            return connection;
+            if (this.terminating || serverConnection.IsClosedOrDisposed ||
+                (serverConnection.MinimumNumberOfRelays > 0 && this.IsClosingRelayedConnections(serverConnection.UseIncomingRelay)) ||
+                !ReferenceEquals(serverConnection.BidirectionalConnection, connection) ||
+                !ReferenceEquals(connection.BidirectionalConnection, serverConnection))
+            {// Close may run while the context factory is executing under the opposite owner lock.
+                serverConnection.TryClearBidirectionalConnection(connection);
+                if (connection.TryClearBidirectionalConnection(serverConnection))
+                {
+                    connection.Goshujin = null;
+                    orphan = connection;
+                }
+            }
+            else
+            {
+                return connection;
+            }
         }
+
+        // Dispose outside owner locks: transmission completion and context cleanup may run user code.
+        var errors = orphan is null ? null : DisposeConnections([orphan]);
+        throw new ObjectDisposedException(nameof(serverConnection), errors is null ? null : new AggregateException(errors));
     }
 
     internal ServerConnection PrepareBidirectionalConnection(ClientConnection clientConnection)
     {
+        ServerConnection? orphan = null;
         using (this.serverConnections.LockObject.EnterScope())
         {
             ObjectDisposedException.ThrowIf(this.terminating, this);
             ObjectDisposedException.ThrowIf(
                 clientConnection.IsClosedOrDisposed || (clientConnection.MinimumNumberOfRelays > 0 && this.IsClosingRelayedConnections(clientConnection.UseIncomingRelay)),
                 clientConnection);
-            if (this.serverConnections.ConnectionIdChain.TryGetValue(clientConnection.ConnectionId, out var connection))
+            if (this.serverConnections.ConnectionIdChain.TryGetValue(clientConnection.ConnectionId, out var connection) && !connection.IsDisposed)
             {// ReuseServerConnection
                 // Reusing a Connection may cause inconsistencies in the enabled NetServices, but for now the current implementation does not change the NetServices.
                 connection.ChangeStateInternal(Connection.State.Open);
             }
             else
             {
+                if (connection is not null)
+                {
+                    connection.Goshujin = null;
+                }
+
                 connection = new ServerConnection(clientConnection);
                 connection.Goshujin = this.serverConnections;
             }
 
+            connection.BidirectionalConnection = clientConnection;
             clientConnection.BidirectionalConnection = connection;
-            return connection;
+            if (this.terminating || clientConnection.IsClosedOrDisposed ||
+                (clientConnection.MinimumNumberOfRelays > 0 && this.IsClosingRelayedConnections(clientConnection.UseIncomingRelay)) ||
+                !ReferenceEquals(clientConnection.BidirectionalConnection, connection) ||
+                !ReferenceEquals(connection.BidirectionalConnection, clientConnection))
+            {// Publish before rechecking: a later close captures this peer; an earlier close is rolled back here.
+                clientConnection.TryClearBidirectionalConnection(connection);
+                if (connection.TryClearBidirectionalConnection(clientConnection))
+                {
+                    connection.Goshujin = null;
+                    orphan = connection;
+                }
+            }
+            else
+            {
+                return connection;
+            }
         }
+
+        var errors = orphan is null ? null : DisposeConnections([orphan]);
+        throw new ObjectDisposedException(nameof(clientConnection), errors is null ? null : new AggregateException(errors));
     }
 
     internal ClientConnection? PrepareClientSide(NetNode node, NetEndpoint endPoint, SeedKey clientSeedKey, EncryptionPublicKey serverPublicKey, ConnectPacket p, ConnectPacketResponse p2)
@@ -458,8 +508,14 @@ public class ConnectionTerminal
         return connection;
     }
 
-    internal bool PrepareServerSide(NetEndpoint endPoint, ConnectPacket p, ConnectPacketResponse p2, int relayNumber)
+    internal bool PrepareServerSide(NetEndpoint endPoint, ConnectPacket p, ConnectPacketResponse p2, int relayNumber, RelayKey? expectedRelayKey = null, bool incomingRelay = true)
     {
+        var circuit = incomingRelay ? this.NetTerminal.IncomingCircuit : this.NetTerminal.OutgoingCircuit;
+        if (relayNumber > 0)
+        {
+            expectedRelayKey ??= circuit.RelayKey;
+        }
+
         var node = new NetNode(in endPoint, p.ClientPublicKey);
         Span<byte> material = stackalloc byte[CryptoBox.SharedSecretSize];
         if (!this.NetTerminal.NodeSeedKey.TryDeriveKeyMaterial(p.ClientPublicKey, material))
@@ -487,15 +543,33 @@ public class ConnectionTerminal
         var connection = new ServerConnection(this.NetTerminal.PacketTerminal, this, connectionId, node, endPoint);
         connection.Initialize(p2.Agreement, embryo);
         connection.MinimumNumberOfRelays = relayNumber;
+        if (relayNumber > 0)
+        {
+            connection.UseIncomingRelay = incomingRelay;
+        }
 
+        bool accepted;
         using (this.serverConnections.LockObject.EnterScope())
         {// ConnectionStateCode
-            if (this.terminating)
+            accepted = !this.terminating && (relayNumber <= 0 ||
+                (!this.IsClosingRelayedConnections(incomingRelay) &&
+                expectedRelayKey!.NumberOfRelays >= relayNumber &&
+                ReferenceEquals(expectedRelayKey, circuit.RelayKey)));
+            if (accepted)
             {
-                return false;
+                connection.Goshujin = this.serverConnections;
+            }
+        }
+
+        if (!accepted)
+        {// A deferred handshake or context factory may have outlived its circuit. Dispose user state outside the owner lock.
+            var errors = DisposeConnections([connection]);
+            if (errors is not null)
+            {
+                throw new AggregateException(errors);
             }
 
-            connection.Goshujin = this.serverConnections;
+            return false;
         }
 
         if (!this.netStats.NodeControl.HasSufficientActiveNodes &&
@@ -547,11 +621,10 @@ public class ConnectionTerminal
 
                 connection.CloseTransmissions();
 
-                bidirectionalConnection = clientConnection.BidirectionalConnection;
-                if (bidirectionalConnection is not null)
+                bidirectionalConnection = clientConnection.DetachBidirectionalConnection();
+                if (bidirectionalConnection is not null && !bidirectionalConnection.TryClearBidirectionalConnection(clientConnection))
                 {
-                    clientConnection.BidirectionalConnection = default;
-                    bidirectionalConnection.BidirectionalConnection = default;
+                    bidirectionalConnection = null;
                 }
             }
 
@@ -580,11 +653,10 @@ public class ConnectionTerminal
 
                 connection.CloseTransmissions();
 
-                bidirectionalConnection = serverConnection.BidirectionalConnection;
-                if (bidirectionalConnection is not null)
+                bidirectionalConnection = serverConnection.DetachBidirectionalConnection();
+                if (bidirectionalConnection is not null && !bidirectionalConnection.TryClearBidirectionalConnection(serverConnection))
                 {
-                    serverConnection.BidirectionalConnection = default;
-                    bidirectionalConnection.BidirectionalConnection = default;
+                    bidirectionalConnection = null;
                 }
             }
 
@@ -816,4 +888,31 @@ public class ConnectionTerminal
 
     private bool IsClosingRelayedConnections(bool incoming)
         => incoming ? Volatile.Read(ref this.closingIncomingRelayedConnections) > 0 : Volatile.Read(ref this.closingOutgoingRelayedConnections) > 0;
+
+    private bool TryCreateConnectionEndpoint(NetAddress address, EndpointResolution endpointResolution, bool relayed, out NetEndpoint endpoint)
+    {
+        if (!relayed)
+        {
+            return this.netStats.TryCreateEndpoint(ref address, endpointResolution, out endpoint);
+        }
+
+        // A relay must contact the advertised address, even when a direct connection would use our loopback alias.
+        endpoint = default;
+        if (endpointResolution is EndpointResolution.PreferIpv6 or EndpointResolution.NetAddress)
+        {
+            if ((this.netStats.IsIpv6Supported || !address.IsValidIpv4) && address.TryCreateIpv6(ref endpoint))
+            {
+                return true;
+            }
+
+            return address.TryCreateIpv4(ref endpoint);
+        }
+
+        return endpointResolution switch
+        {
+            EndpointResolution.Ipv4 => address.TryCreateIpv4(ref endpoint),
+            EndpointResolution.Ipv6 => address.TryCreateIpv6(ref endpoint),
+            _ => false,
+        };
+    }
 }

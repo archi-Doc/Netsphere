@@ -11,6 +11,7 @@ Netsphere is a UDP-based network library for C# with generated RPC, serialized b
 - [Quick start](#quick-start)
 - [Service contracts and results](#service-contracts-and-results)
 - [Service lifetime and filters](#service-lifetime-and-filters)
+- [Connection lifecycle](#connection-lifecycle)
 - [Options and connection limits](#options-and-connection-limits)
 - [Blocks and streams](#blocks-and-streams)
 - [Memory ownership and concurrency](#memory-ownership-and-concurrency)
@@ -144,12 +145,13 @@ This example uses loopback and a newly generated key on each server run. For rem
 ## Service contracts and results
 
 - Mark the shared interface with `[NetService]` and inherit `INetService`.
+- Use a nonzero `[NetService(1234)]` value to override the automatic service ID. Keep IDs unique and identical on both peers; method IDs still depend on the contract signatures.
 - Mark the implementation with `[NetObject]`, register it, and enable it through `NetTerminal.Services`.
 - Use Tinyhand-serializable arguments and response values. Keep contract definitions consistent between client and server.
 - Rebuild both endpoints when updating the generator. Generated wire formats, including specialized byte-memory handling, must match; compatibility with older generated proxies is not guaranteed.
 - Single byte-memory arguments use the raw payload format even when followed by a cancellation token. Successful empty raw byte-array responses are returned as empty arrays; this format does not distinguish null from an empty array.
-- Methods return `Task`, `Task<T>`, or use the [ResponseChannel](#responsechannel) form. A cancellation token on a Task-based method must be the final parameter.
-- Prefer `Task<NetResult>` or `Task<NetResultAndValue<T>>` when callers need an explicit status. A plain `Task<T>` does not expose transport status separately from its value.
+- Methods return `Task`, `Task<T>`, or use the [ResponseChannel](#responsechannel) form. Generic service methods and `ref`, `in`, or `out` parameters on Task-based methods are unsupported. A cancellation token on a Task-based method must be the final parameter.
+- Prefer `Task<NetResult>` or `Task<NetResultAndValue<T>>` when callers need an explicit status. Generated `Task<T>` methods return the default value on transport or deserialization failure; plain `Task` methods do not report those failures to the caller.
 
 Check `NetResult` before consuming a returned value or stream. Outcomes include `Success`, `Completed`, `Timeout`, `Closed`, `NoNetService`, and size-limit errors.
 
@@ -157,9 +159,17 @@ Check `NetResult` before consuming a returned value or stream. Outcomes include 
 
 Implementations are resolved lazily and cached for each server connection. Their actual lifetime also depends on the DI registration or factory; singleton registrations can share an instance across connections. Calls can overlap.
 
+Implement `INetObject.OnConnectionClosed` for service cleanup. It runs when the service is disabled or its connection context is disposed; it is not an immediate notification of every connection closure. Shared implementations may receive the callback for more than one connection.
+
 `TransmissionContext.Current` exposes the active request and its server connection while a handler runs. Enable or disable services for that connection through `TransmissionContext.Current.ServerConnection.GetContext()`. `NetTerminal.Services` sets the defaults for new connections.
 
 Apply `[NetServiceFilter<TFilter>]` to an implementation class or method. Filters implement `IServiceFilter` and receive the request context and continuation. Class and method filters are combined in ascending `Order`; `Arguments` are passed to `SetArguments`. A filter with a parameterless constructor is created for each invocation. Other filters are resolved from DI and follow the registered lifetime. Shared DI instances must handle concurrent calls and argument initialization. Filters also run for `ResponseChannel` methods. See the [filter examples](xUnitTest/Services/IFilterTestService.cs).
+
+## Connection lifecycle
+
+`Connect` defaults to `Connection.ConnectMode.ReuseIfAvailable`. `ReuseOnly` uses a matching reusable connection without opening a new one; `NoReuse` creates a separate connection. Each successful `Connect` acquires a reference, so dispose it once even when several calls return the same object. `ClientConnection.Close()` is an alias for `Dispose()` and releases one reference.
+
+Dispose connections when finished and call `unit.Terminate()` during shutdown. A canceled or timed-out RPC may already have run remotely; retry state-changing operations only when the application can detect or tolerate duplicates.
 
 ## Options and connection limits
 
@@ -205,14 +215,16 @@ See the complete [stream service](xUnitTest/Services/IStreamService.cs) and [cli
 | --- | --- |
 | RPC `byte[]`, `Memory<byte>`, or `ReadOnlyMemory<byte>` response | The client receives an independent copy that remains valid after the call. |
 | RPC `Memory<byte>` or `ReadOnlyMemory<byte>` argument inside a handler | Borrowed request storage; do not retain it after the handler returns. Returning it or a slice as the response is supported. |
-| RPC `BytePool.RentedMemory` or `BytePool.RentedReadOnlyMemory` argument inside a handler | Borrowed request storage; do not retain it after the handler returns. Returning it, a slice of it, or an `IncrementAndShare()` reference as the response is supported. |
+| RPC `BytePool.RentedMemory` or `BytePool.RentedReadOnlyMemory` argument inside a handler | Borrowed request storage. Return the borrowed value or a slice as the response without acquiring another reference. Acquire and later return a separate lease if retaining the data beyond the handler. |
 | RPC `BytePool.RentedMemory` or `BytePool.RentedReadOnlyMemory` response | Ownership transfers to the client, which must return the lease after use. |
 | Low-level `NetResponse` | Call `Return()` exactly once after consuming its buffer. |
 | Stream send or receive buffer | Keep it available and do not modify send data until the operation finishes. |
 
-Raw byte-array responses use no null marker: an empty payload is returned as `null`. Use a serialized wrapper when callers must distinguish an empty array from `null`.
+Raw byte-array responses use no null marker: both null and empty responses arrive as empty arrays. Use a serialized wrapper when callers must distinguish them.
 
 Copying a pooled-memory struct does not acquire another lease. Use `IncrementAndShare()` when another owner needs its own reference, and return every acquired lease exactly once. Generated byte-memory responses reuse an exclusively owned request buffer when it fits; otherwise they copy before releasing the request.
+
+Generated rented-memory responses treat the request buffer as borrowed even when another reference exists. Returning `IncrementAndShare()` of that same buffer does not transfer the extra lease. For manual response handling, `TransmissionContext.SetResponseOwnedRentMemory` explicitly accepts an independently owned lease, including one that shares the request buffer.
 
 Calls on a connection may overlap. Protect mutable service state, shared DI filters, and responder state. Stream operations serialize concurrent sends or reads, but their arrival order is not guaranteed; await each operation when ordering matters. A `TransmissionContext` belongs to one request and must not be mutated concurrently.
 
@@ -257,11 +269,13 @@ Console.WriteLine($"{response.Result}: {response.Value}");
 
 `AuthenticationToken`, `CertificateToken<T>`, `INetServiceWithAuthenticate`, and `INetServiceWithConnectBidirectionally` support application-defined authentication and bidirectional access. Encryption alone does not authorize a service call; implement the relevant server policy.
 
+For bidirectional RPC, register callback services on the client, call `ClientConnection.PrepareBidirectionalConnection()`, and enable each callback service on the returned server connection's context. This context starts with no services enabled, regardless of `NetTerminal.Services`. The remote handler can then use `ServerConnection.PrepareBidirectionalConnection()` to obtain a client connection for callbacks. See the [bidirectional test](xUnitTest/Tests/BidirectionalTest.cs) and implement authorization before enabling remote access.
+
 `SetAuthenticationToken` retains the first verified public-key identity on a connection. A different identity is rejected, including concurrent requests; use a new connection to change identities. Failed authentication is not cached as success.
 
 Relay circuits are available through `NetTerminal.IncomingCircuit` and `OutgoingCircuit`. The default `NoRelayControl` disables relay allocation. Applications can supply an `IRelayControl`, such as `CertificateRelayControl`, and configure relay limits. See the [relay test](xUnitTest/Tests/RelayTest.cs).
 
-Circuit additions are published after the preceding relay accepts setup. Failed setup leaves the existing circuit intact. Cleanup removes a closed hop and all outer hops that depend on it. Rejected source endpoints and failed authentication do not consume relay points.
+Circuit additions are published after the preceding relay accepts setup. An explicit setup rejection preserves the existing circuit; a lost or invalid setup response closes it because the remote endpoint may already have changed. Cleanup closes a circuit containing a closed hop, including its dependent connections. Rejected source endpoints and failed authentication do not consume relay points.
 
 This commented example is retained from the earlier README as a historical snippet:
 
@@ -271,8 +285,9 @@ This commented example is retained from the earlier README as a historical snipp
 
 ## Supporting utilities
 
-- `Mics`, `MicsRange`, and `Time` provide microsecond clocks, timestamp ranges, and DateTime conversions. `Fast*` properties return cached timestamps.
+- `Mics`, `MicsRange`, and `Time` provide microsecond clocks, timestamp ranges, and DateTime conversions. `Fast*` properties return cached timestamps refreshed by the running network sender; use the corresponding `Get*` methods when no terminal is running or a fresh reading is required.
 - `NtpCorrection` and `NtpMachine` maintain network clock correction.
+- `ClockHand` publishes second and minute changes to registered `IClockHandTarget` listeners after `SendSignal(ExecutionSignal.Start)`. Delays and clock corrections can coalesce or repeat clock boundaries; callbacks are not precision timers.
 - `NetStats` and `NodeControl` track observed addresses and known nodes.
 - `IdFileLogger<TOption>` writes buffered logs to files grouped by identifier.
 
@@ -283,8 +298,6 @@ This commented example is retained from the earlier README as a historical snipp
 - **`NoNetService`:** register and enable the interface before connecting. Existing connections retain their own service settings.
 - **Size-limit errors:** check the agreed limits, serialization overhead, and declared stream length.
 - **Unexpected shared state:** inspect service and filter lifetimes; handlers can run concurrently.
-
-Dispose client connections and call `unit.Terminate()` during shutdown.
 
 ## Building and testing
 
@@ -320,6 +333,6 @@ Run the microbenchmarks in Release mode, separately from tests because both use 
 dotnet run --project tools/CoreBenchmarks/CoreBenchmarks.csproj -c Release -- artifacts/core-benchmark.json
 ```
 
-The harness warms each case and reports the median of seven samples, with elapsed nanoseconds and allocated bytes per operation on the measuring thread. It covers formatting, queues, packet creation, encryption, transmission cleanup, relay cleanup, and response-buffer reuse. It does not measure allocations on other threads or end-to-end network throughput. Pool misses, payload sizes, filters, and asynchronous work can still allocate. See [PERFORMANCE_REVIEW.md](PERFORMANCE_REVIEW.md) for the measured changes and coverage gaps.
+The harness warms each case and reports the median of seven samples, with elapsed nanoseconds and allocated bytes per operation on the measuring thread. It covers formatting, queues, packet creation, encryption, transmission cleanup, relay cleanup, and response-buffer reuse. It does not measure allocations on other threads or end-to-end network throughput. Pool misses, payload sizes, filters, and asynchronous work can still allocate.
 
 The repository also contains [QuickStartServer](QuickStartServer), [QuickStartClient](QuickStartClient), and [NetsphereTest](NetsphereTest) examples. Netsphere is licensed under the [MIT license](LICENSE).

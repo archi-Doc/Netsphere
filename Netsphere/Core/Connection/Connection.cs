@@ -398,14 +398,14 @@ public abstract class Connection : IDisposable
     internal async ValueTask<SendTransmissionAndTimeout> TryCreateSendTransmission(TimeSpan timeout, CancellationToken cancellationToken)
     {
 Retry:
-        if (!this.IsActive || timeout < TimeSpan.Zero)
+        if (!this.IsActive || timeout < TimeSpan.Zero || cancellationToken.IsCancellationRequested)
         {
             return default;
         }
 
         using (this.sendTransmissions.LockObject.EnterScope())
         {
-            if (this.IsClosedOrDisposed)
+            if (this.IsClosedOrDisposed || cancellationToken.IsCancellationRequested)
             {
                 return default;
             }
@@ -686,7 +686,8 @@ Wait:
 
         // Resolve to the address family of DestinationEndpoint. PreferIpv6 could pick the other family, and the peer drops protected packets from an unexpected endpoint.
         var endpointResolution = this.DestinationEndpoint.EndPoint?.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? EndpointResolution.Ipv6 : EndpointResolution.Ipv4;
-        this.PacketTerminal.SendPacket(this.DestinationNode.Address, rentArray, default, this.MinimumNumberOfRelays, endpointResolution, this.UseIncomingRelay);
+        var destinationAddress = this.MinimumNumberOfRelays == 0 ? this.DestinationNode.Address : new NetAddress(this.DestinationEndpoint);
+        this.PacketTerminal.SendPacket(destinationAddress, rentArray, default, this.MinimumNumberOfRelays, endpointResolution, this.UseIncomingRelay);
     }
 
     internal void SendCloseFrame()

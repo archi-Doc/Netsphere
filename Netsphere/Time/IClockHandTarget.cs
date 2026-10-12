@@ -5,24 +5,21 @@ using CrossChannel;
 namespace Netsphere;
 
 /// <summary>
-/// Defines clock-tick callbacks for radio service targets that need periodic time-based updates.
+/// Receives observed second and minute changes from <see cref="ClockHand"/>.
 /// </summary>
 /// <remarks>
-/// Implementations are invoked by the clock hand dispatcher at fixed intervals.
-/// Keep handlers lightweight and non-blocking to avoid delaying other targets.
+/// Keep handlers short and non-blocking. Delays and clock corrections can coalesce or repeat clock boundaries.
 /// </remarks>
 [RadioService(AutoRegisterServiceAndSender = false)]
 public interface IClockHandTarget : IRadioService
 {
     /// <summary>
-    /// Invoked once every second.<br/>
-    /// Keep handlers lightweight and non-blocking to avoid delaying other targets.
+    /// Called on the first poll and whenever the corrected clock's second changes.
     /// </summary>
     void OnEverySecond();
 
     /// <summary>
-    /// Invoked once every minute.<br/>
-    /// Keep handlers lightweight and non-blocking to avoid delaying other targets.
+    /// Called when the corrected clock's minute changes between polls.
     /// </summary>
     void OnEveryMinute();
 }

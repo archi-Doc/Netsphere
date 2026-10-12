@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 namespace Netsphere.Misc;
 
 /// <summary>
-/// Measures elapsed time across repeated benchmark runs.
+/// Records elapsed intervals and summarizes their minimum, maximum, and average durations.
 /// </summary>
 public class BenchTimer
 {
@@ -33,7 +33,7 @@ public class BenchTimer
     }
 
     /// <summary>
-    /// Stops measuring elapsed time.
+    /// Records the interval since the previous start or stop and begins the next interval.
     /// </summary>
     public void Stop()
     {
@@ -48,7 +48,7 @@ public class BenchTimer
     }
 
     /// <summary>
-    /// Stops measuring elapsed time.
+    /// Records an interval and formats its duration in milliseconds.
     /// </summary>
     /// <param name="caption">A caption to be added to the elapsed time record.</param>
     /// <returns>A string with the caption and the elapsed time in milliseconds ("caption: 123 ms").</returns>

@@ -382,10 +382,13 @@ public sealed class TransmissionContext : ITransmissionContextInternal
     internal void CheckReceiveStream()
     {
         if (this.Result == NetResult.Success &&
-            this.receiveStream is { } stream &&
-            stream.ReceiveTransmission.Mode != NetTransmissionMode.Disposed)
-        {// Not completed. Keep an error that the handler has already set (for example, NotAuthenticated).
-            this.Result = NetResult.NotReceived;
+            this.receiveStream is { } stream)
+        {// Keep an error that the handler has already set (for example, NotAuthenticated).
+            var result = stream.ReceiveTransmission.Result;
+            if (result != NetResult.Completed)
+            {// Disposal also occurs on cancellation or closure; only Completed means the request was received in full.
+                this.Result = result;
+            }
         }
     }
 

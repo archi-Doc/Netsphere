@@ -70,6 +70,12 @@ public abstract class SendStreamBase
         }
 
         var result = await this.SendTransmission.ProcessSend(this, dataControl, buffer, cancellationToken).ConfigureAwait(false);
+        if (result == NetResult.Closed && dataControl == DataControl.Valid && buffer.IsEmpty &&
+            this.sentTask is { IsCompletedSuccessfully: true } && this.sentTask.Result == NetResult.Success)
+        {// An empty write stays a no-op after the final ACK has released the send transmission.
+            result = NetResult.Success;
+        }
+
         if (result.IsError())
         {// Error
             this.Dispose(true);
@@ -140,9 +146,19 @@ public abstract class SendStreamBase
 
         try
         {
+            if (this.responseSource is not null && this.receiveTransmission is null)
+            {
+                return new(NetResult.NoTransmission);
+            }
+
             var result = this.sentTask is { IsCompletedSuccessfully: true } && this.sentTask.Result == NetResult.Success
                 ? NetResult.Success
                 : await this.SendTransmission.ProcessSend(this, DataControl.Complete, ReadOnlyMemory<byte>.Empty, cancellationToken).ConfigureAwait(false);
+            if (result == NetResult.Closed && this.sentTask is { IsCompletedSuccessfully: true } && this.sentTask.Result == NetResult.Success)
+            {// The final ACK may dispose the sender while the completion operation waits for its send lock.
+                result = NetResult.Success;
+            }
+
             if (result.IsError())
             {// Error
                 return new(result);

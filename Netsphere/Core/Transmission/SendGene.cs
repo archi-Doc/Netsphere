@@ -157,7 +157,7 @@ internal partial class SendGene
         }
         else
         {// Relay
-            if (!connection.CorrespondingRelayKey.TryEncrypt(connection.MinimumNumberOfRelays, connection.DestinationNode.Address, packet.Span, out var encrypted, out var relayEndpoint))
+            if (!connection.CorrespondingRelayKey.TryEncrypt(connection.MinimumNumberOfRelays, new NetAddress(connection.DestinationEndpoint), packet.Span, out var encrypted, out var relayEndpoint))
             {
                 packet.Return();
                 return false;

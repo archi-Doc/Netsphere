@@ -27,6 +27,36 @@ internal class DockerRunner
         return new DockerRunner(client, logger, options);
     }
 
+    internal static bool MatchesImage(string image, string requestedImage)
+    {
+        if (string.IsNullOrEmpty(requestedImage))
+        {
+            return false;
+        }
+
+        if (string.Equals(image, requestedImage, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // An untagged repository matches its tags/digests, but never another repository with the same prefix.
+        if (requestedImage.Contains('@') || requestedImage.LastIndexOf(':') > requestedImage.LastIndexOf('/'))
+        {
+            return false;
+        }
+
+        return image.StartsWith(requestedImage + ":", StringComparison.Ordinal) ||
+            image.StartsWith(requestedImage + "@", StringComparison.Ordinal);
+    }
+
+    internal static (string Image, string Tag) SplitImageReference(string image)
+    {
+        var separator = image.LastIndexOf(':');
+        return !image.Contains('@') && separator > image.LastIndexOf('/')
+            ? (image.Substring(0, separator), image.Substring(separator + 1))
+            : (image, string.Empty);
+    }
+
     private DockerRunner(DockerClient client, ILogger logger, RunOptions options)
     {
         this.client = client;
@@ -37,13 +67,13 @@ internal class DockerRunner
     public async Task<IEnumerable<ContainerListResponse>> EnumerateContainersAsync()
     {
         var list = await this.client.Containers.ListContainersAsync(new() { Limit = ListContainersLimit, });
-        return list.Where(x => x.Image.StartsWith(this.options.Image));
+        return list.Where(x => MatchesImage(x.Image, this.options.Image));
     }
 
     public async Task<int> CountContainersAsync()
     {
         var list = await this.client.Containers.ListContainersAsync(new() { Limit = ListContainersLimit, });
-        return list.Count(x => x.Image.StartsWith(this.options.Image));
+        return list.Count(x => MatchesImage(x.Image, this.options.Image));
     }
 
     public async Task<(bool IsRunning, IPAddress? Address)> GetContainer()
@@ -51,7 +81,7 @@ internal class DockerRunner
         var list = await this.client.Containers.ListContainersAsync(new() { Limit = ListContainersLimit, });
         foreach (var x in list)
         {
-            if (x.Image.StartsWith(this.options.Image))
+            if (MatchesImage(x.Image, this.options.Image))
             {// A container may have no network (host/none mode) or several; use the first address that is reported.
                 IPAddress? address = null;
                 if (x.NetworkSettings?.Networks is { } networks)
@@ -103,14 +133,7 @@ internal class DockerRunner
         // Create image
         this.logger.GetWriter()?.Write($"Pull image: {this.options.Image}");
 
-        string image = this.options.Image;
-        string tag = string.Empty;
-        var parts = image.Split(':');
-        if (parts.Length == 2)
-        {
-            image = parts[0];
-            tag = parts[1];
-        }
+        var (image, tag) = SplitImageReference(this.options.Image);
 
         var progress = new Progress<JSONMessage>();
         try
@@ -136,7 +159,7 @@ internal class DockerRunner
         this.logger.GetWriter()?.Write($"Start container: {this.options.Image}");
 
         var command = $"docker run {dockerParameters} {this.options.Image} {containerParameters}"; // -i: key input, -t: , -d: leave the container running
-        await RunnerHelper.DispatchCommand(this.logger, command);
+        var started = await RunnerHelper.DispatchCommand(this.logger, command);
 
         /*try
         {
@@ -175,7 +198,7 @@ internal class DockerRunner
             return false;
         }*/
 
-        return true;
+        return started;
     }
 
     /*public async Task RestartContainer()

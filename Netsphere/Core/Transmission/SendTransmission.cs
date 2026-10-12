@@ -157,7 +157,7 @@ internal sealed partial class SendTransmission : IDisposable
 
             if (this.IsDisposed)
             {// Transmission
-                return NetResult.Closed;
+                return task.IsCompletedSuccessfully ? task.Result : NetResult.Closed;
             }
 
             try
@@ -488,38 +488,9 @@ internal sealed partial class SendTransmission : IDisposable
             this.Connection.Logger.GetWriter(LogLevel.Debug)?.Write($"{this.Connection.ConnectionIdText} ReceiveAck Burst {this.GeneSerialMax}");
         }
 
-        if (this.gene0 is not null)
-        {
-            if (this.gene0.Dispose(true) is { } rtt)
-            {// Exclude resent genes as they do not allow for accurate RTT measurement.
-                this.Connection.AddRtt(rtt);
-                this.gene0.CongestionControl.AddRtt(rtt);
-            }
-
-            this.gene0 = null;
-        }
-
-        if (this.gene1 is not null)
-        {
-            if (this.gene1.Dispose(true) is { } rtt)
-            {// Exclude resent genes as they do not allow for accurate RTT measurement.
-                this.Connection.AddRtt(rtt);
-                this.gene1.CongestionControl.AddRtt(rtt);
-            }
-
-            this.gene1 = null;
-        }
-
-        if (this.gene2 is not null)
-        {
-            if (this.gene2.Dispose(true) is { } rtt)
-            {// Exclude resent genes as they do not allow for accurate RTT measurement.
-                this.Connection.AddRtt(rtt);
-                this.gene2.CongestionControl.AddRtt(rtt);
-            }
-
-            this.gene2 = null;
-        }
+        this.AcknowledgeBurstGene(ref this.gene0);
+        this.AcknowledgeBurstGene(ref this.gene1);
+        this.AcknowledgeBurstGene(ref this.gene2);
 
         /*if (sentCount != 0)
         {
@@ -574,8 +545,41 @@ internal sealed partial class SendTransmission : IDisposable
             }
 
             if (this.genes is null)
-            {// Burst (Complete)
-                this.ProcessReceive_AckBurstInternal();
+            {// Older peers may acknowledge a completed burst with individual block ranges.
+                var acknowledged = (1 << successiveReceivedPosition) - 1;
+                while (numberOfPairs-- > 0)
+                {
+                    var startGene = BitConverter.ToInt32(span);
+                    var endGene = BitConverter.ToInt32(span.Slice(sizeof(int)));
+                    span = span.Slice(sizeof(int) * 2);
+                    if (startGene < 0 || startGene >= this.GeneSerialMax || endGene <= startGene || endGene > this.GeneSerialMax)
+                    {
+                        continue;
+                    }
+
+                    acknowledged |= ((1 << endGene) - 1) & ~((1 << startGene) - 1);
+                }
+
+                if ((acknowledged & 1) != 0)
+                {
+                    this.AcknowledgeBurstGene(ref this.gene0);
+                }
+
+                if ((acknowledged & 2) != 0)
+                {
+                    this.AcknowledgeBurstGene(ref this.gene1);
+                }
+
+                if ((acknowledged & 4) != 0)
+                {
+                    this.AcknowledgeBurstGene(ref this.gene2);
+                }
+
+                if (this.gene0 is null && this.gene1 is null && this.gene2 is null)
+                {
+                    this.ProcessReceive_AckBurstInternal();
+                }
+
                 return;
             }
 
@@ -739,6 +743,20 @@ internal sealed partial class SendTransmission : IDisposable
             }
 
             return false;
+        }
+    }
+
+    private void AcknowledgeBurstGene(ref SendGene? gene)
+    {
+        if (gene is not null)
+        {
+            if (gene.Dispose(true) is { } rtt)
+            {// Exclude resent genes as they do not allow for accurate RTT measurement.
+                this.Connection.AddRtt(rtt);
+                gene.CongestionControl.AddRtt(rtt);
+            }
+
+            gene = null;
         }
     }
 
