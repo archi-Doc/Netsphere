@@ -126,13 +126,13 @@ public class RemoteDataControl
 
         // Receive into a temporary file: an interrupted upload must neither destroy the previous content nor leave a partial file,
         // and the result is reported only after the data has been flushed and moved into place.
-        var temporaryPath = path + ".tmp";
+        var temporaryPath = Path.Combine(Path.GetDirectoryName(path)!, ".netsphere-" + Guid.NewGuid().ToString("N") + ".tmp");
         var result = NetResult.UnknownError;
         try
         {
             var receiveStream = transmissionContext.GetReceiveStream<NetResult>();
             this.logger.GetWriter(LogLevel.Information)?.Write($"Put: {identifier}");
-            using (var fileStream = File.Create(temporaryPath))
+            using (var fileStream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             {
                 result = await NetHelper.ReceiveStreamToStream(receiveStream, fileStream);
             }
@@ -175,8 +175,18 @@ public class RemoteDataControl
         }
 
         // Resolve the path and require it to stay inside the data directory; substring checks miss forms such as "a/.." or "a:b".
-        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.DataDirectory)) + Path.DirectorySeparatorChar;
-        var path = Path.GetFullPath(Path.Combine(root, identifier));
+        string root;
+        string path;
+        try
+        {
+            root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.DataDirectory)) + Path.DirectorySeparatorChar;
+            path = Path.GetFullPath(Path.Combine(root, identifier));
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
+
         var isWindows = OperatingSystem.IsWindows();
         if (!path.StartsWith(root, isWindows ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) ||
             path.Length == root.Length ||

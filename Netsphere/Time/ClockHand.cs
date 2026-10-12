@@ -3,13 +3,11 @@
 namespace Netsphere;
 
 /// <summary>
-/// Runs a lightweight background clock loop and publishes second/minute ticks to <see cref="IClockHandTarget"/>.<br/>
-/// Do not forget to call ClockHand.SendSignal(ExecutionSignal.Start) before using it.
+/// Publishes observed second and minute changes to <see cref="IClockHandTarget"/>.
 /// </summary>
 /// <remarks>
-/// The loop checks time every <see cref="MillisecondsToWait"/> milliseconds, emits
-/// <see cref="IClockHandTarget.OnEverySecond"/> once per second, and emits
-/// <see cref="IClockHandTarget.OnEveryMinute"/> at each minute boundary.
+/// Start with <c>SendSignal(ExecutionSignal.Start)</c>. The loop polls the corrected clock every 20 milliseconds.
+/// Delays coalesce missed boundaries; backward clock corrections can repeat them. Callbacks run on the polling loop.
 /// </remarks>
 public class ClockHand : TaskCore<ClockHand>
 {

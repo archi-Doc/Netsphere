@@ -148,6 +148,16 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
 
     public NetAddress(IPAddress? addressIpv4, IPAddress? addressIpv6, ushort port)
     {
+        if (addressIpv4 is not null && addressIpv4.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+        {
+            throw new ArgumentException("An IPv4 address is required.", nameof(addressIpv4));
+        }
+
+        if (addressIpv6 is not null && addressIpv6.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6)
+        {
+            throw new ArgumentException("An IPv6 address is required.", nameof(addressIpv6));
+        }
+
         Span<byte> span = stackalloc byte[16];
 
         if (addressIpv4 is not null &&
@@ -465,7 +475,7 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
 
     public bool IsPrivateOrLocalLoopbackAddress()
     {
-        return (this.IsValidIpv4 && this.IsPrivateOrLocalLoopbackAddressIPv4()) ||
+        return (this.IsValidIpv4 && IsPrivateOrLocalLoopbackAddressIPv4(this.Address4)) ||
             (this.IsValidIpv6 && this.IsPrivateOrLocalLoopbackAddressIPv6());
     }
 
@@ -879,6 +889,11 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
 
     private static bool Validate6(ulong address6A, ulong address6B)
     {
+        if (TryGetMappedIpv4(address6A, address6B, out var address4))
+        {
+            return Validate4(address4);
+        }
+
         if (address6A == 0 && (address6B == 0 || address6B == 0x0100000000000000))
         {// Unspecified address, Loopback address
             return false;
@@ -910,10 +925,24 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
         return true;
     }
 
-    private bool IsPrivateOrLocalLoopbackAddressIPv4()
+    private static bool TryGetMappedIpv4(ulong address6A, ulong address6B, out uint address4)
+    {
+        Span<byte> suffix = stackalloc byte[8];
+        BitConverter.TryWriteBytes(suffix, address6B);
+        if (address6A == 0 && suffix[0] == 0 && suffix[1] == 0 && suffix[2] == 0xff && suffix[3] == 0xff)
+        {
+            address4 = BitConverter.ToUInt32(suffix.Slice(4));
+            return true;
+        }
+
+        address4 = 0;
+        return false;
+    }
+
+    private static bool IsPrivateOrLocalLoopbackAddressIPv4(uint address4)
     {
         Span<byte> address = stackalloc byte[4];
-        if (!BitConverter.TryWriteBytes(address, this.Address4))
+        if (!BitConverter.TryWriteBytes(address, address4))
         {
             return false;
         }
@@ -949,6 +978,11 @@ public readonly partial record struct NetAddress : IStringConvertible<NetAddress
 
     private bool IsPrivateOrLocalLoopbackAddressIPv6()
     {
+        if (TryGetMappedIpv4(this.Address6A, this.Address6B, out var address4))
+        {
+            return IsPrivateOrLocalLoopbackAddressIPv4(address4);
+        }
+
         if (this.Address6A == 0 && this.Address6B == 0x0100000000000000)
         {// Loopback address
             return true;

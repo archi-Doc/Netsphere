@@ -294,6 +294,12 @@ public class NetsphereObject : VisceralObjectBase<NetsphereObject>
 
         static void AddMethod(NetsphereObject obj, NetsphereObject method)
         {
+            if (method.TryGetMethodSymbol() is { IsAbstract: false } helper &&
+                (helper.IsStatic || helper.DeclaredAccessibility == Accessibility.Private))
+            {// Concrete static and private interface helpers are not remote operations.
+                return;
+            }
+
             var serviceMethod = ServiceMethod.Create(obj, method);
             if (serviceMethod == null)
             {

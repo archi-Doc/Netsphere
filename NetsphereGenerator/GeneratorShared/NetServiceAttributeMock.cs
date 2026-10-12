@@ -25,7 +25,9 @@ public sealed class NetServiceAttributeMock : Attribute
         var attribute = new NetServiceAttributeMock();
         object? val;
 
-        val = AttributeHelper.GetValue(0, nameof(ServiceId), constructorArguments, namedArguments);
+        // Named properties are assigned after the constructor, including its optional default.
+        val = AttributeHelper.GetValue(-1, nameof(ServiceId), constructorArguments, namedArguments)
+            ?? AttributeHelper.GetValue(0, null, constructorArguments, namedArguments);
         if (val != null)
         {
             attribute.ServiceId = (uint)val;

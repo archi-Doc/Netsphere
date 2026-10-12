@@ -273,7 +273,7 @@ NewPacket:
             }
             else
             {// Relay
-                if (connection.CorrespondingRelayKey.TryEncrypt(connection.MinimumNumberOfRelays, connection.DestinationNode.Address, rentArray.AsMemory(0, packetLength).Span, out var encrypted, out var relayEndpoint))
+                if (connection.CorrespondingRelayKey.TryEncrypt(connection.MinimumNumberOfRelays, new NetAddress(connection.DestinationEndpoint), rentArray.AsMemory(0, packetLength).Span, out var encrypted, out var relayEndpoint))
                 {
                     netSender.Send_NotThreadSafe(relayEndpoint.EndPoint, encrypted);
                 }

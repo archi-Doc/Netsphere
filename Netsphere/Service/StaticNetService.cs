@@ -1,6 +1,8 @@
 ﻿// Copyright (c) All contributors. All rights reserved. Licensed under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace Netsphere;
@@ -15,15 +17,25 @@ public static class StaticNetService
     public delegate INetService FrontendFactoryDelegate(ClientConnection clientConnection);
 
     internal static ThreadSafeTypeKeyHashtable<NetServiceInfo> ServiceInfoTable = new();
+    private static readonly ConcurrentDictionary<Type, uint> ServiceIds = new();
     private static ThreadSafeTypeKeyHashtable<NetObjectInfo> objectInfoTable = new();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetServiceId<TService>()
-        => TinyhandTypeIdentifier.GetTypeIdentifier<TService>();
+        => DelegateCache<TService>.ServiceId;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetServiceId(Type serviceType)
-        => TinyhandTypeIdentifier.GetTypeIdentifier(serviceType);
+        => ServiceIds.GetOrAdd(serviceType, static type =>
+        {
+            if (type.GetCustomAttribute<NetServiceAttribute>(inherit: false) is { ServiceId: not 0 } attribute)
+            {
+                return attribute.ServiceId;
+            }
+
+            // The generator names nested contracts with dots, while reflection uses '+'.
+            return (uint)Arc.Crypto.FarmHash.Hash64((type.FullName ?? string.Empty).Replace('+', '.'));
+        });
 
     public static void SetFrontendFactory<TService>(FrontendFactoryDelegate factoryDelegate)
         where TService : INetService
@@ -67,6 +79,8 @@ public static class StaticNetService
 
     private static class DelegateCache<T>
     {
+        internal static readonly uint ServiceId = GetServiceId(typeof(T));
+
         internal static FrontendFactoryDelegate? FactoryDelegate;
 #pragma warning restore SA1401 // Fields should be private
 

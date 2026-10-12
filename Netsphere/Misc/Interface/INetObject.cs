@@ -3,12 +3,13 @@
 namespace Netsphere;
 
 /// <summary>
-/// Provides connection lifecycle callbacks for a network service implementation.
+/// Provides a cleanup callback for a network service implementation.
 /// </summary>
 public interface INetObject
 {
     /// <summary>
-    /// Called when the network connection associated with this object is closed.
+    /// Called when this service is disabled or its connection context is disposed.
     /// </summary>
+    /// <remarks>A shared implementation may receive this callback from multiple connections.</remarks>
     void OnConnectionClosed();
 }

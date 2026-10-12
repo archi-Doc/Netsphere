@@ -281,6 +281,10 @@ public class ServiceMethod
             return string.Empty;
         }
 
+        var format = SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+            SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
+            SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier |
+            SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers);
         var sb = new StringBuilder();
         for (var i = 0; i < this.method.Method_Parameters.Length; i++)
         {
@@ -294,7 +298,7 @@ public class ServiceMethod
                 sb.Append(VisceralHelper.RefKindToStringWithSpace(methodSymbol.Parameters[i].RefKind));
             }
 
-            sb.Append(this.method.Method_Parameters[i]);
+            sb.Append(methodSymbol.Parameters[i].Type.ToDisplayString(format));
             sb.Append(" ");
             sb.Append(NetsphereBody.ArgumentPrefix);
             sb.Append(i + 1);

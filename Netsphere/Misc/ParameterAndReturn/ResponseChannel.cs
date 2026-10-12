@@ -33,14 +33,14 @@ public partial record struct ResponseChannel<TResponse> : IResponseChannelIntern
     // public readonly bool IsValueSet;
 
     /// <summary>
-    /// Gets the value returned by the server to the client.
+    /// Gets the response value set by the handler or decoded during deserialization.
     /// </summary>
     public TResponse? Value { get; private set; }
 
     /// <summary>
     /// Gets the client callback for a response, send failure, or transmission closure.
     /// </summary>
-    /// <remarks>Callbacks may run on the receive path or the thread pool. Keep them short and signal completion explicitly.</remarks>
+    /// <remarks>Callbacks may run on the receive path, on the thread pool, or during a local send failure. Keep them short and signal completion explicitly.</remarks>
     // public ResponseDelegate<TResponse>? ResponseDelegate { get; private set; }
     public readonly ResponseDelegate<TResponse>? ResponseDelegate;
 

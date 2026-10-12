@@ -21,11 +21,6 @@ public static class NetStatsHelper
         };
 
         var results = await Task.WhenAll(tasks);
-        if (results is null)
-        {
-            return default;
-        }
-
         IPAddress? ipv4 = default;
         IPAddress? ipv6 = default;
         foreach (var x in results)

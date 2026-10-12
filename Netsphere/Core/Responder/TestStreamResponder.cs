@@ -26,18 +26,34 @@ public class TestStreamResponder : INetResponder
         }
 
         transmissionContext.Return(); // Only the size is needed; release the request lease.
-        Task.Run(async () =>
+        size = Math.Clamp(size, 0, MaxLength);
+        if (!transmissionContext.ServerConnection.Agreement.CheckStreamLength(size))
         {
-            size = Math.Clamp(size, 0, MaxLength);
-            var r = new Xoshiro256StarStar((ulong)size);
-            var buffer = new byte[size];
-            r.NextBytes(buffer);
+            transmissionContext.SendResultAndForget(NetResult.StreamLengthLimit);
+            return;
+        }
 
-            var (_, stream) = transmissionContext.GetSendStream(size, FarmHash.Hash64(buffer));
-            if (stream is not null)
+        _ = Task.Run(async () =>
+        {
+            try
             {
-                await stream.Send(buffer);
-                await stream.Complete();
+                var r = new Xoshiro256StarStar((ulong)size);
+                var buffer = new byte[size];
+                r.NextBytes(buffer);
+
+                var (result, stream) = transmissionContext.GetSendStream(size, FarmHash.Hash64(buffer));
+                if (stream is null)
+                {
+                    transmissionContext.SendResultAndForget(result);
+                }
+                else if (await stream.Send(buffer).ConfigureAwait(false) == NetResult.Success)
+                {
+                    await stream.Complete().ConfigureAwait(false);
+                }
+            }
+            catch
+            {
+                transmissionContext.SendResultAndForget(NetResult.UnknownError);
             }
         });
     }

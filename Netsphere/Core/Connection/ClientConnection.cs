@@ -11,6 +11,7 @@ namespace Netsphere;
 /// <summary>
 /// Provides RPC, block, and stream operations over a client connection.
 /// </summary>
+/// <remarks>Connect may return a shared instance. Dispose each acquired connection reference once; calls may overlap.</remarks>
 [ValueLinkObject(Isolation = IsolationLevel.Serializable, Restricted = true)]
 public sealed partial class ClientConnection : Connection, IClientConnectionInternal, IEquatable<ClientConnection>, IComparable<ClientConnection>
 {
@@ -20,13 +21,19 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
 
     public override bool IsServer => false;
 
-    public ServerConnection? BidirectionalConnection { get; internal set; } // lock (this.ConnectionTerminal.serverConnections.SyncObject)
+    public ServerConnection? BidirectionalConnection
+    {
+        get => Volatile.Read(ref this.bidirectionalConnection);
+        internal set => Interlocked.Exchange(ref this.bidirectionalConnection, value);
+    } // lock (this.ConnectionTerminal.serverConnections.SyncObject)
 
     public CancellationToken CancellationToken => this.cts.Token;
 
     private CancellationTokenSource cts = new();
 
     private int openCount;
+
+    private ServerConnection? bidirectionalConnection;
 
     private ClientConnectionContext context;
 
@@ -692,14 +699,30 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
 
     async Task<NetResult> IClientConnectionInternal.ConnectBidirectionally(ulong dataId, CertificateToken<ConnectionAgreement>? a1)
     {
+        if (!this.IsActive)
+        {
+            return NetResult.Closed;
+        }
+
         if (!NetHelper.TrySerialize(a1, out var rentMemory))
         {
             return NetResult.SerializationFailed;
         }
 
-        this.PrepareBidirectionalConnection(); // Create the ServerConnection in advance, as packets may not arrive in order.
-        var response = await ((IClientConnectionInternal)this).RpcSendAndReceive(rentMemory, dataId).ConfigureAwait(false);
-        rentMemory.Return();
+        (NetResult Result, ulong DataId, BytePool.RentedMemory Value) response;
+        try
+        {
+            this.PrepareBidirectionalConnection(); // Create the ServerConnection in advance, as packets may not arrive in order.
+            response = await ((IClientConnectionInternal)this).RpcSendAndReceive(rentMemory, dataId).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException) when (!this.IsActive)
+        {
+            return NetResult.Closed;
+        }
+        finally
+        {
+            rentMemory.Return();
+        }
 
         try
         {
@@ -728,16 +751,7 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
     }
 
     public ServerConnection PrepareBidirectionalConnection()
-    {
-        if (this.BidirectionalConnection is { } connection)
-        {
-            return connection;
-        }
-        else
-        {
-            return this.ConnectionTerminal.PrepareBidirectionalConnection(this);
-        }
-    }
+        => this.ConnectionTerminal.PrepareBidirectionalConnection(this);
 
     public bool Equals(ClientConnection? other)
     {
@@ -775,6 +789,12 @@ public sealed partial class ClientConnection : Connection, IClientConnectionInte
 
     public void Close()
         => this.Dispose();
+
+    internal ServerConnection? DetachBidirectionalConnection()
+        => Interlocked.Exchange(ref this.bidirectionalConnection, null);
+
+    internal bool TryClearBidirectionalConnection(ServerConnection expected)
+        => ReferenceEquals(Interlocked.CompareExchange(ref this.bidirectionalConnection, null, expected), expected);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void IncrementOpenCount()

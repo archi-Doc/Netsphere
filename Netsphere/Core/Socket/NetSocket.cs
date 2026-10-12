@@ -35,7 +35,7 @@ public sealed class NetSocket
             }
 
             BytePool.RentedArray? rentArray = null;
-            while (!core.IsTerminated)
+            while (core.CanContinue)
             {
                 var udp = core.udp;
 
@@ -118,12 +118,12 @@ public sealed class NetSocket
     /// <param name="port">The UDP port, or zero to select an available port.</param>
     /// <param name="ipv6">Whether to use IPv6.</param>
     /// <param name="boundPort">The assigned port on success.</param>
-    /// <returns>Whether binding and starting succeeded; false if already running.</returns>
+    /// <returns>Whether binding and starting succeeded; false if already running or the parent is canceled.</returns>
     public bool Start(ExecutionGroup parent, int port, bool ipv6, out int boundPort)
     {
         using var scope = this.lifecycleLock.EnterScope();
         boundPort = 0;
-        if (this.recvCore is not null)
+        if (this.recvCore is not null || !parent.CanContinue)
         {
             return false;
         }
@@ -133,15 +133,17 @@ public sealed class NetSocket
             this.PrepareUdpClient(port, ipv6);
             boundPort = ((IPEndPoint)this.UnsafeUdpClient!.Client.LocalEndPoint!).Port;
             this.recvCore = new RecvCore(parent, this, this.UnsafeUdpClient);
+            this.recvCore.SendSignal(ExecutionSignal.Start);
         }
         catch
         {
             this.UnsafeUdpClient?.Dispose();
             this.UnsafeUdpClient = null;
+            this.recvCore?.Dispose();
+            this.recvCore = null;
+            boundPort = 0;
             return false;
         }
-
-        this.recvCore.SendSignal(ExecutionSignal.Start);
 
         return true;
     }
